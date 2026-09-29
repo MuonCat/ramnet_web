@@ -4,6 +4,7 @@
   const sections = [...document.querySelectorAll('.paper-section')];
   const addressingFrame = frames.find(frame => frame.dataset.exhibit === 'product_softmax');
   const compactLayout = matchMedia('(max-width: 760px), (max-width: 1024px) and (max-aspect-ratio: 4/5), (max-width: 1024px) and (min-aspect-ratio: 3/2)');
+  let addressingLayout = null;
   let fitPending = false;
   function fitFigures() {
     const navHeight = document.querySelector('.chapter-nav').getBoundingClientRect().height;
@@ -18,6 +19,7 @@
       frame.style.transform = scale < .999 ? `scale(${scale})` : '';
       stage.style.height = scale < .999 ? `${Math.ceil(height * scale)}px` : '';
     });
+    syncAddressingLayout();
     fitPending = false;
   }
   function scheduleFit() {
@@ -32,7 +34,13 @@
   function syncAddressingLayout() {
     const text = document.querySelector('#addressing .prose').getBoundingClientRect();
     const frame = addressingFrame.getBoundingClientRect();
-    addressingFrame.contentWindow?.postMessage({type: 'ramnet:content-layout', left: text.left - frame.left, width: text.width}, '*');
+    const scale = frame.width / addressingFrame.offsetWidth;
+    const width = Math.min(text.width / scale, addressingFrame.clientWidth);
+    const center = (text.left + text.width / 2 - frame.left) / scale;
+    const left = Math.max(0, Math.min(addressingFrame.clientWidth - width, center - width / 2));
+    if (addressingLayout && Math.abs(addressingLayout.left - left) < .5 && Math.abs(addressingLayout.width - width) < .5) return;
+    addressingLayout = {left, width};
+    addressingFrame.contentWindow?.postMessage({type: 'ramnet:content-layout', left, width}, '*');
   }
   new ResizeObserver(syncAddressingLayout).observe(addressingFrame);
   const visible = new Set();
@@ -46,13 +54,13 @@
       syncFrame(entry.target);
     });
   }, {rootMargin: '100px 0px'});
-  frames.forEach(frame => { frameObserver.observe(frame); frame.addEventListener('load', () => { syncFrame(frame); scheduleFit(); }); });
+  frames.forEach(frame => { frameObserver.observe(frame); frame.addEventListener('load', () => { syncFrame(frame); if (frame === addressingFrame) addressingLayout = null; scheduleFit(); }); });
   window.addEventListener('message', event => {
     const frame = frames.find(item => item.contentWindow === event.source);
     if (!frame) return;
     if (event.data?.type === 'ramnet:ready') {
       syncFrame(frame);
-      if (frame === addressingFrame) syncAddressingLayout();
+      if (frame === addressingFrame) { addressingLayout = null; syncAddressingLayout(); }
     }
     if (event.data?.type === 'ramnet:resize' && Number.isFinite(event.data.height)) {
       frame.style.height = `${Math.max(1, Math.min(2400, event.data.height))}px`;

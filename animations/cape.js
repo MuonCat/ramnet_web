@@ -113,14 +113,14 @@ function createDistributionEditor(parent,side,x,y,height){
  rect(clip,x,y,22,height,'#fff');
  const fills=element('g',{'clip-path':`url(#${side}-dist-clip)`},group);
  for(let i=0;i<params.N;i++){
-  const segment=element('rect',{x,y,width:22,height:0,fill:color(tone,.35+.6*i/(params.N-1)),class:'dist-segment',tabindex:0,role:'slider','aria-label':`${side==='write'?'Write':'Read'} address ${i} weight`,'aria-orientation':'horizontal','aria-valuemin':minimumProbability*100,'aria-valuemax':(1-(params.N-1)*minimumProbability)*100},fills);
+  const segment=element('rect',{x,y,width:22,height:0,fill:color(tone,.35+.6*i/(params.N-1)),class:'dist-segment',tabindex:window.ramnetCompactInteractions.matches?-1:0,role:'slider','aria-label':`${side==='write'?'Write':'Read'} address ${i} weight`,'aria-orientation':'horizontal','aria-valuemin':minimumProbability*100,'aria-valuemax':(1-(params.N-1)*minimumProbability)*100},fills);
   element('title',{},segment).textContent=`Address ${i}: drag right to increase, left to decrease`;
   bindDistributionDrag(segment,side,'segment',i);
   editor.segments.push(segment);
  }
  rect(group,x,y,22,height,'none',color(tone,.8)).setAttribute('pointer-events','none');
  for(let i=0;i<params.N-1;i++){
-  const divider=element('g',{class:'dist-divider',tabindex:0,role:'slider','aria-label':`${side==='write'?'Write':'Read'} boundary between addresses ${i} and ${i+1}`,'aria-orientation':'vertical'},group);
+  const divider=element('g',{class:'dist-divider',tabindex:window.ramnetCompactInteractions.matches?-1:0,role:'slider','aria-label':`${side==='write'?'Write':'Read'} boundary between addresses ${i} and ${i+1}`,'aria-orientation':'vertical'},group);
   element('rect',{x:-7,y:-3*gripScale,width:36,height:6*gripScale,fill:'transparent'},divider);
   element('rect',{x:-3,y:-2*gripScale,width:28,height:4*gripScale,rx:2*gripScale,fill:'#e8e2d3',stroke:color(tone,.9),class:'dist-grip'},divider);
   path(divider,'M 7 0 H 15',color(tone,.9),1.2,{'pointer-events':'none'});
@@ -186,7 +186,7 @@ function restartEditedAdjustment(){
 function scenePoint(event){return new DOMPoint(event.clientX,event.clientY).matrixTransform($('scene').getScreenCTM().inverse())}
 function bindDistributionDrag(control,side,kind,index){
  control.addEventListener('pointerdown',event=>{
-  if(event.button!==0||distributionDrag)return;
+  if(window.ramnetCompactInteractions.matches||event.button!==0||distributionDrag)return;
   event.preventDefault();event.stopPropagation();
   pauseForHover({pointerType:'mouse'});
   distributionDrag={side,kind,index,start:scenePoint(event),values:model(progress)[side].slice(),pointerId:event.pointerId,control};
@@ -207,9 +207,9 @@ function bindDistributionDrag(control,side,kind,index){
  control.addEventListener('pointerup',finish);control.addEventListener('pointercancel',finish);control.addEventListener('lostpointercapture',finish);
  control.addEventListener('keydown',event=>{
   const negative=kind==='divider'?'ArrowUp':'ArrowLeft',positive=kind==='divider'?'ArrowDown':'ArrowRight';
-  if(event.code!==negative&&event.code!==positive)return;
+  if(window.ramnetCompactInteractions.matches||event.code!==negative&&event.code!==positive)return;
   event.preventDefault();event.stopPropagation();
-  playing=false;syncPlayer();
+  playing=false;
   applyDistribution(side,editDistribution(model(progress)[side],kind,index,(event.code===positive?1:-1)*(event.shiftKey ? .05 : .01)));
  });
 }
@@ -274,10 +274,12 @@ function layoutScene(){
  const capeControl=element('g',{id:'cape',class:'cape-control',role:'switch',tabindex:0,'aria-label':'CAPE','aria-checked':'false'},svg);
  element('title',{},capeControl).textContent='Toggle CAPE; the selection is retained until the next round';
  const scoreBox=scoreLabel.getBBox(),capeY=Math.max(distY+distHeight,scoreBox.y+scoreBox.height)+Math.min(48,22+spareHeight*.3);
+ geometry.capeY=capeY;
  const capeLabel=label(capeControl,0,capeY,'CAPE','cape-label','start','center'),capeLabelBox=capeLabel.getBBox();
  const capeWidth=220,capeHeight=16,capeGap=14,capeLeft=(1000-capeLabelBox.width-capeGap-capeWidth)/2,capeX=capeLeft+capeLabelBox.width+capeGap;
  capeLabel.setAttribute('x',capeLeft-capeLabelBox.x);
- nodes.capeHit=rect(capeControl,capeLeft-10,capeY-20,capeLabelBox.width+capeGap+capeWidth+20,40,'transparent');nodes.capeHit.setAttribute('class','cape-hit');
+ const capeHitHeight=window.ramnetCompactInteractions.matches?120:40;
+ nodes.capeHit=rect(capeControl,capeLeft-10,capeY-capeHitHeight/2,capeLabelBox.width+capeGap+capeWidth+20,capeHitHeight,'transparent');nodes.capeHit.setAttribute('class','cape-hit');
  nodes.capeTrack=element('rect',{x:capeX,y:capeY-capeHeight/2,width:capeWidth,height:capeHeight,rx:capeHeight/2,fill:'#b0b7a7'},capeControl);
  nodes.capeThumb=element('circle',{cx:capeX+capeHeight/2,cy:capeY,r:6,fill:'#e8e2d3'},capeControl);
  geometry.capeStart=capeX+capeHeight/2;geometry.capeTravel=capeWidth-capeHeight;
@@ -349,31 +351,28 @@ function render(){
  }
  const stageIndex=stages.findIndex(s=>progress<s.end),index=stageIndex<0?stages.length-1:stageIndex;
  $('cape').setAttribute('aria-checked',String(m.cape>0));
- $('cape-toggle').setAttribute('aria-pressed',String(m.cape>0));
- $('cape-toggle').textContent=m.cape>0?'CAPE on':'CAPE off';
  nodes.capeHit.setAttribute('rx',params.panelRadius);
  nodes.capeTrack.setAttribute('fill',diagram.rgba(colors.green,lerp(diagram.alpha.low,diagram.alpha.strong,m.cape)));
  nodes.capeThumb.setAttribute('cx',g.capeStart+g.capeTravel*m.cape);
 }
-function syncPlayer(){ $('cape-play').textContent=playing?'Pause':'Play'; }
-function seek(value){progress=clamp(value);playing=false;syncPlayer();render()}
-function togglePlay(){if(progress>=1){progress=0;beginRound()}playing=!playing;syncPlayer();render()}
+function seek(value){progress=clamp(value);playing=false;render()}
+function togglePlay(){if(progress>=1){progress=0;beginRound()}playing=!playing;render()}
 function toggleCape(){
  const from=model(progress).cape,to=capeTransition?1-capeTransition.to:from>0?0:1;
  capeOverride=from;
  capeTransition={from,to,elapsed:0,duration:params.capeDuration};
- previous=0;syncPlayer();render();
+ previous=0;render();
 }
 function pauseForHover(event){
  if(window.ramnetCompactInteractions.matches||event.pointerType==='touch')return;
  hoverPaused=true;
  if(progress<stages[1].end)progress=stages[1].end-Number.EPSILON;
- previous=0;syncPlayer();render();
+ previous=0;render();
 }
 function resumeAfterHover(){
  if(!hoverPaused||distributionDrag)return;
  if(pendingAdjustment)restartEditedAdjustment();
- hoverPaused=false;hovered=-1;playing=true;previous=0;syncPlayer();render();
+ hoverPaused=false;hovered=-1;playing=true;previous=0;render();
 }
 function frame(now){
  const dt=previous?Math.min((now-previous)/1000,.1):0;previous=now;
@@ -382,12 +381,12 @@ function frame(now){
   if(capeTransition&&!distributionDrag){
    capeTransition.elapsed+=dt*params.speed;
    capeOverride=lerp(capeTransition.from,capeTransition.to,smooth(capeTransition.elapsed/capeTransition.duration));
-   if(capeTransition.elapsed>=capeTransition.duration){capeOverride=capeTransition.to;capeTransition=null;syncPlayer()}
+   if(capeTransition.elapsed>=capeTransition.duration){capeOverride=capeTransition.to;capeTransition=null}
    changed=true;
   }
   if(playing&&!hoverPaused&&!distributionDrag){
    progress+=dt*params.speed/params.duration;
-   if(progress>=1){if(params.loop){progress%=1;beginRound();syncPlayer()}else{progress=1;playing=false;syncPlayer()}}
+   if(progress>=1){if(params.loop){progress%=1;beginRound()}else{progress=1;playing=false}}
    changed=true;
   }
   if(changed)render();
@@ -395,9 +394,12 @@ function frame(now){
  requestAnimationFrame(frame);
 }
 document.addEventListener('visibilitychange',()=>previous=0);
-$('cape-toggle').addEventListener('click',toggleCape);
-$('cape-play').addEventListener('click',togglePlay);
-window.ramnetCompactInteractions.addEventListener('change',()=>{if(distributionDrag){const {control,pointerId}=distributionDrag;distributionDrag=null;if(control.hasPointerCapture(pointerId))control.releasePointerCapture(pointerId);}resumeAfterHover();});
+window.ramnetCompactInteractions.addEventListener('change',()=>{
+ if(distributionDrag){const {control,pointerId}=distributionDrag;distributionDrag=null;if(control.hasPointerCapture(pointerId))control.releasePointerCapture(pointerId);}
+ document.querySelectorAll('.dist-editor [role="slider"]').forEach(element=>element.setAttribute('tabindex',window.ramnetCompactInteractions.matches?-1:0));
+ if(nodes?.capeHit){const height=window.ramnetCompactInteractions.matches?120:40;nodes.capeHit.setAttribute('y',geometry.capeY-height/2);nodes.capeHit.setAttribute('height',height)}
+ resumeAfterHover();
+});
 document.querySelector('.stage').addEventListener('pointerenter',pauseForHover);
 document.querySelector('.stage').addEventListener('pointerleave',resumeAfterHover);
 document.addEventListener('keydown',event=>{
@@ -405,4 +407,4 @@ document.addEventListener('keydown',event=>{
  if(event.code==='Space'){event.preventDefault();togglePlay()}
  else if(event.code==='ArrowLeft'||event.code==='ArrowRight'){event.preventDefault();seek(progress+(event.code==='ArrowRight'?1:-1)/params.duration/10)}
 });
-beginRound();syncPlayer();render();requestAnimationFrame(frame);
+beginRound();render();requestAnimationFrame(frame);

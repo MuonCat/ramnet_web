@@ -10,6 +10,9 @@ body { color: #30383f; font-family: "Segoe UI", Arial, sans-serif; }
 @media (min-width: 1000px) {
   .exhibit .transport { grid-template-columns: auto minmax(0, 1fr); gap: 16px; }
 }
+@media (max-width: 999px) {
+  .exhibit:is(.exhibit-ramnet_arch, .exhibit-cal_pipeline) .transport-top { justify-content: center; }
+}
 .exhibit .time, .exhibit .play-options { font-size: 11px; }
 .exhibit .icon, .exhibit .icon-button { border-radius: 50%; color: #425d7e; border-color: #cec7b8; }
 .exhibit .transport-top .icon { width: 32px; height: 32px; padding: 0; border: 1px solid #cec7b8; }
@@ -121,6 +124,7 @@ body { color: #30383f; font-family: "Segoe UI", Arial, sans-serif; }
 .compact-interactions .exhibit input[type="checkbox"] { width: 20px; height: 20px; }
 .compact-interactions .exhibit-cal_pipeline .tooltip { display: none; }
 .compact-interactions .exhibit-cal_pipeline canvas { pointer-events: none; }
+.compact-interactions .exhibit-cape :is(.dist-editor, .column-hit) { pointer-events: none; }
 @media (max-width: 700px) {
   .exhibit .transport { padding: 12px 0; }
   .exhibit .transport-top { gap: 6px; flex-wrap: wrap; }

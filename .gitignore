@@ -2,3 +2,5 @@
 .check*
 
 *.txt
+
+__chrome_mobile_profile/
