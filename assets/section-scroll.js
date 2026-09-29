@@ -1,13 +1,14 @@
-﻿(() => {
+(() => {
   'use strict';
   const sections = [...document.querySelectorAll('.paper-section')];
   const chapterNav = document.querySelector('.chapter-nav');
   const hero = document.querySelector('.hero');
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-  let targets = [], snapTimer = 0, snapFrame = 0, snapping = false, lastScrollY = scrollY, expectedY = null;
+  let targets = [], snapTimer = 0, snapFrame = 0, hashTimer = 0, snapping = false, lastScrollY = scrollY, expectedY = null;
   let cooldownSection = null, cooldownUntil = 0;
-  let touching = false, draggingScrollbar = false, autoplay = false;
+  let touching = false, draggingScrollbar = false, autoplay = false, snapArmed = false;
+  let touchStartX = 0, touchStartY = 0, touchScrollIntent = false;
 
   function targetAt(y) {
     return targets.reduce((best, target) => {
@@ -65,7 +66,7 @@
     expectedY = lastScrollY = scrollY;
   }
   function snap() {
-    if (touching || draggingScrollbar) return;
+    if (!snapArmed || touching || draggingScrollbar) return;
     const target = targetAt(scrollY);
     if (!target) { clearCooldown(); return; }
     if (cooldownSection !== target.section) clearCooldown();
@@ -73,7 +74,7 @@
     const max = Math.max(0, document.documentElement.scrollHeight - innerHeight);
     const y = clamp(scrollY + target.section.getBoundingClientRect().top - chapterNav.getBoundingClientRect().height, 0, max);
     if (scrollY === y) return;
-    if (reducedMotion.matches) { moveTo(y); return; }
+    if (reducedMotion.matches) { moveTo(y); scheduleHashUpdate(); return; }
     const start = scrollY, began = performance.now(), duration = 360;
     snapping = true;
     // Closed-form path: x(t) = start + (target - start) * (3u² - 2u³).
@@ -81,15 +82,27 @@
       const u = clamp((now - began) / duration, 0, 1);
       moveTo(start + (y - start) * u * u * (3 - 2 * u));
       if (u < 1) snapFrame = requestAnimationFrame(step);
-      else { snapFrame = 0; snapping = false; }
+      else { snapFrame = 0; snapping = false; scheduleHashUpdate(); }
     }
     snapFrame = requestAnimationFrame(step);
   }
   function scheduleSnap() {
     clearTimeout(snapTimer);
-    if (autoplay || touching || draggingScrollbar || snapping) return;
+    if (!snapArmed || autoplay || touching || draggingScrollbar || snapping) return;
     const remaining = cooldownUntil - performance.now();
     snapTimer = setTimeout(snap, Math.max(120, remaining + 1));
+  }
+  function setChapterHash(section) {
+    const hash = section && section.id !== 'closing' ? `#${section.id}` : '';
+    if (location.hash !== hash) history.replaceState(history.state, '', location.pathname + location.search + hash);
+  }
+  function scheduleHashUpdate() {
+    if (autoplay) return;
+    clearTimeout(hashTimer);
+    hashTimer = setTimeout(() => {
+      const visibleTop = chapterNav.getBoundingClientRect().bottom + 8;
+      setChapterHash(sections.findLast(item => item.getBoundingClientRect().top <= visibleTop));
+    }, 650);
   }
   function interactive(event) {
     const target = event.composedPath()[0];
@@ -97,14 +110,24 @@
   }
   window.addEventListener('wheel', event => {
     if (event.ctrlKey || event.defaultPrevented || Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return;
+    snapArmed = true;
     stopSnap();
     if (interactive(event)) return;
     updateCooldown(event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? innerHeight : 1), performance.now());
     scheduleSnap();
   }, {passive: true});
-  window.addEventListener('touchstart', () => {
+  window.addEventListener('touchstart', event => {
     touching = true;
+    touchScrollIntent = false;
+    touchStartX = event.touches[0]?.clientX ?? 0;
+    touchStartY = event.touches[0]?.clientY ?? 0;
     stopSnap();
+  }, {passive: true});
+  window.addEventListener('touchmove', event => {
+    const touch = event.touches[0];
+    if (!touch) return;
+    const dx = Math.abs(touch.clientX - touchStartX), dy = Math.abs(touch.clientY - touchStartY);
+    if (dy > 8 && dy > dx && !interactive(event)) touchScrollIntent = true;
   }, {passive: true});
   function endTouch() {
     touching = false;
@@ -118,16 +141,22 @@
     const ownScroll = snapping || expectedY !== null && scrollY === expectedY;
     lastScrollY = scrollY;
     expectedY = null;
+    if ((touching || touchScrollIntent) && delta) snapArmed = true;
+    if (delta) scheduleHashUpdate();
     if (ownScroll || !delta) return;
     updateCooldown(delta, performance.now());
     scheduleSnap();
   }, {passive: true});
   document.addEventListener('keydown', event => {
-    if (!interactive(event) && ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) stopSnap();
+    if (!interactive(event) && ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) {
+      snapArmed = true;
+      stopSnap();
+    }
   });
   document.addEventListener('pointerdown', event => {
     if (event.pointerType === 'mouse' && event.clientX >= document.documentElement.clientWidth) {
       draggingScrollbar = true;
+      snapArmed = true;
       stopSnap();
     }
   });
@@ -140,6 +169,7 @@
     const target = targets.find(item => '#' + item.section.id === link.hash);
     if (!target) return;
     event.preventDefault();
+    snapArmed = true;
     stopSnap();
     clearCooldown();
     history.pushState(null, '', link.hash);
@@ -176,6 +206,7 @@
       if (!autoplay || visit !== autoplayVisit) return;
       if (Math.abs(scrollY - destination()) < 2 || now - started > 3000) {
         autoplayFrame = 0;
+        setChapterHash(section);
         document.documentElement.dataset.autoplaySection = section.id;
         section.querySelector('.embedded-exhibit')?.dispatchEvent(new Event('ramnet:autoplay-start'));
         window.dispatchEvent(new CustomEvent('ramnet:autoplay-section', {detail: {id: section.id}}));
@@ -208,7 +239,8 @@
   });
   document.addEventListener('visibilitychange', () => { if (document.hidden) stopAutoplay(); });
   desktopAutoplay.addEventListener('change', () => { if (!desktopAutoplay.matches) stopAutoplay(); });
-  window.addEventListener('popstate', () => { stopSnap(); clearCooldown(); scheduleSnap(); });
+  window.addEventListener('popstate', () => { clearTimeout(hashTimer); snapArmed = touchScrollIntent = false; stopSnap(); clearCooldown(); refreshTargets(); });
+  window.addEventListener('pageshow', () => { clearTimeout(hashTimer); snapArmed = touchScrollIntent = touching = false; stopSnap(); clearCooldown(); refreshTargets(); });
   reducedMotion.addEventListener('change', () => { if (reducedMotion.matches) { stopSnap(); scheduleSnap(); } });
   const closing = document.querySelector('.closing');
   const closingHeading = closing.querySelector('.section-heading');
