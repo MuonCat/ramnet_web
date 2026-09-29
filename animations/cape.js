@@ -1,3 +1,6 @@
+window.RamnetAnimations ??= {};
+window.RamnetAnimations.cape = function mount(scope) {
+const {document, requestAnimationFrame, cancelAnimationFrame} = scope;
 'use strict';
 const diagram=window.ramnetDiagramTheme;
 // This diagram isolates address overlap; it does not simulate PDMA or memory normalization.
@@ -25,6 +28,7 @@ const format=x=>Number.isInteger(x)?String(x):String(Number(x.toFixed(2)));
 function stageProgress(p,index){const stage=stages[index];return clamp((p-stage.start)/(stage.end-stage.start))}
 function syncTiming(){
  params.duration=Number(stages.reduce((sum,stage)=>sum+params[stage.key],0).toFixed(1));
+ scope.setCycleDuration?.(params.duration/params.speed);
  let elapsed=0;
  stages.forEach((stage,i)=>{
   stage.start=elapsed/params.duration;elapsed+=params[stage.key];stage.end=i===stages.length-1?1:elapsed/params.duration;
@@ -407,4 +411,6 @@ document.addEventListener('keydown',event=>{
  if(event.code==='Space'){event.preventDefault();togglePlay()}
  else if(event.code==='ArrowLeft'||event.code==='ArrowRight'){event.preventDefault();seek(progress+(event.code==='ArrowRight'?1:-1)/params.duration/10)}
 });
-beginRound();render();requestAnimationFrame(frame);
+beginRound();render();scope.onAutoplayStart?.(()=>{progress=0;playing=true;hoverPaused=false;previous=0;beginRound();render();});requestAnimationFrame(frame);
+};
+if (document.body.classList.contains('exhibit-cape')) window.RamnetAnimations.cape({document, requestAnimationFrame: window.requestAnimationFrame.bind(window), cancelAnimationFrame: window.cancelAnimationFrame.bind(window)});

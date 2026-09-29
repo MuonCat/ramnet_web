@@ -1,3 +1,6 @@
+window.RamnetAnimations ??= {};
+window.RamnetAnimations.attn_cmp = function mount(scope) {
+const {document, requestAnimationFrame, cancelAnimationFrame} = scope;
 'use strict';
 const diagram=window.ramnetDiagramTheme;
     const $ = id => document.getElementById(id);
@@ -231,9 +234,12 @@ const diagram=window.ramnetDiagramTheme;
     }
     document.addEventListener('visibilitychange',()=>{lastStamp=null;});
     document.documentElement.style.setProperty('--scene-aspect-ratio',params.sceneAspectRatio);
-    buildActions();buildScene();render();requestAnimationFrame(frame);
+    buildActions();scope.setCycleDuration?.(total/params.speed);buildScene();render();requestAnimationFrame(frame);
+    scope.onAutoplayStart?.(()=>{time=0;playing=true;lastStamp=null;currentIndex=-1;render();});
   
 $('scene').addEventListener('click',togglePlay);
 $('scene').setAttribute('tabindex','0');
 $('scene').setAttribute('aria-label','Attention comparison. Click or press Space to pause or resume.');
 $('scene').addEventListener('keydown',e=>{if(e.code==='Space'||e.code==='Enter'){e.preventDefault();togglePlay();}});
+};
+if (document.body.classList.contains('exhibit-attn_cmp')) window.RamnetAnimations.attn_cmp({document, requestAnimationFrame: window.requestAnimationFrame.bind(window), cancelAnimationFrame: window.cancelAnimationFrame.bind(window)});

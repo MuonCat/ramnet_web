@@ -1,3 +1,6 @@
+window.RamnetAnimations ??= {};
+window.RamnetAnimations.cal_pipeline = function mount(scope) {
+const {document, requestAnimationFrame, cancelAnimationFrame} = scope;
 'use strict';
 const diagram=window.ramnetDiagramTheme;
 // Reference: cuda_impl.py::gather_segment, ram_attn_topk_addr.cu,
@@ -203,7 +206,7 @@ function execution(p,intro=false,finish=false){
  if(finish){for(let i=0;i<cfg.T;i++){const w=data.geo.vectorW;fade(phase(p,0,.3),()=>box(tokenX(i)-w/2-2,data.geo.outputY-2,w+4,94,null,rgba(cfg.output,.7)));}}
 }
 function draw(){
- if(!data)return;const dpr=Math.min(devicePixelRatio||1,2);ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,view.width,view.height);
+ if(!data)return;const dpr=Math.min(devicePixelRatio||1,3);ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,view.width,view.height);
  const scale=view.scale,ox=(view.width-data.geo.W*scale)/2,oy=(view.height-data.geo.H*scale)/2;ctx.translate(ox,oy);ctx.scale(scale,scale);hits=[];
  const {s,p}=atTime();tokens();
  switch(s.key){
@@ -223,7 +226,7 @@ function draw(){
  if(hover)box(hover.g.x-2,hover.g.y-2,hover.g.w+4,hover.g.h+4,null,colors.ink,cfg.radius+2);
  updateUI();
 }
-function resize(){hideTooltip();const r=$('viewport').getBoundingClientRect();view.width=r.width;view.height=r.height;const dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);view.scale=Math.min((r.width-18)/data.geo.W,(r.height-12)/data.geo.H);draw();}
+function resize(){hideTooltip();const viewport=$('viewport');view.width=viewport.clientWidth;view.height=viewport.clientHeight;const dpr=Math.min(devicePixelRatio||1,3);canvas.width=Math.round(view.width*dpr);canvas.height=Math.round(view.height*dpr);view.scale=Math.min((view.width-18)/data.geo.W,(view.height-12)/data.geo.H);draw();}
 function updateUI(){stageTimeline.update(playhead);}
 function setPlaying(value){playing=value;lastFrame=0;$('play').innerHTML=playing?'<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 5v10M13 5v10"/></svg>':'<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7 4 9 6-9 6z"/></svg>';$('play').title=playing?'Pause (Space)':'Play (Space)';$('play').setAttribute('aria-label',playing?'Pause':'Play');}
 function seekAction(i){i=clamp(i,0,actionGroups.length-1);const s=stages[actionGroups[i].first];playhead=(s.start+Math.min(.08,s.weight*.025))/totalWeight*cfg.duration;setPlaying(false);hideTooltip();draw();}
@@ -240,10 +243,12 @@ function updateHover(){
 $('play').addEventListener('click',()=>{if(playhead>=cfg.duration){playhead=0;randomizeData();}setPlaying(!playing);});
 $('restart').addEventListener('click',()=>{playhead=0;randomizeData();setPlaying(true);});
 $('prev').addEventListener('click',()=>seekAction(atTime().s.group-1));$('next').addEventListener('click',()=>seekAction(atTime().s.group+1));
-canvas.addEventListener('pointermove',e=>{const r=canvas.getBoundingClientRect();pointer={x:e.clientX-r.left,y:e.clientY-r.top};updateHover();if(!playing)draw();});
+canvas.addEventListener('pointermove',e=>{const r=canvas.getBoundingClientRect();pointer={x:(e.clientX-r.left)*view.width/r.width,y:(e.clientY-r.top)*view.height/r.height};updateHover();if(!playing)draw();});
 canvas.addEventListener('pointerleave',()=>{hideTooltip();if(!playing)draw();});
 document.addEventListener('keydown',e=>{if(e.target.closest('input,select,textarea,button'))return;if(e.code==='Space'){e.preventDefault();$('play').click();}else if(e.code==='ArrowRight'){e.preventDefault();seekAction(atTime().s.group+1);}else if(e.code==='ArrowLeft'){e.preventDefault();seekAction(atTime().s.group-1);}else if(e.code==='Escape'&&document.body.classList.contains('focus')){document.body.classList.remove('focus');resize();}});
-new ResizeObserver(resize).observe($('viewport'));
+new ResizeObserver(resize).observe($('viewport'));document.body.getRootNode().host?.addEventListener('ramnet:fit',resize);
 document.addEventListener('visibilitychange',()=>lastFrame=0);
 function tick(now){const dt=lastFrame?Math.min((now-lastFrame)/1000,.1):0;lastFrame=now;if(playing&&!document.hidden){playhead+=dt*cfg.speed;if(playhead>=cfg.duration){if(cfg.loop){playhead%=cfg.duration;randomizeData();}else{playhead=cfg.duration;setPlaying(false);}}draw();}requestAnimationFrame(tick);}
-buildData();applyStyle();setPlaying(true);resize();requestAnimationFrame(tick);
+buildData();scope.setCycleDuration?.(cfg.duration/cfg.speed);applyStyle();setPlaying(true);resize();scope.onAutoplayStart?.(()=>$('restart').click());requestAnimationFrame(tick);
+};
+if (document.body.classList.contains('exhibit-cal_pipeline')) window.RamnetAnimations.cal_pipeline({document, requestAnimationFrame: window.requestAnimationFrame.bind(window), cancelAnimationFrame: window.cancelAnimationFrame.bind(window)});

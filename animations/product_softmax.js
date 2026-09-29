@@ -1,3 +1,6 @@
+window.RamnetAnimations ??= {};
+window.RamnetAnimations.product_softmax = function mount(scope) {
+const {document, requestAnimationFrame, cancelAnimationFrame} = scope;
 'use strict';
 const diagram=window.ramnetDiagramTheme;
 const $ = id => document.getElementById(id);
@@ -910,6 +913,7 @@ function syncControls(){
 function updatePlayback(){}
 function applyConfig(next,{regenerate=true,restart=false}={}) {
   config=next;if(restart)progress=0;
+  scope.setCycleDuration?.(SECTIONS.reduce((seconds,section)=>seconds+sectionDuration(section)/config[section==='distribution'?'speed':section+'Speed']+config.sectionDelay,0));
   previousTimestamp=null;
   syncControls();if(regenerate)generate();buildFactorEditors();buildActions();buildScene();updatePlayback();
 }
@@ -970,5 +974,8 @@ window.addEventListener('message',event=>{
   layoutPages();buildScene();
 });
 window.ramnetCompactInteractions.addEventListener('change',()=>{hoverScanning=false;pointerScanning=false;treeHoverTarget=null;layoutPages();});
-arrangePages();applyConfig(config);requestAnimationFrame(frame);
+arrangePages();applyConfig(config);scope.onAutoplayStart?.(()=>{pageOrder=[...SECTIONS];playing=true;switchSection('distribution');});requestAnimationFrame(frame);
 new ResizeObserver(()=>{layoutPages();buildScene();}).observe(document.querySelector('.animation-shell'));
+document.body.getRootNode().host?.addEventListener('ramnet:fit',()=>{layoutPages();buildScene();});
+};
+if (document.body.classList.contains('exhibit-product_softmax')) window.RamnetAnimations.product_softmax({document, requestAnimationFrame: window.requestAnimationFrame.bind(window), cancelAnimationFrame: window.cancelAnimationFrame.bind(window)});

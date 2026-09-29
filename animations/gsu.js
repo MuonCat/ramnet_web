@@ -1,3 +1,6 @@
+window.RamnetAnimations ??= {};
+window.RamnetAnimations.gsu = function mount(scope) {
+const {document, requestAnimationFrame, cancelAnimationFrame} = scope;
 'use strict';
 const diagram=window.ramnetDiagramTheme;
 const $=id=>document.getElementById(id), canvas=$('scene'), ctx=canvas.getContext('2d');
@@ -262,7 +265,7 @@ document.addEventListener('pointerleave',()=>{if(!drag&&!gammaDragging){closeVec
 document.addEventListener('pointerdown',event=>{const input=event.target.closest('#gamma-live,#p-gamma');if(!input||input.disabled)return;holdInteraction({element:input.id==='gamma-live'?$('gamma-pill'):input.closest('.control')});gammaDragging=true;},true);
 document.addEventListener('pointerup',event=>{if(gammaDragging){gammaDragging=false;updateInteractionHover(event);}});
 document.addEventListener('pointercancel',()=>{if(gammaDragging){gammaDragging=false;queueInteractionExit();}});
-function resize(){const rect=canvas.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.round(rect.width*dpr);canvas.height=Math.round(rect.height*dpr);ctx.setTransform(canvas.width/sceneWidth,0,0,canvas.height/sceneHeight,0,0);draw();}
+function resize(){const dpr=Math.min(window.devicePixelRatio||1,3);canvas.width=Math.round(canvas.clientWidth*dpr);canvas.height=Math.round(canvas.clientHeight*dpr);ctx.setTransform(canvas.width/sceneWidth,0,0,canvas.height/sceneHeight,0,0);draw();}
 function playback(){ $('gsu-play').textContent=playing?'Ⅱ':'▶';$('gsu-play').setAttribute('aria-label',playing?'Pause':'Play');document.querySelectorAll('#gsu-progress [data-stage]').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.stage)===checkpoint))); }
 function seek(t){clearInteraction();elapsed=clamp(t,0,total());playing=false;playback();draw();}
 function selectAction(i){seek(startOf(clamp(i,0,8))+.001);}
@@ -274,4 +277,6 @@ document.addEventListener('keydown',e=>{if(e.target.closest('input,select,button
 progressGroups.forEach((group,index)=>{const button=document.createElement('button');button.type='button';button.className='gsu-progress-step';button.style.setProperty('--stage-color',colors[group.color]);const label=document.createElement('span');label.textContent=group.name;button.append(label);button.dataset.stage=index;button.addEventListener('click',()=>{clearInteraction();finishStage(index);});$('gsu-progress').append(button);});
 $('gsu-play').addEventListener('click',()=>{clearInteraction();playing=!playing;lastFrame=0;playback();draw();});
 window.ramnetCompactInteractions.addEventListener('change',()=>{const resume=resumeAfterHover;clearInteraction();if(resume)playing=true;playback();draw();});
-document.addEventListener('visibilitychange',()=>{lastFrame=0;});new ResizeObserver(resize).observe(canvas);initialize();applyStyle();playback();resize();requestAnimationFrame(frame);
+document.addEventListener('visibilitychange',()=>{lastFrame=0;});new ResizeObserver(resize).observe(canvas);document.body.getRootNode().host?.addEventListener('ramnet:fit',resize);initialize();scope.setCycleDuration?.(total()/params.speed);applyStyle();playback();resize();scope.onAutoplayStart?.(()=>{initialize();playing=true;lastFrame=0;playback();draw();});requestAnimationFrame(frame);
+};
+if (document.body.classList.contains('exhibit-gsu')) window.RamnetAnimations.gsu({document, requestAnimationFrame: window.requestAnimationFrame.bind(window), cancelAnimationFrame: window.cancelAnimationFrame.bind(window)});

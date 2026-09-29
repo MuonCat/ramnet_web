@@ -1,26 +1,19 @@
 ﻿(() => {
   'use strict';
   const sections = [...document.querySelectorAll('.paper-section')];
-  const frames = [...document.querySelectorAll('iframe[data-exhibit]')];
   const chapterNav = document.querySelector('.chapter-nav');
   const hero = document.querySelector('.hero');
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   let targets = [], snapTimer = 0, snapFrame = 0, snapping = false, lastScrollY = scrollY, expectedY = null;
   let cooldownSection = null, cooldownUntil = 0;
-  let touching = false, draggingScrollbar = false, captureFrames = false;
+  let touching = false, draggingScrollbar = false, autoplay = false;
 
   function targetAt(y) {
     return targets.reduce((best, target) => {
       if (y < target.start || y > target.end) return best;
       return !best || Math.abs(target.y - y) < Math.abs(best.y - y) ? target : best;
     }, null);
-  }
-  function syncFrames() {
-    const capture = !reducedMotion.matches && targets.some(target => scrollY >= target.start - 80 && scrollY <= target.end + 80);
-    if (Boolean(capture) === captureFrames) return;
-    captureFrames = Boolean(capture);
-    frames.forEach(frame => frame.contentWindow?.postMessage({type: 'ramnet:scroll-mode', capture: captureFrames}, '*'));
   }
   function refreshTargets() {
     const inset = chapterNav.getBoundingClientRect().height;
@@ -41,7 +34,6 @@
       };
     });
     if (targetAt(scrollY)?.section !== cooldownSection) clearCooldown();
-    syncFrames();
     scheduleSnap();
   }
   function clearCooldown() {
@@ -71,7 +63,6 @@
     expectedY = y;
     window.scrollTo({top: y, behavior: 'instant'});
     expectedY = lastScrollY = scrollY;
-    syncFrames();
   }
   function snap() {
     if (touching || draggingScrollbar) return;
@@ -96,17 +87,18 @@
   }
   function scheduleSnap() {
     clearTimeout(snapTimer);
-    if (touching || draggingScrollbar || snapping) return;
+    if (autoplay || touching || draggingScrollbar || snapping) return;
     const remaining = cooldownUntil - performance.now();
     snapTimer = setTimeout(snap, Math.max(120, remaining + 1));
   }
-  function interactive(target) {
+  function interactive(event) {
+    const target = event.composedPath()[0];
     return target instanceof Element && target.closest('input, select, textarea, button, a, [role="slider"], [contenteditable="true"]');
   }
   window.addEventListener('wheel', event => {
     if (event.ctrlKey || event.defaultPrevented || Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return;
     stopSnap();
-    if (interactive(event.target)) return;
+    if (interactive(event)) return;
     updateCooldown(event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? innerHeight : 1), performance.now());
     scheduleSnap();
   }, {passive: true});
@@ -121,17 +113,17 @@
   window.addEventListener('touchend', endTouch, {passive: true});
   window.addEventListener('touchcancel', endTouch, {passive: true});
   window.addEventListener('scroll', () => {
+    if (autoplay) { lastScrollY = scrollY; return; }
     const delta = scrollY - lastScrollY;
     const ownScroll = snapping || expectedY !== null && scrollY === expectedY;
     lastScrollY = scrollY;
     expectedY = null;
-    syncFrames();
     if (ownScroll || !delta) return;
     updateCooldown(delta, performance.now());
     scheduleSnap();
   }, {passive: true});
   document.addEventListener('keydown', event => {
-    if (!interactive(event.target) && ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) stopSnap();
+    if (!interactive(event) && ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) stopSnap();
   });
   document.addEventListener('pointerdown', event => {
     if (event.pointerType === 'mouse' && event.clientX >= document.documentElement.clientWidth) {
@@ -153,26 +145,94 @@
     history.pushState(null, '', link.hash);
     window.scrollTo({top: target.y, behavior: reducedMotion.matches ? 'instant' : 'smooth'});
   });
-  window.addEventListener('popstate', () => { stopSnap(); clearCooldown(); scheduleSnap(); });
-  reducedMotion.addEventListener('change', () => { if (reducedMotion.matches) { stopSnap(); scheduleSnap(); } syncFrames(); });
-  window.addEventListener('message', event => {
-    const frame = frames.find(item => item.contentWindow === event.source);
-    if (!frame) return;
-    const message = event.data;
-    if (message?.type === 'ramnet:ready') frame.contentWindow.postMessage({type: 'ramnet:scroll-mode', capture: captureFrames}, '*');
-    if (message?.type === 'ramnet:scroll-touch') {
-      if (message.active) { touching = true; stopSnap(); }
-      else endTouch();
+  const autoplayButton = document.getElementById('autoplay-toggle');
+  const desktopAutoplay = matchMedia('(min-width: 761px) and (pointer: fine)');
+  let autoplayTimer = 0, autoplayFrame = 0, autoplayVisit = 0;
+  function stopAutoplay() {
+    if (!autoplay) return;
+    autoplay = false;
+    autoplayVisit++;
+    clearTimeout(autoplayTimer);
+    cancelAnimationFrame(autoplayFrame);
+    if (autoplayFrame) window.scrollTo({top: scrollY, behavior: 'instant'});
+    autoplayFrame = 0;
+    document.documentElement.classList.remove('is-autoplaying');
+    delete document.documentElement.dataset.autoplaySection;
+    autoplayButton.setAttribute('aria-pressed', 'false');
+    autoplayButton.setAttribute('aria-label', 'Start automatic section playback');
+    autoplayButton.querySelector('.autoplay-icon').textContent = '▶';
+    window.dispatchEvent(new Event('ramnet:autoplay-change'));
+    scheduleSnap();
+  }
+  function playSection(index) {
+    if (!autoplay) return;
+    const visit = ++autoplayVisit, section = sections[index];
+    const destination = () => clamp(scrollY + section.getBoundingClientRect().top - chapterNav.getBoundingClientRect().height, 0, Math.max(0, document.documentElement.scrollHeight - innerHeight));
+    const started = performance.now();
+    window.scrollTo({top: destination(), behavior: reducedMotion.matches ? 'instant' : 'smooth'});
+    function waitForArrival(now) {
+      if (!autoplay || visit !== autoplayVisit) return;
+      if (Math.abs(scrollY - destination()) < 2 || now - started > 3000) {
+        autoplayFrame = 0;
+        document.documentElement.dataset.autoplaySection = section.id;
+        section.querySelector('.embedded-exhibit')?.dispatchEvent(new Event('ramnet:autoplay-start'));
+        window.dispatchEvent(new CustomEvent('ramnet:autoplay-section', {detail: {id: section.id}}));
+        const exhibit = section.querySelector('.embedded-exhibit');
+        const duration = Number(exhibit?.dataset.cycleMs || section.dataset.cycleMs) || 6000;
+        autoplayTimer = setTimeout(() => playSection((index + 1) % sections.length), duration);
+      } else autoplayFrame = requestAnimationFrame(waitForArrival);
     }
-    if (message?.type === 'ramnet:scroll-input' && Number.isFinite(message.delta)) {
-      stopSnap();
-      if (!message.touch) updateCooldown(message.delta, performance.now());
-      window.scrollBy({top: message.delta, behavior: 'instant'});
-    }
+    if (Math.abs(scrollY - destination()) < 2) waitForArrival(performance.now());
+    else autoplayFrame = requestAnimationFrame(waitForArrival);
+  }
+  autoplayButton.addEventListener('click', () => {
+    if (autoplay) { stopAutoplay(); return; }
+    if (!desktopAutoplay.matches || document.hidden) return;
+    stopSnap();
+    autoplay = true;
+    document.documentElement.classList.add('is-autoplaying');
+    autoplayButton.setAttribute('aria-pressed', 'true');
+    autoplayButton.setAttribute('aria-label', 'Stop automatic section playback');
+    autoplayButton.querySelector('.autoplay-icon').textContent = 'Ⅱ';
+    window.dispatchEvent(new Event('ramnet:autoplay-change'));
+    const current = sections.findLast(section => section.getBoundingClientRect().top <= chapterNav.getBoundingClientRect().bottom + 80);
+    playSection(Math.max(0, sections.indexOf(current)));
   });
-  const observer = new ResizeObserver(refreshTargets);
+  window.addEventListener('wheel', stopAutoplay, {passive: true});
+  window.addEventListener('touchstart', stopAutoplay, {passive: true});
+  document.addEventListener('pointerdown', event => { if (!event.target.closest('#autoplay-toggle')) stopAutoplay(); });
+  document.addEventListener('keydown', event => {
+    if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) stopAutoplay();
+  });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) stopAutoplay(); });
+  desktopAutoplay.addEventListener('change', () => { if (!desktopAutoplay.matches) stopAutoplay(); });
+  window.addEventListener('popstate', () => { stopSnap(); clearCooldown(); scheduleSnap(); });
+  reducedMotion.addEventListener('change', () => { if (reducedMotion.matches) { stopSnap(); scheduleSnap(); } });
+  const closing = document.querySelector('.closing');
+  const closingHeading = closing.querySelector('.section-heading');
+  const footer = document.querySelector('.site-footer');
+  function sizeClosing() {
+    for (const [name, height] of [
+      ['--closing-nav-height', chapterNav.offsetHeight],
+      ['--closing-footer-height', footer.offsetHeight],
+      ['--closing-heading-height', closingHeading.offsetHeight]
+    ]) {
+      const value = `${height}px`;
+      if (closing.style.getPropertyValue(name) !== value) closing.style.setProperty(name, value);
+    }
+  }
+  const observer = new ResizeObserver(() => { sizeClosing(); refreshTargets(); });
   sections.forEach(section => observer.observe(section));
   observer.observe(hero);
-  window.addEventListener('resize', refreshTargets);
+  observer.observe(chapterNav);
+  observer.observe(footer);
+  observer.observe(closingHeading);
+  let viewportWidth = innerWidth;
+  window.addEventListener('resize', () => {
+    if (innerWidth !== viewportWidth) { viewportWidth = innerWidth; stopAutoplay(); }
+    sizeClosing();
+    refreshTargets();
+  });
+  sizeClosing();
   refreshTargets();
 })();

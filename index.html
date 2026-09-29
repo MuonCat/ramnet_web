@@ -6,7 +6,12 @@
   <title>RAM-Net — Linear-Time Sequence Modeling with Sparsely Addressable State</title>
   <meta name="description" content="Explore RAM-Net: a larger recurrent memory with sparse read and write access. An interactive explanation of Product Softmax, CAPE, Gated Sparse Update and the CUDA execution pipeline.">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/site.css"><script defer src="assets/site.js"></script><script defer src="assets/hero.js"></script><script defer src="assets/section-scroll.js"></script><script defer src="assets/experiments.js"></script>
+  <link rel="stylesheet" href="assets/site.css">
+  <script defer src="assets/exhibit-markup.js"></script>
+  <script defer src="data/probes/niah_traces.js"></script><script defer src="data/probes/niah_slot_maps.js"></script><script defer src="data/probes/head_traces.js"></script>
+  <script defer src="assets/stage-timeline.js"></script>
+  <script defer src="animations/attn_cmp.js"></script><script defer src="animations/ramnet_arch.js"></script><script defer src="animations/product_softmax.js"></script><script defer src="animations/cape.js"></script><script defer src="animations/gsu.js"></script><script defer src="animations/cal_pipeline.js"></script><script defer src="animations/niah_probe.js"></script><script defer src="animations/head_probe.js"></script>
+  <script defer src="assets/exhibit-host.js"></script><script defer src="assets/site.js"></script><script defer src="assets/hero.js"></script><script defer src="assets/section-scroll.js"></script><script defer src="data/experiments.js"></script><script defer src="assets/experiments.js"></script>
 </head>
 <body id="top">
 <a class="skip-link" href="#memory">Skip to the paper</a>
@@ -45,13 +50,13 @@
 </svg></div></div>
   <div class="hero-summary"><span class="micro">The idea, in brief</span><p>RAM-Net separates <strong class="text-highlight">memory capacity from per-token access</strong>. It stores history in a fixed-size array of addressable slots, while each token reads and writes only a small subset. More slots provide room for more information without a full-state scan at every step. Sparse access keeps sequence processing linear in length and confines direct write interference to shared slots.</p></div>
 </section>
-<nav class="chapter-nav" aria-label="Paper chapters"><div class="nav-inner"><span class="nav-label">IN THIS PAPER</span><div class="chapter-links"><a href="#memory"><span>01</span>Memory</a><a href="#architecture"><span>02</span>Architecture</a><a href="#addressing"><span>03</span>Addressing</a><a href="#position"><span>04</span>CAPE</a><a href="#update"><span>05</span>GSU</a><a href="#execution"><span>06</span>Execution</a><a href="#results"><span>07</span>Results</a><a href="#retrieval-probe"><span>08</span>Retrieval probe</a><a href="#head-probes"><span>09</span>Head probes</a></div></div><div class="reading-progress" aria-hidden="true"></div></nav>
+<nav class="chapter-nav" aria-label="Paper chapters"><div class="nav-inner"><span class="nav-label">IN THIS PAPER</span><div class="chapter-links"><a href="#memory"><span>01</span>Memory</a><a href="#architecture"><span>02</span>Architecture</a><a href="#addressing"><span>03</span>Addressing</a><a href="#position"><span>04</span>CAPE</a><a href="#update"><span>05</span>GSU</a><a href="#execution"><span>06</span>Execution</a><a href="#results"><span>07</span>Results</a><a href="#retrieval-probe"><span>08</span>Retrieval probe</a><a href="#head-probes"><span>09</span>Head probes</a></div><button class="autoplay-toggle" id="autoplay-toggle" type="button" aria-pressed="false" aria-label="Start automatic section playback"><span class="autoplay-icon" aria-hidden="true">▶</span><span>Auto play</span></button></div><div class="reading-progress" aria-hidden="true"></div></nav>
 <noscript><p>The paper is readable without JavaScript. Enable JavaScript to explore the interactive figures.</p></noscript>
 <main class="article" id="paper">
 <section class="paper-section" id="memory" aria-labelledby="heading-memory"><div class="section-opening">
 <div class="section-heading"><div class="section-kicker"><span>01</span>The memory question</div><h2 id="heading-memory">More Memory, Less State Access</h2></div>
 <figure class="exhibit-figure" id="figure-1">
-  <div class="figure-stage"><iframe src="animations/attn_cmp.html" title="Five ways to organize history" data-exhibit="attn_cmp" loading="lazy" style="height:310px"></iframe></div>
+  <div class="figure-stage"><div class="embedded-exhibit" data-exhibit="attn_cmp" role="group" aria-label="Five ways to organize history" style="min-height:310px"></div></div>
 </figure>
 </div>
 <div class="prose">
@@ -66,7 +71,7 @@
 <section class="paper-section" id="architecture" aria-labelledby="heading-architecture"><div class="section-opening">
 <div class="section-heading"><div class="section-kicker"><span>02</span>Inside RAM-Net</div><h2 id="heading-architecture">Reading and Writing a Small Part of Memory</h2></div>
 <figure class="exhibit-figure" id="figure-2">
-  <div class="figure-stage"><iframe src="animations/ramnet_arch.html" title="From a token to a memory operation" data-exhibit="ramnet_arch" loading="lazy" style="height:850px"></iframe></div>
+  <div class="figure-stage"><div class="embedded-exhibit" data-exhibit="ramnet_arch" role="group" aria-label="From a token to a memory operation" style="min-height:850px"></div></div>
 </figure>
 </div>
 <div class="prose">
@@ -80,7 +85,7 @@
 <section class="paper-section" id="addressing" aria-labelledby="heading-addressing"><div class="section-opening">
 <div class="section-heading"><div class="section-kicker"><span>03</span>Product Softmax</div><h2 id="heading-addressing">Product Softmax: Many Slots, Few Logits</h2></div>
 <figure class="exhibit-figure" id="figure-3">
-  <div class="figure-stage"><iframe src="animations/product_softmax.html" title="One product structure. Four perspectives." data-exhibit="product_softmax" loading="lazy" style="height:950px"></iframe></div>
+  <div class="figure-stage"><div class="embedded-exhibit" data-exhibit="product_softmax" role="group" aria-label="One product structure. Four perspectives." style="min-height:950px"></div></div>
 </figure>
 </div>
 <div class="prose">
@@ -101,7 +106,7 @@
 <section class="paper-section" id="position" aria-labelledby="heading-position"><div class="section-opening">
 <div class="section-heading"><div class="section-kicker"><span>04</span>Position-aware addresses</div><h2 id="heading-position">CAPE: Position-Aware Memory Access</h2></div>
 <figure class="exhibit-figure" id="figure-4">
-  <div class="figure-stage"><iframe src="animations/cape.html" title="Content meets relative position" data-exhibit="cape" loading="lazy" style="height:690px"></iframe></div>
+  <div class="figure-stage"><div class="embedded-exhibit" data-exhibit="cape" role="group" aria-label="Content meets relative position" style="min-height:690px"></div></div>
 </figure>
 </div>
 <div class="prose">
@@ -114,7 +119,7 @@
 <section class="paper-section" id="update" aria-labelledby="heading-update"><div class="section-opening">
 <div class="section-heading"><div class="section-kicker"><span>05</span>Gated Sparse Update</div><h2 id="heading-update">GSU: Balancing Retention and New Information</h2></div>
 <figure class="exhibit-figure" id="figure-5">
-  <div class="figure-stage"><iframe src="animations/gsu.html" title="How a selected slot changes" data-exhibit="gsu" loading="lazy" style="height:620px"></iframe></div>
+  <div class="figure-stage"><div class="embedded-exhibit" data-exhibit="gsu" role="group" aria-label="How a selected slot changes" style="min-height:620px"></div></div>
 </figure>
 </div>
 <div class="prose">
@@ -137,7 +142,7 @@
 <section class="paper-section" id="execution" aria-labelledby="heading-execution"><div class="section-opening">
 <div class="section-heading"><div class="section-kicker"><span>06</span>Sparse access on the GPU</div><h2 id="heading-execution">CUDA: Parallel Work Across Memory Slots</h2></div>
 <figure class="exhibit-figure" id="figure-6">
-  <div class="figure-stage"><iframe src="animations/cal_pipeline.html" title="From scattered events to parallel work" data-exhibit="cal_pipeline" loading="lazy" style="height:840px"></iframe></div>
+  <div class="figure-stage"><div class="embedded-exhibit" data-exhibit="cal_pipeline" role="group" aria-label="From scattered events to parallel work" style="min-height:840px"></div></div>
 </figure>
 </div>
 <div class="prose">
@@ -147,14 +152,12 @@
 <p>Different slots and their channels can run in parallel, while events within each slot preserve the <strong class="text-highlight">causal order</strong> required by the recurrence. Slots with no events require no work.</p>
 <p>During autoregressive decoding, the model directly accesses the slots selected by the current token. It does not scan the full recurrent state.</p>
 </div></section>
-<section class="paper-section" id="results" aria-labelledby="heading-results"><div class="section-heading"><div class="section-kicker"><span>07</span>Evidence &amp; trade-offs</div><h2 id="heading-results">Retrieval, Modeling Quality, and State Access</h2></div>
+<section class="paper-section" id="results" data-cycle-ms="6000" aria-labelledby="heading-results"><div class="section-heading"><div class="section-kicker"><span>07</span>Evidence &amp; trade-offs</div><h2 id="heading-results">Results: Quality and State Access</h2></div>
 <div class="metric-grid" aria-label="Selected experimental results">
 <div class="metric"><strong>0.4<span class="metric-unit">M</span></strong><span>Active state · 340M Top-8</span><small>26.2M total state elements</small></div>
 <div class="metric"><strong>72.9</strong><span>S-NIAH average · 340M Top-32</span><small>Three tasks · 1K–16K contexts</small></div>
-<div class="metric"><strong>16.49</strong><span>Wiki. perplexity · 1.3B Top-8</span><small>Lower is better</small></div>
+<div class="metric"><strong>15.90</strong><span>Wiki. perplexity · 1.3B Top-16</span><small>Lower is better</small></div>
 </div>
-<div class="prose"><p>The experiments compare retrieval, language modeling, and task performance at 340M and 1.3B parameters. They examine the trade-off between the amount of state accessed per token and the quality of the retrieved information.</p>
-<p>At 340M, Top-8 accesses <strong class="text-highlight">0.4M of 26.2M state elements</strong>—about 1.5% of its total state and roughly 1/32 of Mamba2’s 12.9M active state. At 1.3B, Top-8 accesses 0.8M of 52.4M elements. These figures measure state access; decoding throughput is evaluated separately.</p></div>
 <div class="experiment-tabs" role="tablist" aria-label="Experiment results" hidden>
 <button type="button" role="tab" id="tab-language" aria-controls="experiment-language" aria-selected="true">Language &amp; reasoning</button>
 <button type="button" role="tab" id="tab-sniah" aria-controls="experiment-sniah" aria-selected="false" tabindex="-1">S-NIAH retrieval</button>
@@ -162,83 +165,43 @@
 </div>
 <article class="experiment-panel" id="experiment-language" aria-labelledby="title-language">
 <h3 id="title-language">Language Modeling and Reasoning</h3>
-<p>At 340M, Top-32 achieves the lowest Wiki. perplexity in this comparison at <strong class="text-highlight">25.87</strong>, while Top-8 leads on Wino at 54.1. At 1.3B, Top-8 reaches 16.49 perplexity and leads on several reasoning tasks. Transformer++ remains ahead on LMB, and Gated DeltaNet on MMLU and SciQ.</p>
-<p class="experiment-key">↓ Lower is better. ↑ Higher is better. State sizes are in millions of elements.</p>
 <div class="experiment-scroll" role="region" aria-label="Language Modeling and Reasoning data table" tabindex="0">
 <table class="experiment-table" data-benchmark="language"><caption>Language Modeling and Reasoning — 340M and 1.3B models</caption><thead>
 <tr><th scope="col">Model</th><th scope="col">Wiki. ppl ↓</th><th scope="col">LMB ↑</th><th scope="col">MMLU ↑</th><th scope="col">ARC-e ↑</th><th scope="col">ARC-c ↑</th><th scope="col">OBQA ↑</th><th scope="col">SciQ ↑</th><th scope="col">BoolQ ↑</th><th scope="col">COPA ↑</th><th scope="col">PIQA ↑</th><th scope="col">Hella ↑</th><th scope="col">Wino ↑</th><th scope="col">Total state ↓</th><th scope="col">Active state ↓</th></tr>
 </thead>
-<tbody data-scale="340M"><tr class="experiment-scale"><th scope="rowgroup" colspan="15"><div class="experiment-scale-label"><b>340M</b><span>parameters</span></div></th></tr>
-<tr><th scope="row">Transformer++</th><td>26.81</td><td><span class="runner-up">33.1</span></td><td>23.1</td><td>57.7</td><td>24.7</td><td>32.0</td><td>82.9</td><td>55.9</td><td>66.0</td><td>65.8</td><td>33.3</td><td>52.2</td><td>100.7M</td><td>100.7M</td></tr>
-<tr><th scope="row">Gated DeltaNet</th><td>26.85</td><td>32.4</td><td>23.4</td><td>57.9</td><td>25.0</td><td><span class="runner-up">35.0</span></td><td><span class="runner-up">83.3</span></td><td>58.9</td><td>67.0</td><td>66.8</td><td><strong>33.9</strong></td><td>50.2</td><td><span class="runner-up">8.5M</span></td><td>8.5M</td></tr>
-<tr><th scope="row">Mamba2</th><td><span class="runner-up">26.23</span></td><td><strong>33.9</strong></td><td>23.1</td><td>59.2</td><td>24.2</td><td>33.8</td><td><strong>83.4</strong></td><td><span class="runner-up">59.6</span></td><td><strong>71.0</strong></td><td><strong>67.7</strong></td><td><strong>33.9</strong></td><td>50.4</td><td>12.9M</td><td>12.9M</td></tr>
-<tr><th scope="row">GLA</th><td>30.03</td><td>30.4</td><td>23.2</td><td>56.9</td><td>25.0</td><td>32.4</td><td>81.6</td><td>56.8</td><td>66.0</td><td>66.4</td><td>32.7</td><td>50.7</td><td><strong>3.1M</strong></td><td>3.1M</td></tr>
-<tr><th scope="row">GSA</th><td>29.17</td><td>32.7</td><td>23.0</td><td><span class="runner-up">59.3</span></td><td><span class="runner-up">25.8</span></td><td><strong>35.8</strong></td><td>83.0</td><td>57.4</td><td>66.0</td><td>66.4</td><td>33.3</td><td>49.8</td><td><strong>3.1M</strong></td><td>3.1M</td></tr>
-<tr class="ramnet-row"><th scope="row">RAM-Net Top-8</th><td>26.89</td><td>28.7</td><td><span class="runner-up">23.6</span></td><td>59.1</td><td>24.7</td><td>34.4</td><td>82.5</td><td>57.4</td><td>67.0</td><td>66.9</td><td>33.4</td><td><strong>54.1</strong></td><td>26.2M</td><td><strong>0.4M</strong></td></tr>
-<tr class="ramnet-row"><th scope="row">RAM-Net Top-16</th><td><span class="runner-up">26.23</span></td><td>29.7</td><td>23.5</td><td><strong>59.4</strong></td><td><strong>26.1</strong></td><td>33.0</td><td>82.8</td><td>58.6</td><td>69.0</td><td><span class="runner-up">67.2</span></td><td><span class="runner-up">33.8</span></td><td>51.4</td><td>26.2M</td><td><span class="runner-up">0.8M</span></td></tr>
-<tr class="ramnet-row"><th scope="row">RAM-Net Top-32</th><td><strong>25.87</strong></td><td>30.9</td><td><strong>23.9</strong></td><td>58.9</td><td><strong>26.1</strong></td><td>32.2</td><td>82.8</td><td><strong>61.6</strong></td><td><span class="runner-up">70.0</span></td><td><span class="runner-up">67.2</span></td><td>33.7</td><td><span class="runner-up">52.7</span></td><td>26.2M</td><td>1.6M</td></tr>
-</tbody>
-<tbody data-scale="1.3B"><tr class="experiment-scale"><th scope="rowgroup" colspan="15"><div class="experiment-scale-label"><b>1.3B</b><span>parameters</span></div></th></tr>
-<tr><th scope="row">Transformer++</th><td><span class="runner-up">17.08</span></td><td><strong>46.9</strong></td><td>23.0</td><td>70.2</td><td>34.0</td><td><span class="runner-up">39.2</span></td><td><span class="runner-up">88.7</span></td><td>59.1</td><td><span class="runner-up">73.0</span></td><td><span class="runner-up">71.3</span></td><td>42.8</td><td><strong>58.7</strong></td><td>201.3M</td><td>201.3M</td></tr>
-<tr><th scope="row">Gated DeltaNet</th><td>17.09</td><td><span class="runner-up">46.2</span></td><td><strong>24.9</strong></td><td><span class="runner-up">70.3</span></td><td><span class="runner-up">35.5</span></td><td>39.0</td><td><strong>90.9</strong></td><td><span class="runner-up">59.4</span></td><td>72.0</td><td>71.2</td><td><span class="runner-up">43.1</span></td><td>57.5</td><td><strong>17.0M</strong></td><td><span class="runner-up">17.0M</span></td></tr>
-<tr class="ramnet-row"><th scope="row">RAM-Net Top-8</th><td><strong>16.49</strong></td><td>43.0</td><td><span class="runner-up">23.6</span></td><td><strong>72.0</strong></td><td><strong>36.3</strong></td><td><strong>41.8</strong></td><td>88.2</td><td><strong>60.3</strong></td><td><strong>76.0</strong></td><td><strong>73.0</strong></td><td><strong>44.6</strong></td><td><span class="runner-up">57.9</span></td><td><span class="runner-up">52.4M</span></td><td><strong>0.8M</strong></td></tr>
-</tbody>
 </table></div>
+<p>At 340M, Top-32 achieves the lowest Wiki. perplexity in this comparison at <strong class="text-highlight">25.87</strong>, while Top-8 leads on Wino at 54.1. At 1.3B, Top-16 lowers perplexity to <strong class="text-highlight">15.90</strong> and leads on LMB, ARC-c, COPA, Hella, and Wino. Its normalized ARC-e and ARC-c scores are 64.0 and 39.4. Gated DeltaNet remains ahead on MMLU and SciQ.</p>
+<p class="experiment-key">↓ Lower is better. ↑ Higher is better. State sizes are in millions of elements.</p>
+
 <p class="experiment-key">Bold marks the best value; underlining marks the second-best distinct value within each model size, including ties.</p>
 </article>
 <article class="experiment-panel" id="experiment-sniah" aria-labelledby="title-sniah">
 <h3 id="title-sniah">S-NIAH: Retrieval Across Context Lengths</h3>
-<p>Evaluation spans 1K–16K tokens, up to 4× the training context. At 340M, increasing Top-K from 8 to 32 raises the S-NIAH average from <strong class="text-highlight">64.7 to 72.9</strong>. Top-16 and Top-32 score 100.0 at every tested S-NIAH-1 length. S-NIAH-2 and S-NIAH-3 remain harder, especially at longer contexts.</p>
-<p class="experiment-key">All scores use ↑ higher is better. Columns within each task give the context length.</p>
 <div class="experiment-scroll" role="region" aria-label="S-NIAH: Retrieval Across Context Lengths data table" tabindex="0">
 <table class="experiment-table" data-benchmark="sniah"><caption>S-NIAH: Retrieval Across Context Lengths — 340M and 1.3B models</caption><thead>
 <tr><th scope="col" rowspan="2">Model</th><th scope="colgroup" colspan="5">S-NIAH-1</th><th scope="colgroup" colspan="5">S-NIAH-2</th><th scope="colgroup" colspan="5">S-NIAH-3</th><th scope="col" rowspan="2">Avg. ↑</th></tr>
 <tr><th scope="col">1K ↑</th><th scope="col">2K ↑</th><th scope="col">4K ↑</th><th scope="col">8K ↑</th><th scope="col">16K ↑</th><th scope="col">1K ↑</th><th scope="col">2K ↑</th><th scope="col">4K ↑</th><th scope="col">8K ↑</th><th scope="col">16K ↑</th><th scope="col">1K ↑</th><th scope="col">2K ↑</th><th scope="col">4K ↑</th><th scope="col">8K ↑</th><th scope="col">16K ↑</th></tr>
 </thead>
-<tbody data-scale="340M"><tr class="experiment-scale"><th scope="rowgroup" colspan="17"><div class="experiment-scale-label"><b>340M</b><span>parameters</span></div></th></tr>
-<tr><th scope="row">Transformer++</th><td><span class="runner-up">99.7</span></td><td>97.7</td><td>81.0</td><td>0.0</td><td>0.0</td><td><strong>100.0</strong></td><td><span class="runner-up">99.7</span></td><td>74.7</td><td>0.0</td><td>0.0</td><td><span class="runner-up">81.7</span></td><td>62.7</td><td><span class="runner-up">31.3</span></td><td>0.0</td><td>0.0</td><td>48.6</td></tr>
-<tr><th scope="row">Gated DeltaNet</th><td>99.3</td><td><span class="runner-up">99.3</span></td><td>98.7</td><td>88.0</td><td>44.0</td><td><span class="runner-up">99.7</span></td><td>96.0</td><td>37.3</td><td>20.3</td><td><strong>10.3</strong></td><td>46.0</td><td>26.7</td><td>2.3</td><td>0.7</td><td>0.3</td><td>51.3</td></tr>
-<tr><th scope="row">Mamba2</th><td>89.3</td><td>91.7</td><td>77.0</td><td>24.7</td><td>6.7</td><td>97.3</td><td>72.7</td><td>12.0</td><td>11.7</td><td>4.0</td><td>20.7</td><td>10.3</td><td>5.3</td><td>1.3</td><td>0.7</td><td>35.0</td></tr>
-<tr><th scope="row">GLA</th><td>68.7</td><td>23.7</td><td>5.7</td><td>0.3</td><td>0.3</td><td>64.7</td><td>20.3</td><td>6.3</td><td>3.3</td><td>1.0</td><td>5.0</td><td>0.3</td><td>0.0</td><td>0.0</td><td>0.0</td><td>13.3</td></tr>
-<tr><th scope="row">GSA</th><td>75.3</td><td>54.7</td><td>31.7</td><td>13.7</td><td>7.3</td><td>69.0</td><td>49.7</td><td>11.0</td><td>7.0</td><td>1.7</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>21.4</td></tr>
-<tr class="ramnet-row"><th scope="row">RAM-Net Top-8</th><td><strong>100.0</strong></td><td><strong>100.0</strong></td><td><span class="runner-up">99.7</span></td><td><span class="runner-up">99.7</span></td><td><span class="runner-up">99.7</span></td><td>99.3</td><td>99.3</td><td>83.7</td><td>20.7</td><td><span class="runner-up">5.3</span></td><td>69.3</td><td><span class="runner-up">69.3</span></td><td>18.3</td><td>5.7</td><td><span class="runner-up">1.0</span></td><td>64.7</td></tr>
-<tr class="ramnet-row"><th scope="row">RAM-Net Top-16</th><td><strong>100.0</strong></td><td><strong>100.0</strong></td><td><strong>100.0</strong></td><td><strong>100.0</strong></td><td><strong>100.0</strong></td><td><strong>100.0</strong></td><td><span class="runner-up">99.7</span></td><td><span class="runner-up">88.0</span></td><td><span class="runner-up">23.3</span></td><td>2.7</td><td>70.7</td><td>58.0</td><td>25.7</td><td><span class="runner-up">7.3</span></td><td><strong>1.3</strong></td><td><span class="runner-up">65.1</span></td></tr>
-<tr class="ramnet-row"><th scope="row">RAM-Net Top-32</th><td><strong>100.0</strong></td><td><strong>100.0</strong></td><td><strong>100.0</strong></td><td><strong>100.0</strong></td><td><strong>100.0</strong></td><td><strong>100.0</strong></td><td><strong>100.0</strong></td><td><strong>94.0</strong></td><td><strong>56.3</strong></td><td>4.0</td><td><strong>95.3</strong></td><td><strong>88.0</strong></td><td><strong>44.7</strong></td><td><strong>9.7</strong></td><td><span class="runner-up">1.0</span></td><td><strong>72.9</strong></td></tr>
-</tbody>
-<tbody data-scale="1.3B"><tr class="experiment-scale"><th scope="rowgroup" colspan="17"><div class="experiment-scale-label"><b>1.3B</b><span>parameters</span></div></th></tr>
-<tr><th scope="row">Transformer++</th><td><strong>100.0</strong></td><td><strong>100.0</strong></td><td>95.0</td><td>0.0</td><td>0.0</td><td><strong>100.0</strong></td><td><strong>100.0</strong></td><td><strong>90.5</strong></td><td>4.0</td><td>0.0</td><td><strong>98.0</strong></td><td><strong>91.6</strong></td><td><strong>66.0</strong></td><td>0.4</td><td>0.0</td><td>56.4</td></tr>
-<tr><th scope="row">Gated DeltaNet</th><td><span class="runner-up">99.8</span></td><td><strong>100.0</strong></td><td><span class="runner-up">99.8</span></td><td><span class="runner-up">71.8</span></td><td><span class="runner-up">35.7</span></td><td><span class="runner-up">99.8</span></td><td><span class="runner-up">99.8</span></td><td><span class="runner-up">89.4</span></td><td><strong>44.8</strong></td><td><strong>18.0</strong></td><td><span class="runner-up">72.2</span></td><td><span class="runner-up">62.0</span></td><td><span class="runner-up">16.0</span></td><td><span class="runner-up">5.2</span></td><td><strong>1.7</strong></td><td><span class="runner-up">61.0</span></td></tr>
-<tr class="ramnet-row"><th scope="row">RAM-Net Top-8</th><td><strong>100.0</strong></td><td><strong>100.0</strong></td><td><strong>100.0</strong></td><td><strong>100.0</strong></td><td><strong>100.0</strong></td><td>99.7</td><td>99.7</td><td>82.7</td><td><span class="runner-up">42.3</span></td><td><span class="runner-up">9.3</span></td><td>63.0</td><td>54.0</td><td><span class="runner-up">16.0</span></td><td><strong>8.3</strong></td><td><span class="runner-up">0.3</span></td><td><strong>65.0</strong></td></tr>
-</tbody>
 </table></div>
+<p>Evaluation spans 1K–16K tokens, up to 4× the training context. At 340M, increasing Top-K from 8 to 32 raises the S-NIAH average from <strong class="text-highlight">64.7 to 72.9</strong>. Top-16 and Top-32 score 100.0 at every tested S-NIAH-1 length. At 1.3B, Top-16 averages <strong class="text-highlight">70.1</strong>, compared with 65.0 for Top-8. S-NIAH-2 and S-NIAH-3 remain harder, especially at longer contexts.</p>
+<p class="experiment-key">All scores use ↑ higher is better. Columns within each task give the context length.</p>
+
 <p class="experiment-key">Bold marks the best value; underlining marks the second-best distinct value within each model size, including ties.</p>
 </article>
 <article class="experiment-panel" id="experiment-tasks" aria-labelledby="title-tasks">
 <h3 id="title-tasks">Performance Across Tasks</h3>
-<p>At 340M, RAM-Net's average rises from 23.2 with Top-8 to 27.9 with Top-16 and <strong class="text-highlight">32.0 with Top-32</strong>. Top-32 leads the recurrent baselines on average, while Transformer++ remains ahead at 35.1. At 1.3B, Top-8 averages 40.6, compared with 39.5 for Gated DeltaNet and 49.8 for Transformer++.</p>
-<p class="experiment-key">↑ Higher is better.</p>
 <div class="experiment-scroll" role="region" aria-label="Performance Across Tasks data table" tabindex="0">
 <table class="experiment-table" data-benchmark="tasks"><caption>Performance Across Tasks — 340M and 1.3B models</caption><thead>
 <tr><th scope="col">Model</th><th scope="col">FDA 512 ↑</th><th scope="col">FDA 1K ↑</th><th scope="col">SWDE 512 ↑</th><th scope="col">SWDE 1K ↑</th><th scope="col">NQ 512 ↑</th><th scope="col">NQ 1K ↑</th><th scope="col">SQuADv2 full ↑</th><th scope="col">TriviaQA full ↑</th><th scope="col">DROP full ↑</th><th scope="col">Avg. ↑</th></tr>
 </thead>
-<tbody data-scale="340M"><tr class="experiment-scale"><th scope="rowgroup" colspan="11"><div class="experiment-scale-label"><b>340M</b><span>parameters</span></div></th></tr>
-<tr><th scope="row">Transformer++</th><td><strong>50.5</strong></td><td><strong>37.8</strong></td><td><strong>44.2</strong></td><td><strong>37.8</strong></td><td><strong>23.5</strong></td><td><strong>24.8</strong></td><td><strong>35.3</strong></td><td>44.7</td><td>17.0</td><td><strong>35.1</strong></td></tr>
-<tr><th scope="row">Gated DeltaNet</th><td>22.1</td><td>15.1</td><td>37.8</td><td>17.0</td><td>21.8</td><td><span class="runner-up">22.7</span></td><td><span class="runner-up">33.0</span></td><td><span class="runner-up">47.7</span></td><td>17.7</td><td>26.1</td></tr>
-<tr><th scope="row">Mamba2</th><td>29.8</td><td>22.1</td><td>36.7</td><td>18.7</td><td><span class="runner-up">22.3</span></td><td>20.6</td><td>32.3</td><td>44.3</td><td>15.3</td><td>26.9</td></tr>
-<tr><th scope="row">GLA</th><td>11.0</td><td>7.0</td><td>25.5</td><td>11.9</td><td>17.6</td><td>18.9</td><td>25.7</td><td>40.7</td><td>15.7</td><td>19.4</td></tr>
-<tr><th scope="row">GSA</th><td>7.4</td><td>5.4</td><td>25.2</td><td>9.9</td><td>16.0</td><td>15.5</td><td>25.0</td><td>40.0</td><td>17.7</td><td>18.0</td></tr>
-<tr class="ramnet-row"><th scope="row">RAM-Net Top-8</th><td>29.8</td><td>20.4</td><td>30.3</td><td>16.7</td><td>17.6</td><td>18.1</td><td>24.3</td><td>34.7</td><td>16.7</td><td>23.2</td></tr>
-<tr class="ramnet-row"><th scope="row">RAM-Net Top-16</th><td>38.8</td><td>27.8</td><td>40.5</td><td>19.4</td><td>21.4</td><td>17.2</td><td>29.7</td><td>38.3</td><td><span class="runner-up">18.0</span></td><td>27.9</td></tr>
-<tr class="ramnet-row"><th scope="row">RAM-Net Top-32</th><td><span class="runner-up">46.8</span></td><td><span class="runner-up">36.8</span></td><td><span class="runner-up">42.5</span></td><td><span class="runner-up">24.8</span></td><td>21.8</td><td>21.4</td><td>26.7</td><td><strong>48.3</strong></td><td><strong>18.7</strong></td><td><span class="runner-up">32.0</span></td></tr>
-</tbody>
-<tbody data-scale="1.3B"><tr class="experiment-scale"><th scope="rowgroup" colspan="11"><div class="experiment-scale-label"><b>1.3B</b><span>parameters</span></div></th></tr>
-<tr><th scope="row">Transformer++</th><td><strong>79.9</strong></td><td><strong>70.6</strong></td><td><strong>48.6</strong></td><td><strong>48.6</strong></td><td><strong>36.1</strong></td><td><strong>35.7</strong></td><td><strong>49.7</strong></td><td><span class="runner-up">56.3</span></td><td>22.3</td><td><strong>49.8</strong></td></tr>
-<tr><th scope="row">Gated DeltaNet</th><td>51.5</td><td>41.1</td><td><span class="runner-up">43.2</span></td><td><span class="runner-up">37.4</span></td><td><span class="runner-up">30.3</span></td><td><span class="runner-up">30.3</span></td><td><span class="runner-up">41.7</span></td><td><strong>57.3</strong></td><td><span class="runner-up">22.7</span></td><td>39.5</td></tr>
-<tr class="ramnet-row"><th scope="row">RAM-Net Top-8</th><td><span class="runner-up">65.9</span></td><td><span class="runner-up">56.5</span></td><td>37.1</td><td>36.4</td><td>27.7</td><td>26.5</td><td>34.7</td><td><strong>57.3</strong></td><td><strong>23.2</strong></td><td><span class="runner-up">40.6</span></td></tr>
-</tbody>
 </table></div>
+<p>At 340M, RAM-Net's average rises from 23.2 with Top-8 to 27.9 with Top-16 and <strong class="text-highlight">32.0 with Top-32</strong>. Top-32 leads the recurrent baselines on average, while Transformer++ remains ahead at 35.1. At 1.3B, Top-8 averages 40.6 and Top-16 averages 39.0, compared with 39.5 for Gated DeltaNet and 49.8 for Transformer++.</p>
+<p class="experiment-key">↑ Higher is better.</p>
+
 <p class="experiment-key">Bold marks the best value; underlining marks the second-best distinct value within each model size, including ties.</p>
 </article>
+<div class="prose"><p>At 340M, Top-8 accesses <strong class="text-highlight">0.4M of 26.2M state elements</strong>—about 1.5% of its total state and roughly 1/32 of Mamba2’s 12.9M active state. At 1.3B, Top-8 accesses 0.8M of 52.4M elements; the same Top-K accounting gives 1.6M active elements for Top-16. These figures measure state access; decoding throughput is evaluated separately.</p></div>
+
 <div class="prose results-discussion"><h3>What changes with Top-K?</h3>
 <p>At 340M, moving from Top-8 to Top-32 increases active state from 0.4M to 1.6M elements while total state stays at 26.2M. S-NIAH average improves from 64.7 to 72.9, and the additional-task average from 23.2 to 32.0. The trade-off is <strong class="text-highlight">better results at a higher per-token access cost</strong>.</p>
 <h3>Beyond these tables</h3>
@@ -248,7 +211,7 @@
 <section class="paper-section" id="retrieval-probe" aria-labelledby="heading-retrieval-probe"><div class="section-opening">
 <div class="section-heading"><div class="section-kicker"><span>08</span>Retrieval probe</div><h2 id="heading-retrieval-probe">Following a Needle Through Memory</h2></div>
 <figure class="exhibit-figure" id="figure-8">
-  <div class="figure-stage"><iframe src="animations/niah_probe.html" title="Recorded writes and reads across 1,024 memory slots" data-exhibit="niah_probe" loading="lazy" style="height:520px"></iframe></div>
+  <div class="figure-stage"><div class="embedded-exhibit" data-exhibit="niah_probe" role="group" aria-label="Recorded writes and reads across 1,024 memory slots" style="min-height:520px"></div></div>
 </figure>
 </div><div class="prose">
 <p>Where does a fact go, and what remains when the model needs it? These S-NIAH-1 and S-NIAH-3 traces follow <strong class="text-highlight">needle information from writing to answer-time reading</strong> across 1,024 slots. Switch the head or example, or jump to Needle and Read to compare the two moments.</p>
@@ -257,12 +220,12 @@
 <section class="paper-section" id="head-probes" aria-labelledby="heading-head-probes"><div class="section-opening">
 <div class="section-heading"><div class="section-kicker"><span>09</span>Head probes</div><h2 id="heading-head-probes">What Do Shared Addresses Reveal?</h2></div>
 <figure class="exhibit-figure" id="figure-9">
-  <div class="figure-stage"><iframe src="animations/head_probe.html" title="Read and write traces for word pieces and paired punctuation" data-exhibit="head_probe" loading="lazy" style="height:650px"></iframe></div>
+  <div class="figure-stage"><div class="embedded-exhibit" data-exhibit="head_probe" role="group" aria-label="Read and write traces for word pieces and paired punctuation" style="min-height:650px"></div></div>
 </figure>
 </div><div class="prose">
 <p>Selected heads show <strong class="text-highlight">shared write–read addresses</strong> between adjacent word pieces, or between opening and closing punctuation. The history matrix exposes these connections token by token; the slot view follows how information from the source token is retained and read.</p>
 <p>These are exploratory patterns in selected heads and short texts. Address overlap offers a useful window into memory use, but does not by itself establish semantic matching or a causal role in the model’s output.</p>
 </div></section>
-<div class="closing"><div><span class="micro">RAM-Net</span><p>More room to remember. Less to access.</p></div></div>
+<section class="paper-section closing" id="closing" data-cycle-ms="3000" aria-labelledby="heading-closing"><div class="section-heading"><div><span class="micro">RAM-Net</span><h2 id="heading-closing">More room to remember. Less to access.</h2></div></div></section>
 </main><footer class="site-footer"><span>RAM-Net · Interactive paper companion</span><a href="#top">Back to top ↑</a></footer>
 </body></html>

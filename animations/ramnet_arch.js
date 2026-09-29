@@ -1,3 +1,6 @@
+window.RamnetAnimations ??= {};
+window.RamnetAnimations.ramnet_arch = function mount(scope) {
+const {document, requestAnimationFrame, cancelAnimationFrame} = scope;
 'use strict';
 const diagram=window.ramnetDiagramTheme;
 const $=id=>document.getElementById(id), canvas=$('scene'), ctx=canvas.getContext('2d');
@@ -332,7 +335,9 @@ document.addEventListener('keydown',event=>{if(event.target.closest('input,selec
 $('play').onclick=togglePlay;$('restart').onclick=()=>{resetSimulation();playing=true;updatePlayback();render();};$('previous').onclick=()=>seekStage(stageForAction(locationAt().i)-1);$('next').onclick=()=>seekStage(stageForAction(locationAt().i)+1);
 let dragPan=null;
 canvas.addEventListener('pointerdown',event=>{if(viewport().width<=AW+.01)return;dragPan={id:event.pointerId,x:event.clientX,pan};canvas.setPointerCapture(event.pointerId);canvas.classList.add('dragging');});
-canvas.addEventListener('pointermove',event=>{if(!dragPan||event.pointerId!==dragPan.id)return;const rightScale=1-(params.archWidth-330)/(W-400),pixelsPerUnit=canvas.clientWidth/W*rightScale;pan=clamp(dragPan.pan-(event.clientX-dragPan.x)/((viewport().width-AW)*pixelsPerUnit));render();});
+canvas.addEventListener('pointermove',event=>{if(!dragPan||event.pointerId!==dragPan.id)return;const rightScale=1-(params.archWidth-330)/(W-400),pixelsPerUnit=canvas.getBoundingClientRect().width/W*rightScale;pan=clamp(dragPan.pan-(event.clientX-dragPan.x)/((viewport().width-AW)*pixelsPerUnit));render();});
 canvas.addEventListener('lostpointercapture',()=>{dragPan=null;canvas.classList.remove('dragging');});
 
-resetSimulation();applyStyle();buildActions();updatePlayback();resize();new ResizeObserver(resize).observe(canvas);requestAnimationFrame(frame);
+resetSimulation();scope.setCycleDuration?.(total()/params.speed);applyStyle();buildActions();updatePlayback();resize();new ResizeObserver(resize).observe(canvas);document.body.getRootNode().host?.addEventListener('ramnet:fit',resize);scope.onAutoplayStart?.(()=>$('restart').click());requestAnimationFrame(frame);
+};
+if (document.body.classList.contains('exhibit-ramnet_arch')) window.RamnetAnimations.ramnet_arch({document, requestAnimationFrame: window.requestAnimationFrame.bind(window), cancelAnimationFrame: window.cancelAnimationFrame.bind(window)});

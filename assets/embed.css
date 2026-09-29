@@ -1,6 +1,5 @@
-html, body { margin: 0; padding: 0; background: transparent; }
-html.is-embedded { overflow-y: hidden; }
-body { color: #30383f; font-family: "Segoe UI", Arial, sans-serif; }
+html, body, .exhibit-body { margin: 0; padding: 0; background: transparent; }
+body, .exhibit-body { color: #30383f; font-family: "Segoe UI", Arial, sans-serif; }
 .exhibit-root { width: 100%; padding: 0; display: flow-root; }
 .exhibit .stage, .exhibit .panel { border: 0; border-radius: 0; box-shadow: none; background: transparent; }
 .exhibit .scene-wrap { padding: 0; scrollbar-color: #b9bdc2 transparent; }

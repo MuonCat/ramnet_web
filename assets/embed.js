@@ -29,7 +29,6 @@
       return `rgba(${rgb.join(',')},${Math.max(0, Math.min(1, alpha))})`;
     }
   };
-  document.documentElement.classList.toggle('is-embedded', window.parent !== window);
   const compact = window.ramnetCompactInteractions = window.matchMedia('(max-width: 760px), (max-width: 1024px) and (pointer: coarse)');
   function updateInteractionMode() {
     document.documentElement.classList.toggle('compact-interactions', compact.matches);
@@ -37,53 +36,16 @@
   }
   compact.addEventListener('change', updateInteractionMode);
   updateInteractionMode();
-  // Wheel and touch events do not bubble out of an iframe.
-  let captureScroll = false, scrollTouch = null;
-  const scrollControl = target => target instanceof Element && target.closest('input, select, textarea, button, a, [role="slider"], [contenteditable="true"]');
-  window.addEventListener('message', event => {
-    if (event.source === window.parent && event.data?.type === 'ramnet:scroll-mode') captureScroll = event.data.capture === true;
-  });
-  window.addEventListener('wheel', event => {
-    if (!captureScroll || event.ctrlKey || event.defaultPrevented || !event.cancelable || Math.abs(event.deltaX) >= Math.abs(event.deltaY) || scrollControl(event.target)) return;
-    event.preventDefault();
-    const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? innerHeight : 1);
-    window.parent.postMessage({type: 'ramnet:scroll-input', delta}, '*');
-  }, {passive: false});
-  window.addEventListener('touchstart', event => {
-    if (window.parent === window || event.touches.length !== 1 || scrollControl(event.target) || event.target.closest('[data-fine-interaction]:not([inert])')) return;
-    scrollTouch = {x: event.touches[0].clientX, y: event.touches[0].clientY, capture: captureScroll};
-    window.parent.postMessage({type: 'ramnet:scroll-touch', active: true}, '*');
-  }, {passive: true});
-  window.addEventListener('touchmove', event => {
-    if (!scrollTouch || !scrollTouch.capture || event.touches.length !== 1 || event.defaultPrevented || !event.cancelable) return;
-    const touch = event.touches[0], delta = scrollTouch.y - touch.clientY;
-    const horizontal = Math.abs(touch.clientX - scrollTouch.x) > Math.abs(delta);
-    scrollTouch.x = touch.clientX;
-    scrollTouch.y = touch.clientY;
-    if (horizontal) return;
-    event.preventDefault();
-    window.parent.postMessage({type: 'ramnet:scroll-input', delta, touch: true}, '*');
-  }, {passive: false});
-  function endScrollTouch() {
-    if (!scrollTouch) return;
-    scrollTouch = null;
-    window.parent.postMessage({type: 'ramnet:scroll-touch', active: false}, '*');
-  }
-  window.addEventListener('touchend', endScrollTouch, {passive: true});
-  window.addEventListener('touchcancel', endScrollTouch, {passive: true});
-  // Suspend animation work outside the article viewport without changing local playback state.
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const nativeFrame = window.requestAnimationFrame.bind(window);
-  let active = window.parent === window;
-  let paused = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let scheduled = false;
-  let sequence = 0;
   const callbacks = new Map();
+  let scheduled = false, sequence = 0;
   function schedule() {
-    if (scheduled || !active || paused || document.hidden || !callbacks.size) return;
+    if (scheduled || reducedMotion.matches || document.hidden || !callbacks.size) return;
     scheduled = true;
     nativeFrame(stamp => {
       scheduled = false;
-      if (!active || paused || document.hidden) return;
+      if (reducedMotion.matches || document.hidden) return;
       const pending = [...callbacks.values()];
       callbacks.clear();
       pending.forEach(callback => callback(stamp));
@@ -97,19 +59,6 @@
     return id;
   };
   window.cancelAnimationFrame = id => callbacks.delete(id);
-  window.addEventListener('message', event => {
-    if (event.source !== window.parent || event.data?.type !== 'ramnet:visibility') return;
-    active = event.data.active === true;
-    paused = event.data.paused === true;
-    schedule();
-  });
+  reducedMotion.addEventListener('change', schedule);
   document.addEventListener('visibilitychange', schedule);
-  window.addEventListener('DOMContentLoaded', () => {
-    updateInteractionMode();
-    const root = document.querySelector('.exhibit-root');
-    const report = () => window.parent.postMessage({type: 'ramnet:resize', height: Math.ceil(root.getBoundingClientRect().height)}, '*');
-    new ResizeObserver(report).observe(root);
-    report();
-    window.parent.postMessage({type: 'ramnet:ready'}, '*');
-  });
 })();
