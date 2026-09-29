@@ -1,0 +1,974 @@
+'use strict';
+const diagram=window.ramnetDiagramTheme;
+const $ = id => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+const SECTION_NAMES={distribution:'Soft Radix Address',tree:'Multilevel Decision Tree',heatmap:'Joint Distribution',waveform:'Waveform Modulation'};
+const SECTIONS=Object.keys(SECTION_NAMES);
+const DEFAULTS = {U:4,dp:4,factors:[
+  [0.5096578959952033,0.15216308786133387,0.15320826445326508,0.18497075169019783],
+  [0.5133835541711417,0.04571478941259041,0.19246478358994867,0.24843687282631935],
+  [0.45657829225840624,0.16719224201013133,0.20525359515296399,0.17097587057849858],
+  [0.18977007985781985,0.2962820281189687,0.20192554112274083,0.31202235090047065]
+],temperature:0.85,duration:15,sectionDelay:0.5,speed:1,heatmapDuration:15,heatmapSpeed:1,heatmapRange:1,heatmapOverlayOpacity:8,waveformRevealDuration:3.5,waveformScanDuration:12,waveformSpeed:1,waveformHeight:96,waveformGap:48,waveformAddressGap:8,treeExpandDuration:1,treePruneDuration:1.5,treeHoldDuration:1.5,treeSpeed:1,topK:8,cardWidth:138,cardGap:25,upperGap:100,lowerGap:108,barGap:30,factorAspect:1.4,outputAspect:1,interactionAspect:1.8,factorPadding:10,factorPlotHeight:73,barRadiusRatio:6,frameRadiusRatio:4.5,barRadius:1.2,frameRadius:6,radius:6,animationRadius:20,lineRadius:6,spacing:25,height:130,treeNodeWidth:16,treeNodeHeight:16,treeNodeRadius:8,treeParentGapRatio:1.5,arrowHueOffset:0,arrowSaturationOffset:0,arrowLightnessOffset:0,frameHueOffset:0,frameSaturationOffset:0,frameLightnessOffset:0,backgroundHueOffset:0,backgroundSaturationOffset:0,backgroundLightnessOffset:0,barHueOffset:0,barSaturationOffset:0,barLightnessOffset:0,outputScale:'auto',loop:true,uiFontScale:100,diagramFontScale:100,colors:[diagram.colors.indigo,diagram.colors.purple,diagram.colors.green,diagram.colors.gold],outputColor:diagram.colors.sky};
+let config = {...structuredClone(DEFAULTS),factors:null};
+let distributions = [], probabilities = [], groups = [], sourceNodes = [], routeNodes = [], addressNodes = [];
+let bars = [], binSize = 1, maxGroup = 1, outputScaleMax = 1, total = 256, bits = 2;
+let topBars = new Set();
+let progress = 0, playing = true, previousTimestamp = null, currentIndex = -1, activeAction = -1;
+let outputBox, highlight, scanLine, outputRoute;
+let addressGroup;
+let pointerScanning = false, hoverScanning = false;
+let treeHoverTarget = null;
+let sectionSwitchAt = null;
+let factorEditors = [];
+let activeSection = 'distribution', treeLayers = [], treeOutputs = [], treeOutputGroup;
+let pageOrder=[...SECTIONS],pageFlip=null;
+let articleLayout=null;
+let heatmapCells=[],heatmapBlocks=[],heatmapSources=[],heatmapSourceLabels=[];
+let heatmapOuterRow,heatmapOuterColumn,heatmapSelection,heatmapPoint;
+let heatmapLayout;
+let heatmapArrows=[];
+let waveformRows=[],waveformBars=[],waveformScan,waveformReadout,waveformLayout;
+let multiplyY = 285;
+const chart = {x:56,width:888,bottom:513,height:130};
+let actions = [];
+function sectionDuration(section=activeSection) {
+  if(section==='heatmap')return config.heatmapDuration;
+  if(section==='waveform')return config.waveformRevealDuration+config.waveformScanDuration;
+  return section==='tree'?config.U*(config.treeExpandDuration+config.treePruneDuration)+config.treeHoldDuration:config.duration;
+}
+function sectionSpeed() { return config[activeSection==='distribution'?'speed':activeSection+'Speed']; }
+function nextSection() {return SECTIONS[(SECTIONS.indexOf(activeSection)+1)%SECTIONS.length];}
+function applyPaint(node,attrs) {
+  for(const channel of ['fill','stroke']) {
+    const role=node.getAttribute(`data-${channel}-role`);
+    if(role&&attrs[channel]!==undefined)node.setAttribute(channel,paint(attrs[channel],role));
+  }
+  if((node.localName==='text'||node.localName==='tspan')&&attrs.fill)node.setAttribute('fill',diagram.text(attrs.fill));
+  if(node.getAttribute('data-fill-role')==='bar') {
+    if(attrs['fill-opacity']!==undefined)node.setAttribute('fill-opacity',attrs['fill-opacity']*diagram.alpha.strong);
+    else if(!node.hasAttribute('fill-opacity'))node.setAttribute('fill-opacity',diagram.alpha.strong);
+  }
+  if(node.getAttribute('data-fill-role')==='background'&&node.getAttribute('data-stroke-role')==='frame') {
+    node.setAttribute('fill-opacity',diagram.alpha.surface);
+    node.setAttribute('stroke-opacity',diagram.alpha.border);
+  }
+}
+function svg(tag,attrs={},parent=$('scene')) {
+  const node = document.createElementNS(NS,tag);
+  for (const [key,value] of Object.entries(attrs)) node.setAttribute(key==='fillRole'?'data-fill-role':key==='strokeRole'?'data-stroke-role':key,key==='font-size'?value*config.diagramFontScale/100:value);
+  applyPaint(node,attrs);
+  parent.appendChild(node);
+  return node;
+}
+function label(value,x,y,attrs={},parent) {
+  const node = svg('text',{x,y,'font-weight':600,...attrs},parent);
+  node.textContent = value;
+  return node;
+}
+function set(node,attrs) { for (const [key,value] of Object.entries(attrs)) node.setAttribute(key,value);applyPaint(node,attrs); }
+function shapeRadius(width,height,kind) {
+  const side=Math.min(width,height);
+  return Math.min(side/2,Math.max(config[kind+'Radius'],side*config[kind+'RadiusRatio']/100));
+}
+function factorSize(maxWidth,maxHeight=Infinity) {
+  const width=Math.min(maxWidth,maxHeight*config.factorAspect);
+  return {width,height:width/config.factorAspect};
+}
+function animationSize(scene,minHeight) {
+  const page=scene.closest('.stage');
+  const aspect=page.clientWidth/page.clientHeight;
+  const height=Math.max(1000/aspect,minHeight),width=height*aspect;
+  scene.setAttribute('viewBox',`0 0 ${width} ${height}`);
+  return {width,height};
+}
+function factorLayout(x,y,width,height,labelsInside=false) {
+  const padding=width*config.factorPadding/100,inset=height*config.factorPadding/100;
+  const labelSpace=labelsInside?Math.max(24*config.diagramFontScale/100,height*.18):0;
+  const baseline=y+height-inset-labelSpace;
+  return {left:x+padding,right:x+width-padding,baseline,step:(width-padding*2)/config.dp,
+    plotHeight:Math.min(height*config.factorPlotHeight/100,height-inset*2-labelSpace),
+    labelY:Math.min(baseline+labelSpace*.8,y+height-inset-16*config.diagramFontScale/100*.35)};
+}
+function roundedRoute(points) {
+  let path=`M ${points[0][0]} ${points[0][1]}`;
+  for(let i=1;i<points.length-1;i++) {
+    const [ax,ay]=points[i-1],[bx,by]=points[i],[cx,cy]=points[i+1];
+    const before=Math.hypot(bx-ax,by-ay),after=Math.hypot(cx-bx,cy-by);
+    if(before===0||after===0){path+=` L ${bx} ${by}`;continue;}
+    const r=Math.min(config.lineRadius,before/2,after/2);
+    path+=` L ${bx-(bx-ax)*r/before} ${by-(by-ay)*r/before} Q ${bx} ${by} ${bx+(cx-bx)*r/after} ${by+(cy-by)*r/after}`;
+  }
+  const end=points[points.length-1];
+  return `${path} L ${end[0]} ${end[1]}`;
+}
+function binary(value) { return value.toString(2).padStart(bits,'0'); }
+function digits(index) { return Array.from({length:config.U},(_,u)=>Math.floor(index/config.dp**u)%config.dp); }
+function address(parts) { return parts.reduce((n,d,u)=>n+d*config.dp**u,0); }
+function color(u) {
+  return config.colors[u];
+}
+function colorHsl(base) {
+  const [r,g,b]=base.slice(1).match(/../g).map(value=>parseInt(value,16)/255);
+  const max=Math.max(r,g,b),min=Math.min(r,g,b),delta=max-min,l=(max+min)/2;
+  const h=delta?60*(max===r?((g-b)/delta+6)%6:max===g?(b-r)/delta+2:(r-g)/delta+4):0;
+  const s=delta?delta/(1-Math.abs(2*l-1)):0;
+  return [h,s*100,l*100];
+}
+function outputColor() {
+  return config.outputColor;
+}
+function paint(base,role) {
+  const [h,s,l]=colorHsl(base);
+  const hue=(h+config[role+'HueOffset']+360)%360;
+  const saturation=Math.max(0,Math.min(100,s+config[role+'SaturationOffset']));
+  const lightness=Math.max(0,Math.min(100,l+config[role+'LightnessOffset']));
+  return `hsl(${hue} ${saturation}% ${lightness}%)`;
+}
+function number(value) { return value===0?'0':value>=0.001 ? value.toFixed(4) : value.toExponential(2); }
+function probabilityCeiling(value) {
+  const unit=10**Math.floor(Math.log10(value));
+  return Math.min(1,[1,2,2.5,5,10].find(step=>step*unit>=value)*unit);
+}
+function notify(){}
+function generate() {
+  bits=Math.log2(config.dp); total=config.dp**config.U;
+  distributions=config.factors?config.factors.map(row=>[...row]):Array.from({length:config.U},()=>{
+    const logits=Array.from({length:config.dp},()=>Math.random()*2.7);
+    const max=Math.max(...logits),exp=logits.map(v=>Math.exp((v-max)/config.temperature));
+    const sum=exp.reduce((a,b)=>a+b,0);
+    return exp.map(v=>v/sum);
+  });
+  config.factors=distributions.map(row=>[...row]);
+  probabilities=[1];
+  for (let u=config.U-1;u>=0;u--) probabilities=probabilities.flatMap(p=>distributions[u].map(q=>p*q));
+  // Large distributions use exact probability mass per contiguous address bin.
+  binSize=Math.max(1,total/512);
+  groups=Array.from({length:Math.min(total,512)},(_,i)=>{
+    let sum=0;for(let j=i*binSize;j<(i+1)*binSize;j++)sum+=probabilities[j];return sum;
+  });
+  maxGroup=groups.reduce((a,b)=>Math.max(a,b),0);
+}
+function updateFactorEditor(u) {
+  const editor=factorEditors[u],row=distributions[u];
+  let boundary=0;
+  row.forEach((p,d)=>{
+    editor.segments[d].style.width=`${p*100}%`;
+    editor.segments[d].style.opacity=.25+.75*p;
+    editor.values[d].textContent=`${(p*100).toFixed(1)}%`;
+    for(const control of [editor.segments[d],editor.cells[d]]) {
+      control.setAttribute('aria-valuenow',(p*100).toFixed(4));
+      control.setAttribute('aria-valuetext',`${binary(d)}: ${(p*100).toFixed(2)}%`);
+    }
+    const left=boundary;boundary+=p;
+    if(d<config.dp-1) {
+      const handle=editor.handles[d];
+      handle.style.left=`${boundary*100}%`;
+      handle.setAttribute('aria-valuemin',(left*100).toFixed(4));
+      handle.setAttribute('aria-valuemax',((boundary+row[d+1])*100).toFixed(4));
+      handle.setAttribute('aria-valuenow',(boundary*100).toFixed(4));
+      handle.setAttribute('aria-valuetext',`${binary(d)}: ${(p*100).toFixed(2)}%，${binary(d+1)}: ${(row[d+1]*100).toFixed(2)}%`);
+    }
+  });
+}
+function moveFactorBoundary(u,d,position) {
+  const row=[...config.factors[u]],left=row.slice(0,d).reduce((a,b)=>a+b,0),right=left+row[d]+row[d+1];
+  const boundary=Math.max(left,Math.min(right,position));
+  // Only the two adjacent segments exchange mass; all other probabilities stay fixed.
+  row[d]=boundary-left;row[d+1]=right-boundary;
+  config.factors[u]=row;
+  generate();updateFactorEditor(u);buildScene();
+}
+function setFactorShare(u,d,value,source=config.factors[u]) {
+  const share=Math.max(0,Math.min(1,value)),remaining=source.reduce((sum,p,i)=>sum+(i===d?0:p),0);
+  config.factors[u]=source.map((p,i)=>i===d?share:(1-share)*(remaining?p/remaining:1/(config.dp-1)));
+  generate();updateFactorEditor(u);buildScene();
+}
+function buildFactorEditors() {
+  $('factor-editors').replaceChildren();factorEditors=[];
+  for(let u=config.U-1;u>=0;u--) {
+    const card=document.createElement('div');card.className='factor-editor';card.style.setProperty('--factor-color',paint(color(u),'bar'));card.style.setProperty('--factor-ink',diagram.text(color(u)));
+    const rail=document.createElement('div');rail.className='factor-rail';
+    const segments=document.createElement('div');segments.className='factor-segments';rail.append(segments);
+    const values=document.createElement('div');values.className='factor-values';values.style.gridTemplateColumns=`repeat(${config.uiFontScale>105?2:Math.min(config.dp,4)},minmax(0,1fr))`;
+    const editor={segments:[],handles:[],values:[],cells:[]};factorEditors[u]=editor;
+    for(let d=0;d<config.dp;d++) {
+      const segment=document.createElement('div');segment.className='factor-segment';segments.append(segment);editor.segments.push(segment);
+      const cell=document.createElement('div');cell.className='factor-value';
+      const index=document.createElement('span');index.textContent=binary(d);
+      const value=document.createElement('output');cell.append(index,value);values.append(cell);editor.values.push(value);
+      editor.cells.push(cell);
+      for(const control of [segment,cell]) {
+        control.tabIndex=0;control.setAttribute('role','slider');control.setAttribute('aria-orientation','vertical');
+        control.setAttribute('aria-label',`Factor ${u}, share of ${binary(d)}`);control.setAttribute('aria-valuemin','0');control.setAttribute('aria-valuemax','100');
+        let gesture=null;
+        control.addEventListener('pointerdown',event=>{
+          if(event.button!==0||gesture)return;
+          event.preventDefault();control.focus({preventScroll:true});control.setPointerCapture(event.pointerId);
+          gesture={pointerId:event.pointerId,x:event.clientX,y:event.clientY,source:[...config.factors[u]],dragged:false};
+          control.classList.add('dragging');
+        });
+        control.addEventListener('pointermove',event=>{
+          if(!gesture||event.pointerId!==gesture.pointerId)return;
+          if(Math.hypot(event.clientX-gesture.x,event.clientY-gesture.y)>=4)gesture.dragged=true;
+          if(gesture.dragged)setFactorShare(u,d,gesture.source[d]+(gesture.y-event.clientY)/180,gesture.source);
+        });
+        for(const type of ['pointerup','pointercancel','lostpointercapture'])control.addEventListener(type,event=>{
+          if(!gesture||event.pointerId!==gesture.pointerId)return;
+          if(type==='pointerup'&&!gesture.dragged)setFactorShare(u,d,gesture.source[d]+.05,gesture.source);
+          gesture=null;control.classList.remove('dragging');
+          if(control.hasPointerCapture(event.pointerId))control.releasePointerCapture(event.pointerId);
+        });
+        control.addEventListener('keydown',event=>{
+          if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Home','End','Enter',' '].includes(event.key))return;
+          event.preventDefault();event.stopPropagation();
+          const step=event.shiftKey ? .001 : .01,share=config.factors[u][d];
+          setFactorShare(u,d,event.key==='Home'?0:event.key==='End'?1:share+(['Enter',' '].includes(event.key) ? .05 : ['ArrowUp','ArrowRight'].includes(event.key)?step:-step));
+        });
+      }
+      if(d===config.dp-1)continue;
+      const handle=document.createElement('div');handle.className='factor-divider';handle.tabIndex=0;handle.setAttribute('role','slider');handle.setAttribute('aria-orientation','horizontal');
+      handle.setAttribute('aria-label',`Factor ${u}, boundary between ${binary(d)} and ${binary(d+1)}`);
+      let pointer=null;
+      const move=event=>{const bounds=rail.getBoundingClientRect();moveFactorBoundary(u,d,(event.clientX-bounds.left)/bounds.width);};
+      handle.addEventListener('pointerdown',event=>{
+        if(event.button!==0||pointer!==null)return;
+        event.preventDefault();pointer=event.pointerId;handle.focus({preventScroll:true});handle.setPointerCapture(pointer);handle.classList.add('dragging');move(event);
+      });
+      handle.addEventListener('pointermove',event=>{if(event.pointerId===pointer)move(event);});
+      for(const type of ['pointerup','pointercancel','lostpointercapture'])handle.addEventListener(type,event=>{
+        if(event.pointerId!==pointer)return;
+        pointer=null;handle.classList.remove('dragging');
+        if(handle.hasPointerCapture(event.pointerId))handle.releasePointerCapture(event.pointerId);
+      });
+      handle.addEventListener('keydown',event=>{
+        if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(event.key))return;
+        event.preventDefault();event.stopPropagation();
+        const row=config.factors[u],position=row.slice(0,d+1).reduce((a,b)=>a+b,0),step=event.shiftKey ? .001 : .005;
+        moveFactorBoundary(u,d,event.key==='Home'?0:event.key==='End'?1:position+(['ArrowRight','ArrowUp'].includes(event.key)?step:-step));
+      });
+      rail.append(handle);editor.handles.push(handle);
+    }
+    card.append(rail,values);$('factor-editors').append(card);updateFactorEditor(u);
+  }
+}
+function buildScene() {
+  sectionSwitchAt=null;
+  if(activeSection==='tree')buildTreeScene();else if(activeSection==='heatmap')buildHeatmapScene();else if(activeSection==='waveform')buildWaveformScene();else buildDistributionScene();
+}
+function buildDistributionScene() {
+  resumeFromHover();pointerScanning=false;
+  const scene=$('scene'); scene.replaceChildren();
+  const cardY=85,cardHeight=factorSize(config.cardWidth).height;
+  chart.height=config.height*config.outputAspect;
+  chart.plotHeight=chart.height*(1-config.factorPadding/100);chart.inset=chart.height*.05;
+  const extraHeight=chart.height-120+cardHeight-120+config.upperGap-80+config.lowerGap-108;
+  const {width:sceneWidth,height:sceneHeight}=animationSize(scene,590+extraHeight);
+  chart.width=sceneWidth-112;chart.bottom=sceneHeight-95;
+  const gapSpace=chart.bottom-chart.height-cardY-cardHeight;
+  multiplyY=cardY+cardHeight+gapSpace*config.upperGap/(config.upperGap+config.lowerGap);
+  sourceNodes=[];routeNodes=[];addressNodes=[];bars=[];
+  topBars=new Set(Array.from(groups.keys()).sort((a,b)=>groups[b]-groups[a]||a-b).slice(0,config.topK));
+  const defs=svg('defs');
+  for(let u=0;u<=config.U;u++) {
+    const marker=svg('marker',{id:`arrow-${u}`,viewBox:'0 0 8 8',refX:8,refY:4,markerWidth:7,markerHeight:7,markerUnits:'userSpaceOnUse',orient:'auto'},defs);
+    svg('path',{d:'M 0 0 L 8 4 L 0 8 Z',fillRole:'arrow',fill:u===config.U?outputColor():color(u)},marker);
+  }
+  const groupWidth=config.cardWidth;
+  const groupStart=(sceneWidth-config.U*groupWidth-(config.U-1)*config.cardGap)/2;
+  const paths=svg('g',{'pointer-events':'none'});
+  for(let u=config.U-1;u>=0;u--) {
+    const x=groupStart+(config.U-1-u)*(groupWidth+config.cardGap),cx=x+groupWidth/2,c=color(u);
+    const route=svg('path',{fill:'none',strokeRole:'arrow',stroke:c,'stroke-width':1.7,'stroke-linecap':'round',opacity:0.78,'marker-end':`url(#arrow-${u})`},paths);
+    routeNodes[u]=route;
+    const card=svg('g');
+    svg('rect',{x,y:cardY,width:groupWidth,height:cardHeight,rx:shapeRadius(groupWidth,cardHeight,'frame'),fillRole:'background',fill:c,'fill-opacity':0.045,strokeRole:'frame',stroke:c,'stroke-opacity':diagram.alpha.border,'stroke-width':1},card);
+    const layout=factorLayout(x,cardY,groupWidth,cardHeight),{baseline:sourceBaseline,step,plotHeight}=layout;
+    const compactLabels=step<bits*16*config.diagramFontScale/100*.6+4;
+    for(const tick of [.5,1])svg('line',{x1:layout.left,y1:sourceBaseline-tick*plotHeight,x2:layout.right,y2:sourceBaseline-tick*plotHeight,strokeRole:'frame',stroke:c,'stroke-opacity':0.16,'stroke-dasharray':'2 4'},card);
+    const row=[];
+    for(let d=0;d<config.dp;d++) {
+      const bx=layout.left+d*step+step*config.barGap/200,bw=step*(1-config.barGap/100),bh=distributions[u][d]*plotHeight;
+      const tag=label(binary(d),compactLabels?cx:layout.left+(d+.5)*step,76,{'text-anchor':'middle','font-size':16,fill:'#7c8478'},card);
+      const bar=svg('rect',{x:bx,y:sourceBaseline-bh,width:bw,height:bh,rx:shapeRadius(bw,bh,'bar'),fillRole:'bar',fill:c,'fill-opacity':0.4,class:'source-bar',tabindex:0,role:'button','aria-label':`Factor ${u}, ${binary(d)}, probability ${number(distributions[u][d])}`},card);
+      const choose=()=>{const parts=digits(Math.max(0,currentIndex));parts[u]=d;seekIndex(address(parts));};
+      bar.addEventListener('click',choose);
+      bar.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();choose();}});
+      row.push({bar,tag,compactLabels});
+    }
+    svg('line',{x1:layout.left,y1:sourceBaseline,x2:layout.right,y2:sourceBaseline,strokeRole:'frame',stroke:c,'stroke-opacity':0.2},card);
+    sourceNodes[u]={row,arrowY:cardY+cardHeight+8};
+  }
+  scene.appendChild(paths);
+  const multiplyX=sceneWidth/2;
+  svg('circle',{cx:multiplyX,cy:multiplyY,r:21,fill:'none',stroke:'#9aa697','stroke-width':1.2});
+  svg('path',{d:`M${multiplyX-7} ${multiplyY-7}l14 14m0-14-14 14`,fill:'none',stroke:'#506653','stroke-width':1.6,'stroke-linecap':'round'});
+  outputBox=svg('rect',{x:chart.x,y:chart.bottom-chart.height-chart.inset,width:chart.width,height:chart.height+chart.inset,rx:shapeRadius(chart.width,chart.height+chart.inset,'frame'),fillRole:'background',fill:outputColor(),'fill-opacity':0.045,strokeRole:'frame',stroke:outputColor(),'stroke-opacity':diagram.alpha.border});
+  outputScaleMax=config.outputScale==='unit'?1:probabilityCeiling(maxGroup);
+  for(const fraction of [.5,1]) {
+    const y=chart.bottom-fraction*chart.plotHeight;
+    svg('line',{x1:chart.x,y1:y,x2:chart.x+chart.width,y2:y,strokeRole:'frame',stroke:outputColor(),'stroke-opacity':0.2,'stroke-dasharray':'3 5'});
+  }
+  const step=chart.width/groups.length;
+  const barLayer=svg('g',{'pointer-events':'none'});
+  for(let i=0;i<groups.length;i++) {
+    const bh=groups[i]/outputScaleMax*chart.plotHeight,bw=step*(1-config.barGap/100);
+    bars.push(svg('rect',{x:chart.x+i*step+step*config.barGap/200,y:chart.bottom-bh,width:bw,height:bh,rx:shapeRadius(bw,bh,'bar'),fillRole:'bar',fill:outputColor(),'fill-opacity':topBars.has(i)?0.65:0.23},barLayer));
+  }
+  svg('line',{x1:chart.x,y1:chart.bottom,x2:chart.x+chart.width,y2:chart.bottom,strokeRole:'frame',stroke:outputColor(),'stroke-opacity':0.23});
+  highlight=svg('rect',{y:chart.bottom-chart.height+chart.inset,width:Math.max(2,step),height:chart.height+chart.inset,rx:shapeRadius(Math.max(2,step),chart.height+chart.inset,'bar'),fillRole:'background',fill:outputColor(),'fill-opacity':0.09,'pointer-events':'none'});
+  scanLine=svg('line',{y1:chart.bottom+4,y2:chart.bottom+27,strokeRole:'frame',stroke:outputColor(),'stroke-width':1.2,'stroke-opacity':0.5,'stroke-dasharray':'2 4'});
+  outputRoute=svg('path',{fill:'none',strokeRole:'arrow',stroke:outputColor(),'stroke-width':1.6,'stroke-opacity':0.65,'marker-end':`url(#arrow-${config.U})`});
+  const hit=svg('rect',{x:chart.x,y:chart.bottom-chart.height-chart.inset,width:chart.width,height:chart.height+chart.inset+13,fill:'transparent',style:'cursor:crosshair',role:'presentation'});
+  const scan=event=>{
+    const p=scene.createSVGPoint();p.x=event.clientX;p.y=event.clientY;
+    const local=p.matrixTransform(scene.getScreenCTM().inverse());
+    seekIndex(Math.max(0,Math.min(total-1,Math.floor((local.x-chart.x)/chart.width*total))));
+  };
+  hit.addEventListener('pointerenter',event=>{if(event.pointerType==='mouse'){hoverScanning=true;scan(event);}});
+  hit.addEventListener('pointerleave',event=>{if(event.pointerType==='mouse')resumeFromHover({switchAtEnd:true});});
+  hit.addEventListener('pointerdown',event=>{
+    if(event.pointerType!=='mouse'){pointerScanning=true;hit.setPointerCapture(event.pointerId);}
+    scan(event);
+  });
+  hit.addEventListener('pointermove',event=>{if(event.pointerType==='mouse'||pointerScanning)scan(event);});
+  for(const type of ['pointerup','pointercancel','lostpointercapture'])hit.addEventListener(type,event=>{
+    pointerScanning=false;
+    if(type==='pointercancel'&&event.pointerType==='mouse')resumeFromHover();
+  });
+  addressGroup=svg('g',{'pointer-events':'none'});
+  const addressText=label('',0,0,{'text-anchor':'middle','font-size':20,'letter-spacing':0.5},addressGroup);
+  for(let u=config.U-1;u>=0;u--) {
+    addressNodes[u]=svg('tspan',{fill:color(u)},addressText);
+  }
+  currentIndex=-1;render();
+}
+function treeCurve(x1,y1,x2,y2) {
+  const middle=(y1+y2)/2;
+  return `M${x1} ${y1}C${x1} ${middle} ${x2} ${middle} ${x2} ${y2}`;
+}
+function buildTreeScene() {
+  resumeFromHover();pointerScanning=false;treeHoverTarget=null;
+  const scene=$('tree-scene');scene.replaceChildren();treeLayers=[];treeOutputs=[];
+  const {width:fw,height:fh}=factorSize(config.cardWidth),fx=48;
+  const left=fx+fw+52,rootY=54,baseRowGap=Math.max(100+config.upperGap/4,fh+20,config.treeNodeHeight+50);
+  const baseOutputY=rootY+config.U*baseRowGap+24+config.lowerGap/2,minHeight=Math.max(baseOutputY+config.treeNodeHeight/2+60,rootY+config.U*baseRowGap+fh/2+22);
+  const {width:sceneWidth,height}=animationSize(scene,minHeight),extra=height-minHeight;
+  const width=sceneWidth-48-left,rowGap=baseRowGap+extra/(config.U+1),outputY=baseOutputY+extra;
+  const defs=svg('defs',{},scene);
+  const root={slot:0,p:1,x:left+width/2,y:rootY,h:20};
+  svg('circle',{cx:root.x,cy:root.y,r:10,fillRole:'bar',fill:'#a5b2a5',strokeRole:'frame',stroke:'#637867','stroke-width':1.5},scene);
+  let beam=[root];
+  for(let depth=0;depth<config.U;depth++) {
+    const u=config.U-1-depth,y=rootY+(depth+1)*rowGap,c=color(u);
+    const nodes=beam.flatMap(parent=>distributions[u].map((p,code)=>({parent,code,p:parent.p*p,slot:parent.slot*config.dp+code})));
+    const winners=new Set([...nodes].sort((a,b)=>b.p-a.p||a.slot-b.slot).slice(0,config.topK));
+    const max=Math.max(...nodes.map(node=>node.p)),step=width/nodes.length;
+    const candidateScale=Math.min(1,step*.64/config.treeNodeWidth);
+    const survivors=nodes.filter(node=>winners.has(node)),siblingGap=Math.max(16,64-config.treeNodeWidth);
+    const gaps=survivors.map((node,i)=>i?siblingGap*(node.parent!==survivors[i-1].parent?config.treeParentGapRatio:1):0);
+    const gapTotal=gaps.reduce((sum,gap)=>sum+gap,0);
+    const gapScale=gapTotal?Math.min(1,(width-survivors.length*config.treeNodeWidth)/gapTotal):1;
+    const span=(survivors.length-1)*config.treeNodeWidth+gapTotal*gapScale;
+    let survivorX=left+(width-span)/2;
+    survivors.forEach((node,i)=>{
+      if(i)survivorX+=config.treeNodeWidth+gaps[i]*gapScale;
+      node.x=survivorX;
+    });
+    const clipTop=rootY+depth*rowGap+beam[0].h/2,revealHeight=y+config.treeNodeHeight/2+4-clipTop;
+    const clip=svg('clipPath',{id:`tree-reveal-${depth}`,clipPathUnits:'userSpaceOnUse'},defs);
+    const revealClip=svg('rect',{x:left-12,y:clipTop,width:width+24,height:0},clip);
+    const layer=svg('g',{'clip-path':`url(#tree-reveal-${depth})`},scene);
+    svg('line',{x1:left,y1:y,x2:left+width,y2:y,strokeRole:'frame',stroke:c,'stroke-opacity':.09,'stroke-dasharray':'2 5'},layer);
+    const edges=svg('g',{},layer),circles=svg('g',{},layer);
+    nodes.forEach((node,i)=>{
+      node.candidateX=left+(i+.5)*step;node.y=y;node.keep=winners.has(node);node.strength=max?node.p/max:0;
+      if(!node.keep)node.x=node.candidateX;
+      node.candidateScale=candidateScale;node.w=config.treeNodeWidth;node.h=config.treeNodeHeight;
+      node.edge=svg('path',{d:treeCurve(node.parent.x,node.parent.y+node.parent.h/2+3,node.candidateX,y-node.h*candidateScale/2-3),fill:'none',strokeRole:'arrow',stroke:c,'stroke-width':1.1},edges);
+      node.group=svg('g',{transform:`translate(${node.candidateX} ${y})`},circles);
+      node.shape=svg('rect',{x:-node.w/2,y:-node.h/2,width:node.w,height:node.h,rx:Math.min(config.treeNodeRadius,node.w/2,node.h/2),fillRole:'bar',fill:c,'fill-opacity':.18+.82*node.strength,strokeRole:'frame',stroke:c,'stroke-width':1.1},node.group);
+      if(!node.keep) {
+        const size=Math.max(3,Math.min(7,Math.min(node.w,node.h)*candidateScale*.35)),d=`M${-size} ${-size}L${size} ${size}M${size} ${-size}L${-size} ${size}`;
+        node.cross=svg('g',{opacity:0},node.group);
+        svg('path',{d,fill:'none',stroke:'#e8e2d3','stroke-width':3.5,'stroke-linecap':'round'},node.cross);
+        svg('path',{d,fill:'none',stroke:diagram.colors.red,'stroke-width':1.8,'stroke-linecap':'round'},node.cross);
+      }
+    });
+    const factor=svg('g',{},scene),fy=y-fh/2,layout=factorLayout(fx,fy,fw,fh,true),{baseline,step:factorStep,plotHeight}=layout;
+    svg('rect',{x:fx,y:fy,width:fw,height:fh,rx:shapeRadius(fw,fh,'frame'),fillRole:'background',fill:c,'fill-opacity':.055,strokeRole:'frame',stroke:c,'stroke-opacity':diagram.alpha.border},factor);
+    const factorBars=[];
+    distributions[u].forEach((p,d)=>{
+      const bw=factorStep*(1-config.barGap/100),bx=layout.left+d*factorStep+(factorStep-bw)/2,bh=p*plotHeight;
+      factorBars.push(svg('rect',{x:bx,y:baseline-bh,width:bw,height:bh,rx:shapeRadius(bw,bh,'bar'),fillRole:'bar',fill:c,'fill-opacity':.55},factor));
+      if(factorStep>=24*config.diagramFontScale/100)label(binary(d),bx+bw/2,layout.labelY,{'text-anchor':'middle','font-size':16,fill:c},factor);
+    });
+    svg('line',{x1:layout.left,y1:baseline,x2:layout.right,y2:baseline,strokeRole:'frame',stroke:c,'stroke-opacity':.2},factor);
+    const factorArrow=svg('path',{d:`M${fx+fw+12} ${y}H${fx+fw+30}m-5-4 5 4-5 4`,fill:'none',strokeRole:'arrow',stroke:c,'stroke-width':1.2,opacity:0},factor);
+    treeLayers.push({nodes,layer,revealClip,revealHeight,factor,factorBars,factorArrow,factorHalfHeight:fh/2,u});
+    beam=nodes.filter(node=>node.keep);
+  }
+  const max=Math.max(...beam.map(node=>node.p)),output=svg('g',{},scene);
+  beam.forEach((node,i)=>{
+    const x=left+(i+.5)*width/beam.length;
+    svg('path',{d:treeCurve(node.x,node.y+node.h/2+3,x,outputY-node.h/2-3),fill:'none',strokeRole:'arrow',stroke:outputColor(),'stroke-width':1.5,'stroke-opacity':.55},output);
+    svg('rect',{x:x-node.w/2,y:outputY-node.h/2,width:node.w,height:node.h,rx:Math.min(config.treeNodeRadius,node.w/2,node.h/2),fillRole:'bar',fill:outputColor(),'fill-opacity':.25+.75*(max?node.p/max:0),strokeRole:'frame',stroke:outputColor(),'stroke-width':1.5},output);
+    if(width/beam.length>=bits*config.U*16*config.diagramFontScale/100*.6+6) {
+      const text=label('',x,outputY+node.h/2+23,{'text-anchor':'middle','font-size':16},output);
+      const parts=digits(node.slot);
+      for(let u=config.U-1;u>=0;u--)svg('tspan',{fill:color(u)},text).textContent=binary(parts[u]);
+    }
+    treeOutputs.push(node);
+  });
+  treeOutputGroup=output;
+  const resultTop=rootY+config.U*rowGap+config.treeNodeHeight/2+4;
+  const hit=svg('rect',{x:32,y:rootY-20,width:sceneWidth-64,height:height-rootY+20,fill:'transparent',style:'cursor:ns-resize',role:'presentation'},scene);
+  const follow=event=>{
+    if(event.pointerType!=='mouse')return;
+    sectionSwitchAt=null;
+    const point=scene.createSVGPoint();point.x=event.clientX;point.y=event.clientY;
+    const local=point.matrixTransform(scene.getScreenCTM().inverse()),y=local.y;
+    const depth=Math.max(0,Math.min(config.U-1,Math.round((y-rootY)/rowGap)-1));
+    const nearFactor=local.x>=fx-20&&local.x<=fx+fw+20&&Math.abs(y-(rootY+(depth+1)*rowGap))<=treeLayers[depth].factorHalfHeight;
+    const outputAction=actions[config.U*2];
+    if(nearFactor) {
+      const start=actions[depth*2].start,end=actions[depth*2+1].end;
+      const position=(y-(rootY+(depth+1)*rowGap-treeLayers[depth].factorHalfHeight))/(treeLayers[depth].factorHalfHeight*2);
+      treeHoverTarget=start+(end-start)*Math.max(0,Math.min(1,position));
+    } else {
+      treeHoverTarget=y>=resultTop?(outputAction.start+outputAction.end)/2:Math.max(0,(y-rootY)/(resultTop-rootY))*outputAction.start;
+    }
+    const changed=!hoverScanning||playing;
+    hoverScanning=true;playing=false;
+    if(changed)updatePlayback();
+  };
+  hit.addEventListener('pointerenter',follow);hit.addEventListener('pointermove',follow);
+  for(const type of ['pointerleave','pointercancel'])hit.addEventListener(type,event=>{
+    if(event.pointerType!=='mouse')return;
+    resumeFromHover({switchAtEnd:type==='pointerleave'});
+  });
+  render();
+}
+function buildHeatmapFactor(scene,u,x,y,width,height) {
+  const c=color(u);
+  const group=svg('g',{transform:`translate(${x} ${y})`},scene);
+  heatmapSources[u]=[];heatmapSourceLabels[u]=[];
+  svg('rect',{width,height,rx:shapeRadius(width,height,'frame'),fillRole:'background',fill:c,'fill-opacity':.04,strokeRole:'frame',stroke:c,'stroke-opacity':diagram.alpha.border},group);
+  const fontScale=config.diagramFontScale/100;
+  const layout=factorLayout(0,0,width,height,true),compact=layout.step<bits*16*fontScale*.6+4;
+  distributions[u].forEach((p,code)=>{
+    const barWidth=layout.step*(1-config.barGap/100),barHeight=p*layout.plotHeight,barX=layout.left+(code+.5)*layout.step-barWidth/2;
+    heatmapSources[u].push(svg('rect',{x:barX,y:layout.baseline-barHeight,width:barWidth,height:barHeight,rx:shapeRadius(barWidth,barHeight,'bar'),fillRole:'bar',fill:c,'fill-opacity':.25},group));
+    const node=label(binary(code),compact?width/2:layout.left+(code+.5)*layout.step,layout.labelY,{'text-anchor':'middle','font-size':16,fill:c},group);
+    heatmapSourceLabels[u].push({node,compact});
+  });
+  svg('line',{x1:layout.left,y1:layout.baseline,x2:layout.right,y2:layout.baseline,strokeRole:'frame',stroke:c,'stroke-opacity':.2},group);
+}
+function buildHeatmapScene() {
+  resumeFromHover();pointerScanning=false;
+  const scene=$('heatmap-scene');scene.replaceChildren();
+  const sourceX=28,sourceSize=factorSize(config.cardWidth);
+  const baseX=sourceX+sourceSize.width+64,baseY=64;
+  const {width:sceneWidth,height}=animationSize(scene,Math.max(480,sourceSize.height*4+config.cardGap*3+64));
+  const size=Math.min(sceneWidth-baseX-32,height-baseY-32),offsetX=(sceneWidth-baseX-32-size)/2,offsetY=(height-baseY-32-size)/2;
+  const x=baseX+offsetX,y=baseY+offsetY,width=size,gridHeight=size,gap=config.cardGap*.6;
+  const blockWidth=(width-gap*3)/4,blockHeight=(gridHeight-gap*3)/4;
+  const paddingX=blockWidth*config.factorPadding/100,paddingY=blockHeight*config.factorPadding/100;
+  const gridWidth=blockWidth-paddingX*2,gridInnerHeight=blockHeight-paddingY*2,stepX=gridWidth/4,stepY=gridInnerHeight/4;
+  const insetX=stepX*config.barGap/200,insetY=stepY*config.barGap/200,cellWidth=stepX-insetX*2,cellHeight=stepY-insetY*2;
+  heatmapLayout={x,y,width,height:gridHeight,gap,blockWidth,blockHeight,paddingX,paddingY,stepX,stepY};
+  heatmapCells=[];heatmapBlocks=[];heatmapSources=[];heatmapSourceLabels=[];
+  const sourceStart=(height-sourceSize.height*4-config.cardGap*3)/2;
+  for(let u=3;u>=0;u--)buildHeatmapFactor(scene,u,sourceX+offsetX,sourceStart+(3-u)*(sourceSize.height+config.cardGap),sourceSize.width,sourceSize.height);
+  heatmapArrows=Array.from({length:4},(_,u)=>Array.from({length:u<2?4:1},()=>svg('path',{fill:'none',strokeRole:'arrow',stroke:color(u),'stroke-width':2,'stroke-linecap':'round','stroke-linejoin':'round','pointer-events':'none','data-factor':u},scene)));
+  const overlayOpacity=config.heatmapOverlayOpacity/100;
+  heatmapOuterRow=svg('rect',{x,y,width,height:blockHeight,rx:shapeRadius(width,blockHeight,'frame'),fill:color(3),'fill-opacity':overlayOpacity,'pointer-events':'none'},scene);
+  heatmapOuterColumn=svg('rect',{x,y,width:blockWidth,height:gridHeight,rx:shapeRadius(blockWidth,gridHeight,'frame'),fill:color(2),'fill-opacity':overlayOpacity,'pointer-events':'none'},scene);
+  const min=Math.min(...probabilities),max=Math.max(...probabilities),span=max-min;
+  const topSlots=new Set([...probabilities.keys()].sort((a,b)=>probabilities[b]-probabilities[a]||a-b).slice(0,config.topK));
+  for(let outerRow=0;outerRow<4;outerRow++) {
+    for(let outerColumn=0;outerColumn<4;outerColumn++) {
+      const bx=x+outerColumn*(blockWidth+gap),by=y+outerRow*(blockHeight+gap),gx=bx+paddingX,gy=by+paddingY;
+      const group=svg('g',{},scene);
+      svg('rect',{x:bx,y:by,width:blockWidth,height:blockHeight,rx:shapeRadius(blockWidth,blockHeight,'frame'),fillRole:'background',fill:outputColor(),'fill-opacity':.02,strokeRole:'frame',stroke:outputColor(),'stroke-opacity':diagram.alpha.border,'stroke-width':1},group);
+      for(let row=0;row<4;row++) {
+        for(let column=0;column<4;column++) {
+          const slot=address([column,row,outerColumn,outerRow]),cx=gx+column*stepX+insetX,cy=gy+row*stepY+insetY;
+          const strength=span>0?(probabilities[slot]-min)/span:.5;
+          const cell=svg('rect',{x:cx,y:cy,width:cellWidth,height:cellHeight,rx:shapeRadius(cellWidth,cellHeight,'bar'),fillRole:'bar',fill:outputColor(),'fill-opacity':probabilities[slot]>0?.08+.9*strength*config.heatmapRange:.015},group);
+          heatmapCells[slot]={cell,x:cx,y:cy,width:cellWidth,height:cellHeight};
+        }
+      }
+      const row=svg('rect',{x:gx,y:gy,width:gridWidth,height:stepY,fill:color(1),'fill-opacity':overlayOpacity,'pointer-events':'none'},group);
+      const column=svg('rect',{x:gx,y:gy,width:stepX,height:gridInnerHeight,fill:color(0),'fill-opacity':overlayOpacity,'pointer-events':'none'},group);
+      heatmapBlocks.push({x:gx,y:gy,row,column});
+    }
+  }
+  const cellSize=Math.min(cellWidth,cellHeight);
+  heatmapSelection=svg('rect',{width:cellWidth,height:cellHeight,rx:shapeRadius(cellWidth,cellHeight,'bar'),fillRole:'bar',fill:outputColor(),'fill-opacity':overlayOpacity,'pointer-events':'none'},scene);
+  heatmapPoint=svg('circle',{r:Math.min(4.8,cellSize*.24),fill:'none',stroke:'#f6f0e3','stroke-width':1.4,'pointer-events':'none'},scene);
+  const markers=svg('g',{'pointer-events':'none','data-markers':'top-k'},scene);
+  for(const slot of topSlots) {
+    const {x,y,width,height}=heatmapCells[slot];
+    svg('circle',{cx:x+width/2,cy:y+height/2,r:Math.min(3.2,cellSize*.14),fillRole:'frame',fill:'#294955','data-slot':slot},markers);
+  }
+  const hit=svg('rect',{x,y,width,height:gridHeight,fill:'transparent',style:'cursor:crosshair',role:'presentation'},scene);
+  const follow=event=>{
+    const point=scene.createSVGPoint();point.x=event.clientX;point.y=event.clientY;
+    const local=point.matrixTransform(scene.getScreenCTM().inverse());
+    const outerColumn=Math.max(0,Math.min(3,Math.floor((local.x-x)/(blockWidth+gap)))),outerRow=Math.max(0,Math.min(3,Math.floor((local.y-y)/(blockHeight+gap))));
+    const column=Math.max(0,Math.min(3,Math.floor((local.x-x-outerColumn*(blockWidth+gap)-paddingX)/stepX)));
+    const row=Math.max(0,Math.min(3,Math.floor((local.y-y-outerRow*(blockHeight+gap)-paddingY)/stepY)));
+    seekIndex(address([column,row,outerColumn,outerRow]));
+  };
+  hit.addEventListener('pointerenter',event=>{if(event.pointerType==='mouse'){hoverScanning=true;follow(event);}});
+  hit.addEventListener('pointermove',event=>{if(event.pointerType==='mouse'||pointerScanning)follow(event);});
+  hit.addEventListener('pointerdown',event=>{if(event.pointerType!=='mouse'){pointerScanning=true;hit.setPointerCapture(event.pointerId);}follow(event);});
+  hit.addEventListener('pointerleave',event=>{if(event.pointerType==='mouse')resumeFromHover({switchAtEnd:true});});
+  for(const type of ['pointerup','pointercancel','lostpointercapture'])hit.addEventListener(type,event=>{
+    pointerScanning=false;
+    if(type==='pointercancel'&&event.pointerType==='mouse')resumeFromHover();
+  });
+  currentIndex=-1;render();
+}
+function renderHeatmap() {
+  const index=indexAt(progress),parts=digits(index);
+  if(index!==currentIndex) {
+    currentIndex=index;
+    const {x,y,blockWidth,blockHeight,gap,paddingX,paddingY,stepX,stepY}=heatmapLayout;
+    set(heatmapOuterRow,{y:y+parts[3]*(blockHeight+gap)});
+    set(heatmapOuterColumn,{x:x+parts[2]*(blockWidth+gap)});
+    heatmapBlocks.forEach(block=>{
+      set(block.row,{y:block.y+parts[1]*stepY});set(block.column,{x:block.x+parts[0]*stepX});
+    });
+    set(heatmapArrows[3][0],{d:`M${x-48} ${y+(parts[3]+.5)*blockHeight+parts[3]*gap}h20m-5-4 5 4-5 4`});
+    set(heatmapArrows[2][0],{d:`M${x+(parts[2]+.5)*blockWidth+parts[2]*gap} ${y-48}v20m-4-5 4 5 4-5`});
+    for(let i=0;i<4;i++) {
+      set(heatmapArrows[1][i],{d:`M${x-22} ${y+i*(blockHeight+gap)+paddingY+(parts[1]+.5)*stepY}h18m-5-4 5 4-5 4`});
+      set(heatmapArrows[0][i],{d:`M${x+i*(blockWidth+gap)+paddingX+(parts[0]+.5)*stepX} ${y-22}v18m-4-5 4 5 4-5`});
+    }
+    for(let u=0;u<4;u++) {
+      heatmapSources[u].forEach((bar,d)=>set(bar,{'fill-opacity':d===parts[u]?1:diagram.alpha.low}));
+      heatmapSourceLabels[u].forEach(({node,compact},code)=>set(node,{opacity:compact?(code===parts[u]?1:0):code===parts[u]?1:.55,'font-weight':code===parts[u]?700:400}));
+    }
+    const cell=heatmapCells[index];set(heatmapSelection,{x:cell.x,y:cell.y});set(heatmapPoint,{cx:cell.x+cell.width/2,cy:cell.y+cell.height/2});
+  }
+  renderTimeline(0,index.toString(2).padStart(bits*config.U,'0'));
+}
+function buildWaveformScene() {
+  resumeFromHover();pointerScanning=false;
+  const scene=$('waveform-scene');scene.replaceChildren();waveformRows=[];waveformBars=[];
+  const sourceX=48,sourceWidth=config.cardWidth,x=sourceX+sourceWidth+52,fontScale=config.diagramFontScale/100,startY=28;
+  const baseRowHeight=Math.max(config.waveformHeight,(24*fontScale+18)/(1-2*config.factorPadding/100)),gap=Math.max(config.waveformGap,16+24.3*fontScale+config.waveformAddressGap),footer=Math.max(48,32*fontScale+20);
+  const {width:sceneWidth,height}=animationSize(scene,startY+(config.U+1)*baseRowHeight+config.U*gap+footer);
+  const rowHeight=(height-startY-footer-config.U*gap)/(config.U+1),width=sceneWidth-48-x;
+  const inset=Math.min(rowHeight*.12,width*.05),plotX=x+inset,plotWidth=width-2*inset,step=plotWidth/total;
+  const topSlots=new Set([...probabilities.keys()].sort((a,b)=>probabilities[b]-probabilities[a]||a-b).slice(0,config.topK));
+  waveformLayout={plotX,plotWidth,step,topSlots};
+  const defs=svg('defs',{},scene),max=Math.max(...probabilities)||1;
+  for(let depth=0;depth<=config.U;depth++) {
+    const isOutput=depth===config.U,u=config.U-1-depth,c=isOutput?outputColor():color(u),y=startY+depth*(rowHeight+gap),baseline=y+rowHeight-inset,plotHeight=rowHeight-2*inset;
+    const group=svg('g',{opacity:0},scene),sourceBars=[],sourceGroups=[],sourceLabels=[];
+    if(!isOutput) {
+      const source=factorSize(sourceWidth,rowHeight),sourceY=y+(rowHeight-source.height)/2,factorX=sourceX+(sourceWidth-source.width)/2;
+      const layout=factorLayout(factorX,sourceY,source.width,source.height,true);
+      const compact=layout.step<bits*16*fontScale*.6+2;
+      svg('rect',{x:factorX,y:sourceY,width:source.width,height:source.height,rx:shapeRadius(source.width,source.height,'frame'),fillRole:'background',fill:c,'fill-opacity':.055,strokeRole:'frame',stroke:c,'stroke-opacity':diagram.alpha.border},group);
+      const arrowY=y+rowHeight/2,arrowEnd=x-12;
+      svg('path',{d:`M${factorX+source.width+10} ${arrowY}H${arrowEnd}m-6-4 6 4-6 4`,fill:'none',strokeRole:'arrow',stroke:c,'stroke-width':1.5,'stroke-linecap':'round','stroke-linejoin':'round'},group);
+      distributions[u].forEach((p,code)=>{
+        const sourceGroup=svg('g',{'data-code':code,opacity:0},group);sourceGroups.push(sourceGroup);
+        const barWidth=layout.step*(1-config.barGap/100),barX=layout.left+code*layout.step+(layout.step-barWidth)/2,barHeight=p*layout.plotHeight;
+        sourceBars.push(svg('rect',{x:barX,y:layout.baseline-barHeight,width:barWidth,height:barHeight,rx:shapeRadius(barWidth,barHeight,'bar'),fillRole:'bar',fill:c,'fill-opacity':.6},sourceGroup));
+        const node=label(binary(code),compact?sourceX+sourceWidth/2:barX+barWidth/2,layout.labelY,{'text-anchor':'middle','font-size':16,fill:c},sourceGroup);
+        sourceLabels.push({node,compact});
+      });
+    }
+    svg('rect',{x,y,width,height:rowHeight,rx:shapeRadius(width,rowHeight,'frame'),fillRole:'background',fill:c,'fill-opacity':.045,strokeRole:'frame',stroke:c,'stroke-opacity':diagram.alpha.border},group);
+    svg('line',{x1:plotX,y1:baseline,x2:plotX+plotWidth,y2:baseline,strokeRole:'frame',stroke:c,'stroke-opacity':.2},group);
+    let revealClip=null;
+    if(isOutput) {
+      const clip=svg('clipPath',{id:`waveform-reveal-${depth}`,clipPathUnits:'userSpaceOnUse'},defs);
+      revealClip=svg('rect',{x:plotX,y,width:0,height:rowHeight},clip);
+    }
+    const data=svg('g',isOutput?{'clip-path':`url(#waveform-reveal-${depth})`}:{},group);
+    const codeGroups=isOutput?[]:Array.from({length:config.dp},(_,code)=>svg('g',{'data-code':code,opacity:0},data));
+    const values=Array.from({length:total},(_,index)=>isOutput?probabilities[index]:distributions[u][Math.floor(index/config.dp**u)%config.dp]);
+    const scale=isOutput?max:1;
+    const rowBars=values.map((value,index)=>{
+      const barWidth=step*(1-config.barGap/100),barHeight=value/scale*plotHeight;
+      return svg('rect',{x:plotX+index*step+(step-barWidth)/2,y:baseline-barHeight,width:barWidth,height:barHeight,rx:shapeRadius(barWidth,barHeight,'bar'),fillRole:'bar',fill:c,'fill-opacity':isOutput?(topSlots.has(index)?.65:.23):.5},isOutput?data:codeGroups[Math.floor(index/config.dp**u)%config.dp]);
+    });
+    if(isOutput)waveformBars=rowBars;
+    waveformRows.push({group,revealClip,sourceBars,sourceGroups,sourceLabels,codeGroups,rowBars,values,baseline,plotHeight,scale,y,c,u});
+  }
+  waveformReadout=svg('g',{opacity:0,'pointer-events':'none'},scene);
+  waveformScan=svg('g',{},waveformReadout);
+  waveformRows.forEach((row,depth)=>{
+    row.scanLine=svg('line',{x1:0,x2:0,y1:row.y-4,y2:row.y+rowHeight+4,strokeRole:'frame',stroke:'#718590','stroke-width':1.3,'stroke-dasharray':'4 5','stroke-opacity':.7},waveformScan);
+    row.point=svg('circle',{r:3,fillRole:'bar',fill:row.c,stroke:'#f6f0e3','stroke-width':1.2},waveformReadout);
+    row.address=label('',0,row.y+rowHeight+12+(depth===config.U?20:18)*fontScale,{'text-anchor':'middle','font-size':depth===config.U?20:18,fill:row.c},waveformReadout);
+    row.addressParts=[];
+    for(let u=config.U-1;u>=0;u--)row.addressParts[u]=svg('tspan',{fill:depth===config.U||u===row.u?color(u):'#7c8478'},row.address);
+  });
+  const hit=svg('rect',{x:plotX,y:startY,width:plotWidth,height:height-startY-12,fill:'transparent',style:'cursor:crosshair',role:'presentation'},scene);
+  const follow=event=>{
+    const point=scene.createSVGPoint();point.x=event.clientX;point.y=event.clientY;
+    const local=point.matrixTransform(scene.getScreenCTM().inverse());
+    seekIndex(Math.max(0,Math.min(total-1,Math.floor((local.x-plotX)/plotWidth*total))));
+  };
+  hit.addEventListener('pointerenter',event=>{if(event.pointerType==='mouse'){hoverScanning=true;follow(event);}});
+  hit.addEventListener('pointermove',event=>{if(event.pointerType==='mouse'||pointerScanning)follow(event);});
+  hit.addEventListener('pointerdown',event=>{if(event.pointerType!=='mouse'){pointerScanning=true;hit.setPointerCapture(event.pointerId);}follow(event);});
+  hit.addEventListener('pointerleave',event=>{if(event.pointerType==='mouse')resumeFromHover({switchAtEnd:true});});
+  for(const type of ['pointerup','pointercancel','lostpointercapture'])hit.addEventListener(type,event=>{
+    pointerScanning=false;
+    if(type==='pointercancel'&&event.pointerType==='mouse')resumeFromHover();
+  });
+  currentIndex=-1;render();
+}
+function renderWaveform() {
+  const scanStart=config.waveformRevealDuration/sectionDuration(),scanning=progress>=scanStart;
+  waveformRows.forEach((row,depth)=>{
+    const reveal=scanning?1:Math.max(0,Math.min(1,progress/scanStart*(config.U+1)-depth));
+    set(row.group,{opacity:Math.min(1,reveal*4)});
+    if(row.revealClip)set(row.revealClip,{width:waveformLayout.plotWidth*(1-(1-reveal)**3)});
+    row.codeGroups.forEach((codeGroup,code)=>{
+      const amount=1-(1-Math.max(0,Math.min(1,reveal*config.dp-code)))**3;
+      set(codeGroup,{opacity:amount});set(row.sourceGroups[code],{opacity:amount});
+      const {node,compact}=row.sourceLabels[code];
+      if(!scanning)set(node,{opacity:compact?(code===Math.min(config.dp-1,Math.floor(reveal*config.dp))?1:0):1,'font-weight':400});
+    });
+    if(!scanning)row.sourceBars.forEach(bar=>set(bar,{'fill-opacity':.6}));
+  });
+  set(waveformReadout,{opacity:scanning?1:0});
+  const index=indexAt(progress),parts=digits(index),{plotX,plotWidth,step,topSlots}=waveformLayout;
+  currentIndex=index;
+  if(scanning) {
+    const x=plotX+(index+.5)*step;
+    set(waveformScan,{transform:`translate(${x} 0)`});
+    waveformRows.forEach((row,depth)=>{
+      set(row.point,{cx:x,cy:row.baseline-row.values[index]/row.scale*row.plotHeight});
+      const margin=bits*config.U*(depth===config.U?20:18)*config.diagramFontScale/100*.32+4;
+      set(row.address,{x:Math.max(plotX+margin,Math.min(plotX+plotWidth-margin,x))});
+      for(let u=0;u<config.U;u++)row.addressParts[u].textContent=binary(parts[u]);
+      if(depth!==config.U) {
+        row.sourceBars.forEach((bar,code)=>set(bar,{'fill-opacity':code===parts[row.u]?1:diagram.alpha.low}));
+        row.sourceLabels.forEach(({node,compact},code)=>set(node,{opacity:compact?(code===parts[row.u]?1:0):1,'font-weight':code===parts[row.u]?700:400}));
+      }
+    });
+    waveformRows.slice(1).forEach((row,depth)=>{
+      const address=waveformRows[depth].address.getBBox();
+      set(row.scanLine,{y1:address.y+address.height+config.waveformAddressGap});
+    });
+  }
+  waveformRows.slice(0,config.U).forEach(row=>row.rowBars.forEach((bar,i)=>set(bar,{'fill-opacity':scanning&&i===index?1:.5})));
+  waveformBars.forEach((bar,i)=>set(bar,{'fill-opacity':scanning&&i===index?1:topSlots.has(i)?.65:diagram.alpha.low}));
+  renderTimeline(scanning?1:0,scanning?index.toString(2).padStart(bits*config.U,'0'):'3 → 2 → 1 → 0');
+}
+function layoutPages() {
+  const shell=document.querySelector('.animation-shell');
+  const compact=window.ramnetCompactInteractions.matches;
+  const compactTabs=document.querySelector('.compact-tabs'),pages=document.querySelector('.section-pages');
+  pages.setAttribute('role',compact?'presentation':'tablist');
+  if(compact)pages.removeAttribute('aria-orientation');
+  else pages.setAttribute('aria-orientation','vertical');
+  SECTIONS.forEach(name=>{
+    const tab=$(name+'-tab'),parent=compact?compactTabs:$(name+'-page');
+    if(tab.parentElement!==parent)parent.append(tab);
+  });
+  const mobile=window.matchMedia('(max-width:540px)').matches,style=getComputedStyle($('distribution-tab'));
+  const measure=document.createElement('canvas').getContext('2d');
+  measure.font=`700 ${style.fontSize} ${style.fontFamily}`;
+  const tabWidth=compact?0:Math.ceil(Math.max(...SECTIONS.map(name=>measure.measureText(SECTION_NAMES[name]).width)))+parseFloat(style.paddingLeft)+parseFloat(style.paddingRight)+2;
+  if(articleLayout&&!compact) {
+    const center=articleLayout.left+articleLayout.width/2;
+    const available=document.querySelector('.card-scroll').clientWidth;
+    // Center the page body on the prose; tabs occupy the remaining right gutter.
+    const bodyWidth=Math.max(660-tabWidth-16,Math.min(articleLayout.width,2*Math.min(center-8,available-center-tabWidth-24)));
+    shell.style.marginLeft=(center-bodyWidth/2)+'px';
+    shell.style.marginRight='0px';
+    shell.style.width=(bodyWidth+tabWidth+16)+'px';
+  } else {
+    shell.style.removeProperty('margin-left');
+    shell.style.removeProperty('margin-right');
+    shell.style.removeProperty('width');
+  }
+  const width=shell.clientWidth-16,height=shell.clientHeight-16;
+  const bodyWidth=width-tabWidth,tabHeight=compact?44:Math.min(mobile?30:40,height*.5*(mobile?.18:.21));
+  const gap=compact?12:(height*.5-SECTIONS.length*tabHeight)/(SECTIONS.length-1);
+  const join=Math.min(mobile?4:14,gap/2),corner=Math.min(9,tabHeight/2),radius=config.animationRadius*.68;
+  shell.style.setProperty('--page-body-width',bodyWidth+'px');
+  shell.style.setProperty('--page-tab-width',tabWidth+'px');
+  shell.style.setProperty('--page-tab-height',tabHeight+'px');
+  SECTIONS.forEach((name,index)=>{
+    const top=(compact?(height-SECTIONS.length*tabHeight-(SECTIONS.length-1)*gap)/2:height*.25)+index*(tabHeight+gap),bottom=top+tabHeight,right=width-.5,end=height-.5;
+    $(name+'-tab').style.top=top+'px';
+    if(compact) {
+      $(name+'-tab').style.removeProperty('top');
+      $(name+'-page').querySelector('path').setAttribute('d',`M ${.5+radius} .5 H ${right-radius} Q ${right} .5 ${right} ${.5+radius} V ${end-radius} Q ${right} ${end} ${right-radius} ${end} H ${.5+radius} Q .5 ${end} .5 ${end-radius} V ${.5+radius} Q .5 .5 ${.5+radius} .5 Z`);
+      return;
+    }
+    // A single silhouette joins the page and tab; its shadow belongs to the same layer.
+    $(name+'-page').querySelector('path').setAttribute('d',`M ${.5+radius} .5 H ${bodyWidth-radius} Q ${bodyWidth} .5 ${bodyWidth} ${.5+radius}
+      V ${top-join} A ${join} ${join} 0 0 0 ${bodyWidth+join} ${top} H ${right-corner} Q ${right} ${top} ${right} ${top+corner}
+      V ${bottom-corner} Q ${right} ${bottom} ${right-corner} ${bottom} H ${bodyWidth+join} A ${join} ${join} 0 0 0 ${bodyWidth} ${bottom+join}
+      V ${end-radius} Q ${bodyWidth} ${end} ${bodyWidth-radius} ${end} H ${.5+radius} Q .5 ${end} .5 ${end-radius}
+      V ${.5+radius} Q .5 .5 ${.5+radius} .5 Z`);
+  });
+}
+function arrangePages() {
+  const shades=['#eee8db','#e8e1d2','#e1d9c8','#dad1bf'];
+  for(const [depth,name] of pageOrder.entries()) {
+    const card=$(name+'-card'),tab=$(name+'-tab'),layer=$(name+'-page');
+    card.hidden=false;
+    card.setAttribute('aria-hidden',String(name!==activeSection));
+    layer.style.setProperty('--page-depth',depth);
+    layer.style.setProperty('--page-shade',shades[depth]);
+    layer.style.zIndex=SECTIONS.length-depth;
+    card.style.pointerEvents=name===activeSection?'auto':'none';
+    layer.dataset.depth=card.dataset.depth=tab.dataset.depth=depth;
+  }
+}
+function switchSection(section,{restart=true}={}) {
+  if(pageFlip){pageFlip.forEach(animation=>animation.cancel());pageFlip=null;}
+  arrangePages();
+  const targetDepth=pageOrder.indexOf(section),turnedPages=pageOrder.slice(0,targetDepth);
+  const turnedShades=turnedPages.map(name=>$(name+'-page').style.getPropertyValue('--page-shade'));
+  pageOrder=[...pageOrder.slice(targetDepth),...turnedPages];
+  hoverScanning=false;pointerScanning=false;treeHoverTarget=null;sectionSwitchAt=null;activeSection=section;
+  if(restart)progress=0;
+  previousTimestamp=null;
+  arrangePages();
+  for(const name of SECTIONS) {
+    const selected=name===section;
+    $(name+'-tab').setAttribute('aria-selected',String(selected));
+    $(name+'-tab').tabIndex=selected?0:-1;
+  }
+  const tree=section==='tree';
+  syncControls();buildActions();buildScene();updatePlayback();
+  if(turnedPages.length&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const frames=[
+      {transform:'perspective(3600px) rotateY(0deg)',opacity:1},
+      {offset:.45,transform:'perspective(3600px) rotateY(-48deg)',opacity:1},
+      {offset:.8,transform:'perspective(3600px) rotateY(-78deg)',opacity:1},
+      {transform:'perspective(3600px) rotateY(-89deg)',opacity:0}
+    ];
+    pageFlip=turnedPages.map((name,depth)=>{
+      const page=$(name+'-page');
+      page.style.setProperty('--page-depth',depth);page.style.setProperty('--page-shade',turnedShades[depth]);page.style.zIndex=SECTIONS.length*2-depth;
+      return page.animate(frames.map(frame=>({...frame,transformOrigin:'left center'})),{duration:650,easing:'cubic-bezier(.35,.05,.65,1)'});
+    });
+    const outward=pageFlip;
+    Promise.all(outward.map(animation=>animation.finished)).then(()=>{
+      if(pageFlip!==outward)return;
+      outward.forEach(animation=>animation.cancel());arrangePages();
+      const attachFrames=[
+        {transform:'perspective(3600px) translateZ(-260px) scale(.72)',opacity:.55},
+        {offset:.55,transform:'perspective(3600px) translateZ(-100px) scale(.88)',opacity:.85},
+        {transform:'perspective(3600px) translateZ(0) scale(1)',opacity:1}
+      ];
+      pageFlip=turnedPages.map(name=>$(name+'-page').animate(attachFrames.map(frame=>({...frame,transformOrigin:`${$(name+'-card').clientWidth}px center`})),{duration:500,easing:'cubic-bezier(.45,0,.55,1)'}));
+      const attaching=pageFlip;
+      Promise.all(attaching.map(animation=>animation.finished)).then(()=>{
+        if(pageFlip!==attaching)return;
+        pageFlip=null;
+        arrangePages();
+      }).catch(()=>{});
+    }).catch(()=>{});
+  }
+}
+function renderTree() {
+  const next=actions.findIndex(action=>progress<action.end),phase=next<0?actions.length-1:next;
+  const action=actions[phase],local=Math.max(0,Math.min(1,(progress-action.start)/(action.end-action.start||1)));
+  treeLayers.forEach((layer,depth)=>{
+    const expansion=depth*2,pruning=expansion+1,cut=phase>pruning?1:phase===pruning?local:0;
+    const prune=Math.max(0,Math.min(1,(cut-.2)/.25));
+    const cross=Math.min(1,cut/.15)*(1-Math.max(0,Math.min(1,(cut-.55)/.15)));
+    const move=Math.max(0,Math.min(1,(cut-.7)/.2));
+    const regroup=move*move*(3-2*move);
+    const reveal=phase<expansion?0:phase===expansion?1-(1-Math.min(1,local*1.4))**3:1;
+    set(layer.revealClip,{height:layer.revealHeight*reveal});
+    set(layer.layer,{opacity:phase<expansion?0:1});
+    set(layer.factorArrow,{opacity:reveal});
+    set(layer.factor,{opacity:phase===expansion||phase===pruning?1:.4});
+    layer.factorBars.forEach(bar=>set(bar,{'fill-opacity':phase===expansion?.85:.55}));
+    layer.nodes.forEach(node=>{
+      const x=node.candidateX+(node.x-node.candidateX)*regroup,y=node.y-16*(1-reveal);
+      const scale=node.candidateScale+(1-node.candidateScale)*(node.keep?regroup:0),shrink=node.keep?1:1-.4*prune;
+      const w=node.w*scale*shrink,h=node.h*scale*shrink;
+      set(node.edge,{d:treeCurve(node.parent.x,node.parent.y+node.parent.h/2+3,x,y-h/2-3),'stroke-opacity':(.12+.4*node.strength)*(node.keep?1:1-prune)});
+      set(node.group,{opacity:reveal,transform:`translate(${x} ${y})`});
+      set(node.shape,{x:-w/2,y:-h/2,width:w,height:h,rx:Math.min(config.treeNodeRadius*scale*shrink,w/2,h/2),opacity:node.keep?1:1-prune,'stroke-width':node.keep&&regroup?1.8:1.1});
+      if(node.cross)set(node.cross,{opacity:cross});
+    });
+  });
+  const finalPrune=config.U*2-1;
+  set(treeOutputGroup,{opacity:phase>finalPrune?1:phase===finalPrune?Math.max(0,Math.min(1,(local-.9)/.1)):0});
+  renderTimeline(phase,phase===actions.length-1?`Top-${config.topK}`:`${config.U-1-Math.floor(phase/2)} · ${phase%2?'裁剪':'展开'}`);
+}
+function stepPlayback(direction) {
+  sectionSwitchAt=null;
+  if(activeSection!=='tree'){seekIndex(currentIndex+direction);return;}
+  treeHoverTarget=null;
+  const next=Math.max(0,Math.min(actions.length-1,activeAction+direction));
+  progress=Math.min(1,actions[next].start+.00001);playing=false;previousTimestamp=null;render();updatePlayback();
+}
+function indexAt(t) {
+  if(activeSection==='waveform') {
+    const start=config.waveformRevealDuration/sectionDuration();
+    t=(t-start)/(1-start)+1e-12;
+  }
+  return Math.max(0,Math.min(total-1,Math.floor(t*total)));
+}
+function indexProgress(index) {
+  if(activeSection==='waveform')return (config.waveformRevealDuration+config.waveformScanDuration*index/total)/sectionDuration();
+  return index/total;
+}
+function seekIndex(index) {
+  sectionSwitchAt=null;
+  playing=false;progress=indexProgress(Math.max(0,Math.min(total-1,index)));previousTimestamp=null;render();updatePlayback();
+}
+function resumeFromHover({switchAtEnd=false}={}) {
+  if(!hoverScanning)return;
+  const atEnd=activeSection!=='tree'?indexAt(progress)===total-1:(treeHoverTarget??progress)>=actions[actions.length-1].start;
+  if(switchAtEnd&&atEnd) {
+    hoverScanning=false;treeHoverTarget=null;playing=false;
+    sectionSwitchAt=performance.now()+config.sectionDelay*1000;previousTimestamp=null;updatePlayback();return;
+  }
+  hoverScanning=false;treeHoverTarget=null;
+  playing=progress<1;previousTimestamp=null;updatePlayback();
+}
+function render() {
+  if(activeSection==='tree'){renderTree();return;}
+  if(activeSection==='heatmap'){renderHeatmap();return;}
+  if(activeSection==='waveform'){renderWaveform();return;}
+  const index=indexAt(progress),parts=digits(index),actionIndex=0;
+  if(index!==currentIndex) {
+    currentIndex=index;
+    for(let u=0;u<config.U;u++) {
+      for(let d=0;d<config.dp;d++) {
+        const selected=d===parts[u],nodes=sourceNodes[u].row[d];
+        set(nodes.bar,{'fill-opacity':selected?1:0.28});
+        set(nodes.tag,{fill:selected?color(u):'#7c8478','font-weight':selected?700:400,opacity:nodes.compactLabels&&!selected?0:1});
+        nodes.bar.setAttribute('aria-pressed',String(selected));
+      }
+      const bar=sourceNodes[u].row[parts[u]].bar;
+      const sx=Number(bar.getAttribute('x'))+Number(bar.getAttribute('width'))/2,sy=sourceNodes[u].arrowY;
+      const multiplyX=chart.x+chart.width/2,outer=u===0||u===3,ex=multiplyX+(u>=2?(outer?-25:-9):(outer?25:9));
+      routeNodes[u].setAttribute('d',roundedRoute(outer?[[sx,sy],[sx,multiplyY],[ex,multiplyY]]:[[sx,sy],[sx,multiplyY-40],[ex,multiplyY-40],[ex,multiplyY-23]]));
+      addressNodes[u].textContent=binary(parts[u]);
+    }
+    const bin=Math.floor(index/binSize),x=chart.x+(index+.5)/total*chart.width;
+    const step=chart.width/groups.length,y=chart.bottom-probabilities[index]/outputScaleMax*chart.plotHeight;
+    bars.forEach((bar,i)=>set(bar,{'fill-opacity':i===bin?1:topBars.has(i)?.65:diagram.alpha.low}));
+    set(highlight,{x:chart.x+bin*step});set(scanLine,{x1:x,x2:x});
+    const startY=multiplyY+21,turnY=Math.min(multiplyY+65,(startY+y-8)/2);
+    const multiplyX=chart.x+chart.width/2;
+    set(outputRoute,{d:roundedRoute([[multiplyX,startY],[multiplyX,turnY],[x,turnY],[x,y-8]])});
+    const margin=bits*config.U*20*config.diagramFontScale/100*.32+4;
+    const addressX=Math.max(chart.x+margin,Math.min(chart.x+chart.width-margin,x));
+    addressGroup.setAttribute('transform',`translate(${addressX} ${chart.bottom+43})`);
+  }
+  renderTimeline(actionIndex,index.toString(2).padStart(bits*config.U,'0'));
+}
+function renderTimeline(actionIndex,reference) {
+  if(activeAction!==actionIndex) {
+    activeAction=actionIndex;
+
+  }
+}
+function buildActions() {
+  const duration=sectionDuration();
+  if(activeSection==='waveform') {
+    const start=config.waveformRevealDuration/duration;
+    actions=[{name:'逐层呈现',start:0,end:start,detail:'每行按 00 → 01 → 10 → 11 同步呈现因子与对应的周期柱，最后显示逐点乘积'},{name:'同步扫描',start,end:1,detail:'虚线对齐五行，子地址组成完整地址'}];
+  } else if(activeSection!=='tree')actions=[{name:SECTION_NAMES[activeSection],start:0,end:1,detail:activeSection==='heatmap'?'全地址扫描，外层及所有内层网格同步高亮行列':'全地址从左向右连续扫描'}];
+  else {
+    const durations=Array.from({length:config.U*2},(_,i)=>i%2?config.treePruneDuration:config.treeExpandDuration).concat(config.treeHoldDuration);
+    let elapsed=0;
+    actions=durations.map((seconds,i)=>{
+      const start=Math.min(1,elapsed/duration);elapsed+=seconds;
+      return {
+        name:i===config.U*2?'保持输出':`${i%2?'裁剪':'展开'} · 分片 ${config.U-1-Math.floor(i/2)}`,
+        start,end:i===config.U*2?1:Math.min(1,elapsed/duration),
+        detail:i===config.U*2?`蓝色输出保持 ${config.treeHoldDuration} 秒`:i%2?`保留乘积最大的 ${config.topK} 个节点`:'每个保留节点与当前因子的四个概率分别相乘'
+      };
+    });
+  }
+  activeAction=-1;
+}
+function syncControls(){
+  $('topK').value=config.topK;$('topK-value').textContent=`Top-${config.topK}`;
+  document.querySelectorAll('.topk-ticks span').forEach((tick,i)=>tick.classList.toggle('active',i+1===config.topK));
+  const style=document.documentElement.style;
+  style.setProperty('--animation-radius',config.animationRadius+'px');
+  style.setProperty('--space',config.spacing+'px');
+  style.setProperty('--interaction-aspect',config.interactionAspect);
+  style.setProperty('--ui-font-scale',config.uiFontScale/100);layoutPages();
+}
+function updatePlayback(){}
+function applyConfig(next,{regenerate=true,restart=false}={}) {
+  config=next;if(restart)progress=0;
+  previousTimestamp=null;
+  syncControls();if(regenerate)generate();buildFactorEditors();buildActions();buildScene();updatePlayback();
+}
+function change(key,value){config[key]=value;applyConfig(config,{regenerate:false});}
+function togglePlay() {
+  treeHoverTarget=null;sectionSwitchAt=null;
+  if(!playing&&progress>=1)progress=0;
+  playing=!playing;previousTimestamp=null;updatePlayback();render();
+}
+function frame(timestamp) {
+  if(sectionSwitchAt!==null&&timestamp>=sectionSwitchAt&&!document.hidden) {
+    if(activeSection===SECTIONS[SECTIONS.length-1]) {
+      config.factors=null;generate();buildFactorEditors();
+    }
+    sectionSwitchAt=null;playing=true;switchSection(nextSection());
+  } else if(previousTimestamp!==null&&activeSection==='tree'&&treeHoverTarget!==null&&!document.hidden) {
+    const elapsed=Math.min((timestamp-previousTimestamp)/1000,.1),difference=treeHoverTarget-progress;
+    if(Math.abs(difference)<.00001) {
+      progress=treeHoverTarget;
+    } else {
+      progress+=Math.sign(difference)*Math.min(Math.abs(difference)*(1-Math.exp(-elapsed/.12)),elapsed*1.5);
+    }
+    render();
+  } else if(previousTimestamp!==null&&playing&&!hoverScanning&&!document.hidden) {
+    progress+=Math.min((timestamp-previousTimestamp)/1000,.1)*sectionSpeed()/sectionDuration();
+    if(progress>=1) {
+      progress=1;playing=false;
+      if(activeSection!==SECTIONS[SECTIONS.length-1]||config.loop)sectionSwitchAt=timestamp+config.sectionDelay*1000;
+      updatePlayback();
+    }
+    render();
+  }
+  previousTimestamp=timestamp;requestAnimationFrame(frame);
+}
+$('topK').addEventListener('input',()=>change('topK',Number($('topK').value)));
+for(const name of SECTIONS) {
+  $(name+'-tab').addEventListener('click',()=>{if(activeSection!==name)switchSection(name);});
+  $(name+'-tab').addEventListener('keydown',event=>{
+    if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+    event.preventDefault();
+    const target=event.key==='Home'?SECTIONS[0]:event.key==='End'?SECTIONS[SECTIONS.length-1]:SECTIONS[(SECTIONS.indexOf(activeSection)+(event.key==='ArrowRight'?1:SECTIONS.length-1))%SECTIONS.length];
+    switchSection(target);$(target+'-tab').focus();
+  });
+}
+document.addEventListener('keydown',event=>{
+  if(event.target.closest('input,select,textarea,button,summary,[role="button"],[role="slider"]'))return;
+  if(event.code==='Space'){event.preventDefault();togglePlay();}
+  if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();stepPlayback(event.key==='ArrowRight'?1:-1);}
+});
+document.addEventListener('visibilitychange',()=>{previousTimestamp=null;});
+window.addEventListener('message',event=>{
+  if(event.source!==window.parent||event.data?.type!=='ramnet:content-layout')return;
+  const {left,width}=event.data;
+  if(!Number.isFinite(left)||!Number.isFinite(width)||left<0||width<=0)return;
+  articleLayout={left,width};
+  document.documentElement.style.setProperty('--article-text-left',left+'px');
+  document.documentElement.style.setProperty('--article-text-width',width+'px');
+  layoutPages();buildScene();
+});
+window.ramnetCompactInteractions.addEventListener('change',()=>{hoverScanning=false;pointerScanning=false;treeHoverTarget=null;layoutPages();});
+arrangePages();applyConfig(config);requestAnimationFrame(frame);
+new ResizeObserver(()=>{layoutPages();buildScene();}).observe(document.querySelector('.animation-shell'));

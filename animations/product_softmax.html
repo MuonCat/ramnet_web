@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>product softmax · RAM-Net</title>
+<link rel="stylesheet" href="product_softmax.css"><link rel="stylesheet" href="../assets/embed.css">
+<script src="../assets/embed.js"></script></head>
+<body class="exhibit exhibit-product_softmax"><main class="exhibit-root"><div class="card-scroll"><div class="animation-shell">
+      <div class="interaction-surface" role="region" aria-label="Interactive views of product address distributions.">
+      <div class="section-pages" role="tablist" aria-label="Interactive views of product address distributions." aria-orientation="vertical">
+      <div id="distribution-page" class="page-layer" role="presentation">
+        <svg class="page-outline" aria-hidden="true"><path/></svg>
+      <div id="distribution-card" class="stage" role="tabpanel" aria-labelledby="distribution-tab" data-fine-interaction>
+        <div class="scene-wrap"><svg id="scene" viewBox="0 0 1000 600" role="img" aria-label="Interactive views of product address distributions."></svg></div>
+      </div>
+        <button id="distribution-tab" class="section-tab" role="tab" aria-controls="distribution-card" aria-selected="true">Soft Radix Address</button>
+      </div>
+      <div id="tree-page" class="page-layer" role="presentation">
+        <svg class="page-outline" aria-hidden="true"><path/></svg>
+      <div id="tree-card" class="stage" role="tabpanel" aria-labelledby="tree-tab" data-fine-interaction hidden>
+        <div class="scene-wrap"><svg id="tree-scene" viewBox="0 0 1000 680" role="img" aria-label="Interactive views of product address distributions."></svg></div>
+      </div>
+        <button id="tree-tab" class="section-tab" role="tab" aria-controls="tree-card" aria-selected="false" tabindex="-1">Multilevel Decision Tree</button>
+      </div>
+      <div id="heatmap-page" class="page-layer" role="presentation">
+        <svg class="page-outline" aria-hidden="true"><path/></svg>
+      <div id="heatmap-card" class="stage" role="tabpanel" aria-labelledby="heatmap-tab" data-fine-interaction hidden>
+        <div class="scene-wrap"><svg id="heatmap-scene" viewBox="0 0 842 842" role="img" aria-label="Interactive views of product address distributions."></svg></div>
+      </div>
+        <button id="heatmap-tab" class="section-tab" role="tab" aria-controls="heatmap-card" aria-selected="false" tabindex="-1">Joint Distribution</button>
+      </div>
+      <div id="waveform-page" class="page-layer" role="presentation">
+        <svg class="page-outline" aria-hidden="true"><path/></svg>
+      <div id="waveform-card" class="stage" role="tabpanel" aria-labelledby="waveform-tab" data-fine-interaction hidden>
+        <div class="scene-wrap"><svg id="waveform-scene" viewBox="0 0 1000 780" role="img" aria-label="Interactive views of product address distributions."></svg></div>
+      </div>
+        <button id="waveform-tab" class="section-tab" role="tab" aria-controls="waveform-card" aria-selected="false" tabindex="-1">Waveform Modulation</button>
+      </div>
+      </div>
+      </div>
+      </div></div><div class="compact-tabs" role="tablist" aria-label="Interactive views of product address distributions."></div><div id="distribution-interactions" class="interaction-panel" aria-label="Interactive views of product address distributions.">
+        <div class="interaction-head"><div class="topk-control"><label class="topk-label" for="topK" id="topK-value">Top-8</label><div class="topk-track"><input class="range" id="topK" type="range" min="1" max="16" step="1" value="8"><div class="topk-ticks" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span></div></div></div></div>
+        <div id="factor-editors" data-fine-interaction></div>
+        
+      </div></main>
+<script src="product_softmax.js"></script></body></html>

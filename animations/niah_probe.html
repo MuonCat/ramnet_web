@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en" class="probe-niah-page">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Retrieval probe · RAM-Net</title>
+  <link rel="stylesheet" href="../assets/probes.css">
+  <script src="../assets/embed.js"></script><script defer src="niah_probe.js"></script>
+</head>
+<body class="probe-niah">
+<main class="exhibit-root stage" id="stage">
+  <div class="token-row" id="tokenRow" aria-label="Tokens around the current position"></div>
+  <div class="field-scroll" id="fieldScroll"><canvas class="field" id="slotField" role="img" aria-label="Memory contents and active reads and writes across 1,024 slots"></canvas></div>
+  <div class="probe-playback">
+    <div class="timeline-wrap"><div class="timeline" id="timeline" role="slider" tabindex="0" aria-label="Sequence position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="timeline-track" id="timelineTrack"><div class="timeline-band needle" id="needleBand"></div><div id="readBands"></div><div class="timeline-marker-label needle" id="needleLabel">NEEDLE</div><div class="timeline-marker-label read" id="readLabel">READ</div><div class="timeline-caret" id="timelineCaret"></div></div></div></div>
+  </div>
+  <div class="controls">
+    <div class="transport">
+      <button class="icon-button" id="restart" title="Restart" aria-label="Restart">↺</button>
+      <button class="icon-button play" id="play" title="Pause" aria-label="Pause">Ⅱ</button>
+      <button class="jump-needle" id="jumpNeedle" title="Jump to the needle">◆ Needle</button>
+      <button class="jump-read" id="jumpRead" title="Jump to the answer read">↗ Read</button>
+    </div>
+    <div class="control-field head"><label for="head">Head</label><select id="head"></select></div>
+    <div class="control-field task"><span class="control-label">Task</span><div class="task-switch" role="group" aria-label="Retrieval task"><button type="button" data-task="niah_single_1" aria-pressed="true">S-NIAH-1</button><button type="button" data-task="niah_single_3" aria-pressed="false">S-NIAH-3</button></div><input id="task" type="hidden" value="niah_single_1"></div>
+    <div class="control-field example"><label for="example">Example</label><select id="example"></select></div>
+    <div class="legend"><span><i class="write"></i>Write</span><span><i class="read"></i>Read</span></div>
+  </div>
+  <div class="packet-layer" id="packetLayer" aria-hidden="true"></div>
+</main>
+<div class="slot-tip hidden" id="slotTip"></div>
+<noscript>Enable JavaScript to explore the retrieval traces.</noscript>
+</body></html>
