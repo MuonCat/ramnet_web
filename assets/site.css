@@ -94,6 +94,12 @@ tr:last-child td:first-child { color: var(--accent-ink); }
 .math { font-family: var(--serif); color: var(--ink); white-space: nowrap; }
 .equation { font-size: 23px; line-height: 2; color: var(--ink); background: #e1dccf; border-left: 2px solid #82afe6; padding: 20px 28px; margin: 20px 0; overflow-x: auto; }
 .equation math { font-family: var(--serif); }
+.equation-system { display: grid; gap: .55em; line-height: 1.4; }
+.equation-system math { justify-self: start; }
+.equation-notes { margin: 20px 0 25px; padding-left: 1.4em; }
+.equation-notes li { padding-left: .25em; }
+.equation-notes li + li { margin-top: 10px; }
+.equation-notes li::marker { color: #2f649f; font-weight: 700; }
 .metric-grid { margin: 34px 0 34px var(--text-inset); display: grid; grid-template-columns: repeat(3,1fr); border-block: 1px solid var(--line); }
 .metric { padding: 27px 22px; border-right: 1px solid var(--line); }
 .metric:first-child { padding-left: 0; }
