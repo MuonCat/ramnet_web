@@ -340,4 +340,4 @@ canvas.addEventListener('lostpointercapture',()=>{dragPan=null;canvas.classList.
 
 resetSimulation();scope.setCycleDuration?.(total()/params.speed);applyStyle();buildActions();updatePlayback();resize();new ResizeObserver(resize).observe(canvas);document.body.getRootNode().host?.addEventListener('ramnet:fit',resize);scope.onAutoplayStart?.(()=>$('restart').click());requestAnimationFrame(frame);
 };
-if (document.body.classList.contains('exhibit-ramnet_arch')) window.RamnetAnimations.ramnet_arch({document, requestAnimationFrame: window.requestAnimationFrame.bind(window), cancelAnimationFrame: window.cancelAnimationFrame.bind(window)});
+if (document.body.classList.contains('exhibit-ramnet_arch')) window.RamnetRuntime.mountStandalone('ramnet_arch');

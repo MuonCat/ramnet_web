@@ -1,5 +1,53 @@
 {
   "version": 1,
+  "columns": {
+    "language": [
+      {"label": "Wiki. ppl", "lines": ["Wiki.", "ppl"], "better": "lower"},
+      {"label": "LMB", "better": "higher"},
+      {"label": "MMLU", "better": "higher"},
+      {"label": "ARC-e", "better": "higher"},
+      {"label": "ARC-c", "better": "higher"},
+      {"label": "OBQA", "better": "higher"},
+      {"label": "SciQ", "better": "higher"},
+      {"label": "BoolQ", "better": "higher"},
+      {"label": "COPA", "better": "higher"},
+      {"label": "PIQA", "better": "higher"},
+      {"label": "Hella", "better": "higher"},
+      {"label": "Wino", "better": "higher"},
+      {"label": "Total state", "lines": ["Total", "state"], "better": "lower"},
+      {"label": "Active state", "lines": ["Active", "state"], "better": "lower"}
+    ],
+    "sniah": [
+      {"label": "1K", "group": "S-NIAH-1", "better": "higher"},
+      {"label": "2K", "group": "S-NIAH-1", "better": "higher"},
+      {"label": "4K", "group": "S-NIAH-1", "better": "higher"},
+      {"label": "8K", "group": "S-NIAH-1", "better": "higher"},
+      {"label": "16K", "group": "S-NIAH-1", "better": "higher"},
+      {"label": "1K", "group": "S-NIAH-2", "better": "higher"},
+      {"label": "2K", "group": "S-NIAH-2", "better": "higher"},
+      {"label": "4K", "group": "S-NIAH-2", "better": "higher"},
+      {"label": "8K", "group": "S-NIAH-2", "better": "higher"},
+      {"label": "16K", "group": "S-NIAH-2", "better": "higher"},
+      {"label": "1K", "group": "S-NIAH-3", "better": "higher"},
+      {"label": "2K", "group": "S-NIAH-3", "better": "higher"},
+      {"label": "4K", "group": "S-NIAH-3", "better": "higher"},
+      {"label": "8K", "group": "S-NIAH-3", "better": "higher"},
+      {"label": "16K", "group": "S-NIAH-3", "better": "higher"},
+      {"label": "Avg.", "better": "higher"}
+    ],
+    "tasks": [
+      {"label": "FDA 512", "lines": ["FDA", "512"], "better": "higher"},
+      {"label": "FDA 1K", "lines": ["FDA", "1K"], "better": "higher"},
+      {"label": "SWDE 512", "lines": ["SWDE", "512"], "better": "higher"},
+      {"label": "SWDE 1K", "lines": ["SWDE", "1K"], "better": "higher"},
+      {"label": "NQ 512", "lines": ["NQ", "512"], "better": "higher"},
+      {"label": "NQ 1K", "lines": ["NQ", "1K"], "better": "higher"},
+      {"label": "SQuADv2 full", "lines": ["SQuADv2", "full"], "better": "higher"},
+      {"label": "TriviaQA full", "lines": ["TriviaQA", "full"], "better": "higher"},
+      {"label": "DROP full", "lines": ["DROP", "full"], "better": "higher"},
+      {"label": "Avg.", "better": "higher"}
+    ]
+  },
   "tables": {
     "language": [
       {

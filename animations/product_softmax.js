@@ -964,9 +964,9 @@ document.addEventListener('keydown',event=>{
   if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();stepPlayback(event.key==='ArrowRight'?1:-1);}
 });
 document.addEventListener('visibilitychange',()=>{previousTimestamp=null;});
-window.addEventListener('message',event=>{
-  if(event.source!==window.parent||event.data?.type!=='ramnet:content-layout')return;
-  const {left,width}=event.data;
+const exhibitHost=document.body.getRootNode().host;
+exhibitHost?.addEventListener('ramnet:content-layout',event=>{
+  const {left,width}=event.detail;
   if(!Number.isFinite(left)||!Number.isFinite(width)||left<0||width<=0)return;
   articleLayout={left,width};
   document.documentElement.style.setProperty('--article-text-left',left+'px');
@@ -976,6 +976,6 @@ window.addEventListener('message',event=>{
 window.ramnetCompactInteractions.addEventListener('change',()=>{hoverScanning=false;pointerScanning=false;treeHoverTarget=null;layoutPages();});
 arrangePages();applyConfig(config);scope.onAutoplayStart?.(()=>{pageOrder=[...SECTIONS];playing=true;switchSection('distribution');});requestAnimationFrame(frame);
 new ResizeObserver(()=>{layoutPages();buildScene();}).observe(document.querySelector('.animation-shell'));
-document.body.getRootNode().host?.addEventListener('ramnet:fit',()=>{layoutPages();buildScene();});
+exhibitHost?.addEventListener('ramnet:fit',()=>{layoutPages();buildScene();});
 };
-if (document.body.classList.contains('exhibit-product_softmax')) window.RamnetAnimations.product_softmax({document, requestAnimationFrame: window.requestAnimationFrame.bind(window), cancelAnimationFrame: window.cancelAnimationFrame.bind(window)});
+if (document.body.classList.contains('exhibit-product_softmax')) window.RamnetRuntime.mountStandalone('product_softmax');

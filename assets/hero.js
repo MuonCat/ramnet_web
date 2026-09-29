@@ -4,7 +4,7 @@
   const cells = [...visual.querySelectorAll('.slot')];
   const routes = [...visual.querySelectorAll('.route')];
   const routeGroup = visual.querySelector('.hero-routes');
-  const mobile = matchMedia('(max-width: 760px)');
+  const mobile = window.RamnetRuntime.narrowLayout;
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const clamp = value => Math.max(0, Math.min(1, value));
   const ease = value => { const t = clamp(value); return t * t * (3 - 2 * t); };

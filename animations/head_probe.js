@@ -84,7 +84,7 @@ function frame(now){const dt=lastFrame?Math.min((now-lastFrame)/1000,.08):0;last
 for(const [name,key] of [['key','keyColor'],['write','writeColor'],['read','readColor']])document.documentElement.style.setProperty('--'+name,cfg[key]);
 scenes=[new Scene('subword_composition','Word pieces'),new Scene('paired_punctuation','Paired punctuation')];
 scope.setCycleDuration?.(Math.max(...scenes.map(scene=>scene.playbackEnd-scene.playbackStart))/cfg.speed);
-const probeTabs=[...document.querySelectorAll('.probe-tabs button')],mobileTabs=matchMedia('(max-width: 760px)');
+const probeTabs=[...document.querySelectorAll('.probe-tabs button')],mobileTabs=window.RamnetRuntime.narrowLayout;
 let activeKind=scenes[0].kind;
 function syncProbeTabs(){
   for(const scene of scenes)scene.root.hidden=mobileTabs.matches&&scene.kind!==activeKind;
@@ -104,4 +104,4 @@ document.body.dataset.probeReady="true";
 }
 try{initProbe()}catch(error){console.error(error);const message=document.createElement("p");message.className="probe-error";message.setAttribute("role","alert");message.textContent="Unable to display this probe. Please reload the page.";document.querySelector(".exhibit-root").replaceChildren(message)}
 };
-if (document.body.classList.contains('probe-heads')) window.RamnetAnimations.head_probe({document, requestAnimationFrame: window.requestAnimationFrame.bind(window), cancelAnimationFrame: window.cancelAnimationFrame.bind(window)});
+if (document.body.classList.contains('probe-heads')) window.RamnetRuntime.mountStandalone('head_probe');

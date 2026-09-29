@@ -413,4 +413,4 @@ document.addEventListener('keydown',event=>{
 });
 beginRound();render();scope.onAutoplayStart?.(()=>{progress=0;playing=true;hoverPaused=false;previous=0;beginRound();render();});requestAnimationFrame(frame);
 };
-if (document.body.classList.contains('exhibit-cape')) window.RamnetAnimations.cape({document, requestAnimationFrame: window.requestAnimationFrame.bind(window), cancelAnimationFrame: window.cancelAnimationFrame.bind(window)});
+if (document.body.classList.contains('exhibit-cape')) window.RamnetRuntime.mountStandalone('cape');

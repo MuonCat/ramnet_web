@@ -279,4 +279,4 @@ $('gsu-play').addEventListener('click',()=>{clearInteraction();playing=!playing;
 window.ramnetCompactInteractions.addEventListener('change',()=>{const resume=resumeAfterHover;clearInteraction();if(resume)playing=true;playback();draw();});
 document.addEventListener('visibilitychange',()=>{lastFrame=0;});new ResizeObserver(resize).observe(canvas);document.body.getRootNode().host?.addEventListener('ramnet:fit',resize);initialize();scope.setCycleDuration?.(total()/params.speed);applyStyle();playback();resize();scope.onAutoplayStart?.(()=>{initialize();playing=true;lastFrame=0;playback();draw();});requestAnimationFrame(frame);
 };
-if (document.body.classList.contains('exhibit-gsu')) window.RamnetAnimations.gsu({document, requestAnimationFrame: window.requestAnimationFrame.bind(window), cancelAnimationFrame: window.cancelAnimationFrame.bind(window)});
+if (document.body.classList.contains('exhibit-gsu')) window.RamnetRuntime.mountStandalone('gsu');

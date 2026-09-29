@@ -7,7 +7,7 @@
   <meta name="description" content="Explore RAM-Net: a larger recurrent memory with sparse read and write access. An interactive explanation of Product Softmax, CAPE, Gated Sparse Update and the CUDA execution pipeline.">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/site.css">
-  <script defer src="assets/exhibit-markup.js"></script>
+  <script defer src="assets/animation-runtime.js"></script><script defer src="assets/exhibit-markup.js"></script>
   <script defer src="data/probes/niah_traces.js"></script><script defer src="data/probes/niah_slot_maps.js"></script><script defer src="data/probes/head_traces.js"></script>
   <script defer src="assets/stage-timeline.js"></script>
   <script defer src="animations/attn_cmp.js"></script><script defer src="animations/ramnet_arch.js"></script><script defer src="animations/product_softmax.js"></script><script defer src="animations/cape.js"></script><script defer src="animations/gsu.js"></script><script defer src="animations/cal_pipeline.js"></script><script defer src="animations/niah_probe.js"></script><script defer src="animations/head_probe.js"></script>
@@ -166,9 +166,7 @@
 <article class="experiment-panel" id="experiment-language" aria-labelledby="title-language">
 <h3 id="title-language">Language Modeling and Reasoning</h3>
 <div class="experiment-scroll" role="region" aria-label="Language Modeling and Reasoning data table" tabindex="0">
-<table class="experiment-table" data-benchmark="language"><caption>Language Modeling and Reasoning — 340M and 1.3B models</caption><thead>
-<tr><th scope="col">Model</th><th scope="col">Wiki. ppl ↓</th><th scope="col">LMB ↑</th><th scope="col">MMLU ↑</th><th scope="col">ARC-e ↑</th><th scope="col">ARC-c ↑</th><th scope="col">OBQA ↑</th><th scope="col">SciQ ↑</th><th scope="col">BoolQ ↑</th><th scope="col">COPA ↑</th><th scope="col">PIQA ↑</th><th scope="col">Hella ↑</th><th scope="col">Wino ↑</th><th scope="col">Total state ↓</th><th scope="col">Active state ↓</th></tr>
-</thead>
+<table class="experiment-table" data-benchmark="language"><caption>Language Modeling and Reasoning — 340M and 1.3B models</caption><thead></thead>
 </table></div>
 <p>At 340M, Top-32 achieves the lowest Wiki. perplexity in this comparison at <strong class="text-highlight">25.87</strong>, while Top-8 leads on Wino at 54.1. At 1.3B, Top-16 lowers perplexity to <strong class="text-highlight">15.90</strong> and leads on LMB, ARC-c, COPA, Hella, and Wino. Its normalized ARC-e and ARC-c scores are 64.0 and 39.4. Gated DeltaNet remains ahead on MMLU and SciQ.</p>
 <p class="experiment-key">↓ Lower is better. ↑ Higher is better. State sizes are in millions of elements.</p>
@@ -178,10 +176,7 @@
 <article class="experiment-panel" id="experiment-sniah" aria-labelledby="title-sniah">
 <h3 id="title-sniah">S-NIAH: Retrieval Across Context Lengths</h3>
 <div class="experiment-scroll" role="region" aria-label="S-NIAH: Retrieval Across Context Lengths data table" tabindex="0">
-<table class="experiment-table" data-benchmark="sniah"><caption>S-NIAH: Retrieval Across Context Lengths — 340M and 1.3B models</caption><thead>
-<tr><th scope="col" rowspan="2">Model</th><th scope="colgroup" colspan="5">S-NIAH-1</th><th scope="colgroup" colspan="5">S-NIAH-2</th><th scope="colgroup" colspan="5">S-NIAH-3</th><th scope="col" rowspan="2">Avg. ↑</th></tr>
-<tr><th scope="col">1K ↑</th><th scope="col">2K ↑</th><th scope="col">4K ↑</th><th scope="col">8K ↑</th><th scope="col">16K ↑</th><th scope="col">1K ↑</th><th scope="col">2K ↑</th><th scope="col">4K ↑</th><th scope="col">8K ↑</th><th scope="col">16K ↑</th><th scope="col">1K ↑</th><th scope="col">2K ↑</th><th scope="col">4K ↑</th><th scope="col">8K ↑</th><th scope="col">16K ↑</th></tr>
-</thead>
+<table class="experiment-table" data-benchmark="sniah"><caption>S-NIAH: Retrieval Across Context Lengths — 340M and 1.3B models</caption><thead></thead>
 </table></div>
 <p>Evaluation spans 1K–16K tokens, up to 4× the training context. At 340M, increasing Top-K from 8 to 32 raises the S-NIAH average from <strong class="text-highlight">64.7 to 72.9</strong>. Top-16 and Top-32 score 100.0 at every tested S-NIAH-1 length. At 1.3B, Top-16 averages <strong class="text-highlight">70.1</strong>, compared with 65.0 for Top-8. S-NIAH-2 and S-NIAH-3 remain harder, especially at longer contexts.</p>
 <p class="experiment-key">All scores use ↑ higher is better. Columns within each task give the context length.</p>
@@ -191,9 +186,7 @@
 <article class="experiment-panel" id="experiment-tasks" aria-labelledby="title-tasks">
 <h3 id="title-tasks">Performance Across Tasks</h3>
 <div class="experiment-scroll" role="region" aria-label="Performance Across Tasks data table" tabindex="0">
-<table class="experiment-table" data-benchmark="tasks"><caption>Performance Across Tasks — 340M and 1.3B models</caption><thead>
-<tr><th scope="col">Model</th><th scope="col">FDA 512 ↑</th><th scope="col">FDA 1K ↑</th><th scope="col">SWDE 512 ↑</th><th scope="col">SWDE 1K ↑</th><th scope="col">NQ 512 ↑</th><th scope="col">NQ 1K ↑</th><th scope="col">SQuADv2 full ↑</th><th scope="col">TriviaQA full ↑</th><th scope="col">DROP full ↑</th><th scope="col">Avg. ↑</th></tr>
-</thead>
+<table class="experiment-table" data-benchmark="tasks"><caption>Performance Across Tasks — 340M and 1.3B models</caption><thead></thead>
 </table></div>
 <p>At 340M, RAM-Net's average rises from 23.2 with Top-8 to 27.9 with Top-16 and <strong class="text-highlight">32.0 with Top-32</strong>. Top-32 leads the recurrent baselines on average, while Transformer++ remains ahead at 35.1. At 1.3B, Top-8 averages 40.6 and Top-16 averages 39.0, compared with 39.5 for Gated DeltaNet and 49.8 for Transformer++.</p>
 <p class="experiment-key">↑ Higher is better.</p>

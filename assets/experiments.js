@@ -14,8 +14,7 @@
   const panels = tabs.map(tab => document.getElementById(tab.getAttribute('aria-controls')));
   let current = 0, timer, hovering = false, visible = false;
   let autoplayResults = document.documentElement.dataset.autoplaySection === 'results';
-  const mobileResults = matchMedia('(max-width: 760px)');
-  const stackedHeaders = new Set(['Wiki. ppl', 'Total state', 'Active state', 'FDA 512', 'FDA 1K', 'SWDE 512', 'SWDE 1K', 'NQ 512', 'NQ 1K', 'SQuADv2 full', 'TriviaQA full', 'DROP full']);
+  const mobileResults = window.RamnetRuntime.narrowLayout;
   function schedule() {
     clearTimeout(timer);
     const autoplaying = document.documentElement.classList.contains('is-autoplaying');
@@ -77,6 +76,29 @@
   [list, ...panels].forEach(panel => observer.observe(panel));
 
   document.querySelectorAll('.experiment-table').forEach(table => {
+    const columns = data.columns[table.dataset.benchmark];
+    const grouped = columns.some(column => column.group);
+    const top = table.tHead.insertRow();
+    const lower = grouped ? table.tHead.insertRow() : top;
+    function addHeader(row, label, scope) {
+      const cell = document.createElement('th');
+      cell.scope = scope;
+      cell.textContent = label;
+      row.append(cell);
+      return cell;
+    }
+    const modelHeader = addHeader(top, 'Model', 'col');
+    if (grouped) modelHeader.rowSpan = 2;
+    columns.forEach((column, index) => {
+      if (column.group && (!index || column.group !== columns[index - 1].group)) {
+        const group = addHeader(top, column.group, 'colgroup');
+        group.colSpan = columns.filter(item => item.group === column.group).length;
+      }
+      const header = addHeader(column.group ? lower : top,
+        `${column.label} ${column.better === 'lower' ? '↓' : '↑'}`, 'col');
+      if (grouped && !column.group) header.rowSpan = 2;
+      header.dataset.columnIndex = index;
+    });
     const headerGrid = [], headerColumns = new Map(), headers = [];
     // Resolve both ordinary headers and the two-level S-NIAH headers.
     [...table.tHead.rows].forEach((row, y) => {
@@ -131,7 +153,7 @@
       for (let column = 1; column < headers.length; column++) {
         const heading = headers[column].textContent;
         const groupHeading = headerGrid[0][column];
-        const direction = heading.includes('↓') ? -1 : heading.includes('↑') ? 1 : 0;
+        const direction = columns[column - 1].better === 'lower' ? -1 : 1;
         const values = groupRows.map(row => Number.parseFloat(row.cells[column].textContent));
         const ranked = [...new Set(values.filter(Number.isFinite))].sort((a, b) => direction * (b - a));
         groupRows.forEach((row, index) => {
@@ -139,10 +161,10 @@
           cell.dataset.label = [groupHeading.colSpan > 1 ? groupHeading.textContent : '', heading].filter(Boolean).join(' · ');
           value.className = 'experiment-value';
           value.append(...cell.childNodes);
-          if (direction && values[index] === ranked[0]) { const best = document.createElement('strong'); best.append(...value.childNodes); value.append(best); }
-          else if (direction && values[index] === ranked[1]) { const second = document.createElement('span'); second.className = 'runner-up'; second.append(...value.childNodes); value.append(second); }
+          if (values[index] === ranked[0]) { const best = document.createElement('strong'); best.append(...value.childNodes); value.append(best); }
+          else if (values[index] === ranked[1]) { const second = document.createElement('span'); second.className = 'runner-up'; second.append(...value.childNodes); value.append(second); }
           cell.append(value);
-          if (!direction || !Number.isFinite(values[index])) return;
+          if (!Number.isFinite(values[index])) return;
           const better = values.filter(other => direction * other > direction * values[index]).length;
           const worse = values.filter(other => direction * other < direction * values[index]).length;
           // Midranks give ties the same indicator and keep an all-tied column neutral.
@@ -153,23 +175,21 @@
         });
       }
     }
-    for (const cell of table.tHead.querySelectorAll('th')) {
+    for (const cell of table.tHead.querySelectorAll('th[data-column-index]')) {
+      const column = columns[Number(cell.dataset.columnIndex)];
       const heading = cell.textContent.trim();
-      const parts = heading.match(/^(.*?)\s+([\u2191\u2193])$/u);
-      if (!parts) continue;
       const label = document.createElement('span');
       label.className = 'experiment-heading-label';
-      if (stackedHeaders.has(parts[1])) {
-        const split = parts[1].indexOf(' ');
-        for (const [index, text] of [parts[1].slice(0, split), parts[1].slice(split + 1)].entries()) {
+      if (column.lines) {
+        for (const [index, text] of column.lines.entries()) {
           const line = document.createElement('span');
           line.textContent = index ? text : text + ' ';
           label.append(line);
         }
-      } else label.textContent = parts[1];
+      } else label.textContent = column.label;
       const arrow = document.createElement('span');
       arrow.className = 'experiment-heading-arrow';
-      arrow.textContent = parts[2];
+      arrow.textContent = column.better === 'lower' ? '↓' : '↑';
       arrow.setAttribute('aria-hidden', 'true');
       const wrapper = document.createElement('span');
       wrapper.className = 'experiment-heading';

@@ -42,10 +42,10 @@ class NiahScene{
 }
 for(const key of ['blue','purple','write','read'])document.documentElement.style.setProperty('--'+key,cfg[key]);scene=new NiahScene();window.niahSnapshot=()=>({task:scene.example.task,exampleId:scene.example.example_id,layer:scene.trace.layer,head:scene.trace.head,index:scene.currentIndex(),promptTokens:scene.promptLength,totalSteps:scene.durations.length,needleRange:scene.example.needle_range,valueRange:scene.example.value_range,readSteps:scene.trace.reads.filter(r=>r.predicts_answer).map(r=>r.step),time:scene.time,totalTime:scene.total,playing:scene.playing,slotCount:DATA.slot_count,grid:scene.layout,mapping:{axisOrder:scene.map.axis_order,binOrders:scene.map.bin_orders},parameters:{...cfg}});
 scope.onAutoplayStart?.(()=>$('restart').click());
-function animate(now){const dt=lastFrame?(now-lastFrame)/1000:0;lastFrame=now;scene.tick(dt);requestAnimationFrame(animate)}requestAnimationFrame(animate);
+function animate(now){const dt=lastFrame?Math.min((now-lastFrame)/1000,.1):0;lastFrame=now;scene.tick(dt);requestAnimationFrame(animate)}requestAnimationFrame(animate);
 new ResizeObserver(()=>scene.render()).observe($('stage'));
 document.documentElement.dataset.probeReady="true";
 }
 try{initProbe()}catch(error){console.error(error);const message=document.createElement("p");message.className="probe-error";message.setAttribute("role","alert");message.textContent="Unable to display this probe. Please reload the page.";document.querySelector(".exhibit-root").replaceChildren(message)}
 };
-if (document.body.classList.contains('probe-niah')) window.RamnetAnimations.niah_probe({document, requestAnimationFrame: window.requestAnimationFrame.bind(window), cancelAnimationFrame: window.cancelAnimationFrame.bind(window)});
+if (document.body.classList.contains('probe-niah')) window.RamnetRuntime.mountStandalone('niah_probe');

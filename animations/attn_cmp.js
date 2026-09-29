@@ -242,4 +242,4 @@ $('scene').setAttribute('tabindex','0');
 $('scene').setAttribute('aria-label','Attention comparison. Click or press Space to pause or resume.');
 $('scene').addEventListener('keydown',e=>{if(e.code==='Space'||e.code==='Enter'){e.preventDefault();togglePlay();}});
 };
-if (document.body.classList.contains('exhibit-attn_cmp')) window.RamnetAnimations.attn_cmp({document, requestAnimationFrame: window.requestAnimationFrame.bind(window), cancelAnimationFrame: window.cancelAnimationFrame.bind(window)});
+if (document.body.classList.contains('exhibit-attn_cmp')) window.RamnetRuntime.mountStandalone('attn_cmp');

@@ -4,12 +4,13 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Retrieval probe · RAM-Net</title>
   <link rel="stylesheet" href="../assets/probes.css">
-  <script src="../assets/embed.js"></script><script defer src="../data/probes/niah_traces.js"></script><script defer src="../data/probes/niah_slot_maps.js"></script><script defer src="niah_probe.js"></script>
+  <script src="../assets/animation-runtime.js"></script><script defer src="../data/probes/niah_traces.js"></script><script defer src="../data/probes/niah_slot_maps.js"></script><script defer src="niah_probe.js"></script>
 </head>
 <body class="probe-niah">
 <main class="exhibit-root stage" id="stage">
   <div class="token-row" id="tokenRow" aria-label="Tokens around the current position"></div>
   <div class="field-scroll" id="fieldScroll"><canvas class="field" id="slotField" role="img" aria-label="Memory contents and active reads and writes across 1,024 slots"></canvas></div>
+  <p class="slot-array-note"><strong>Slot array</strong> 1,024 memory slots. Blue shows retained needle information; red and green outlines mark the current write and read.</p>
   <div class="probe-playback">
     <div class="timeline-wrap"><div class="timeline" id="timeline" role="slider" tabindex="0" aria-label="Sequence position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="timeline-track" id="timelineTrack"><div class="timeline-band needle" id="needleBand"></div><div id="readBands"></div><div class="timeline-marker-label needle" id="needleLabel">NEEDLE</div><div class="timeline-marker-label read" id="readLabel">READ</div><div class="timeline-caret" id="timelineCaret"></div></div></div></div>
   </div>

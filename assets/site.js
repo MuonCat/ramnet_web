@@ -3,7 +3,7 @@
   const exhibits = [...document.querySelectorAll('.embedded-exhibit[data-exhibit]')];
   const sections = [...document.querySelectorAll('.paper-section')];
   const addressingExhibit = exhibits.find(exhibit => exhibit.dataset.exhibit === 'product_softmax');
-  const compactLayout = matchMedia('(max-width: 760px), (max-width: 1024px) and (max-aspect-ratio: 4/5), (max-width: 1024px) and (min-aspect-ratio: 3/2)');
+  const compactLayout = window.RamnetRuntime.compactLayout;
   let compactWidth = window.innerWidth;
   let compactScales = new WeakMap();
   let addressingLayout = null;
@@ -59,7 +59,7 @@
     const left = Math.max(0, Math.min(addressingExhibit.clientWidth - width, center - width / 2));
     if (addressingLayout && Math.abs(addressingLayout.left - left) < .5 && Math.abs(addressingLayout.width - width) < .5) return;
     addressingLayout = {left, width};
-    window.postMessage({type: 'ramnet:content-layout', left, width}, '*');
+    addressingExhibit.dispatchEvent(new CustomEvent('ramnet:content-layout', {detail: {left, width}}));
   }
   new ResizeObserver(syncAddressingLayout).observe(addressingExhibit);
   const exhibitObserver = new ResizeObserver(scheduleFit);

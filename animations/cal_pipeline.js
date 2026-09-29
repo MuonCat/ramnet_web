@@ -251,4 +251,4 @@ document.addEventListener('visibilitychange',()=>lastFrame=0);
 function tick(now){const dt=lastFrame?Math.min((now-lastFrame)/1000,.1):0;lastFrame=now;if(playing&&!document.hidden){playhead+=dt*cfg.speed;if(playhead>=cfg.duration){if(cfg.loop){playhead%=cfg.duration;randomizeData();}else{playhead=cfg.duration;setPlaying(false);}}draw();}requestAnimationFrame(tick);}
 buildData();scope.setCycleDuration?.(cfg.duration/cfg.speed);applyStyle();setPlaying(true);resize();scope.onAutoplayStart?.(()=>$('restart').click());requestAnimationFrame(tick);
 };
-if (document.body.classList.contains('exhibit-cal_pipeline')) window.RamnetAnimations.cal_pipeline({document, requestAnimationFrame: window.requestAnimationFrame.bind(window), cancelAnimationFrame: window.cancelAnimationFrame.bind(window)});
+if (document.body.classList.contains('exhibit-cal_pipeline')) window.RamnetRuntime.mountStandalone('cal_pipeline');
