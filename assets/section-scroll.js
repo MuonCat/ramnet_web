@@ -6,9 +6,8 @@
   const hero = document.querySelector('.hero');
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-  let targets = [], anchor = null, animation = 0, velocity = 0, lastFrame = 0;
-  let restTimer = 0, motionSpeed = 0, lastMotionAt = 0, lastWheelAt = 0;
-  let lastScrollY = scrollY, lastScrollAt = performance.now(), expectedY = null;
+  let targets = [], snapTimer = 0, snapFrame = 0, snapping = false, lastScrollY = scrollY, expectedY = null;
+  let cooldownSection = null, cooldownUntil = 0;
   let touching = false, draggingScrollbar = false, captureFrames = false;
 
   function targetAt(y) {
@@ -18,7 +17,7 @@
     }, null);
   }
   function syncFrames() {
-    const capture = !reducedMotion.matches && (anchor !== null || targets.some(target => scrollY >= target.start - 80 && scrollY <= target.end + 80));
+    const capture = !reducedMotion.matches && targets.some(target => scrollY >= target.start - 80 && scrollY <= target.end + 80);
     if (Boolean(capture) === captureFrames) return;
     captureFrames = Boolean(capture);
     frames.forEach(frame => frame.contentWindow?.postMessage({type: 'ramnet:scroll-mode', capture: captureFrames}, '*'));
@@ -41,120 +40,107 @@
         end: clamp(top(heading) + heading.getBoundingClientRect().height, y, max)
       };
     });
-    if (anchor) {
-      anchor = targets.find(target => target.section === anchor.section);
-      if (targetAt(scrollY)?.section !== anchor?.section) stopPull();
-    }
+    if (targetAt(scrollY)?.section !== cooldownSection) clearCooldown();
     syncFrames();
-    scheduleRest();
+    scheduleSnap();
   }
-  function stopPull() {
-    cancelAnimationFrame(animation);
-    animation = 0;
-    anchor = null;
-    velocity = 0;
-    lastFrame = 0;
+  function clearCooldown() {
+    cooldownSection = null;
+    cooldownUntil = 0;
   }
-  function attraction(now) {
-    // Scroll speed fades to zero after input stops, restoring full attraction at rest.
-    const speed = motionSpeed * clamp(1 - (now - lastMotionAt) / 300, 0, 1);
-    return clamp(1 - speed / 1.4, 0, 1);
-  }
-  function pull() {
-    if (animation || !anchor) return;
-    function step(now) {
-      animation = 0;
-      if (!anchor || touching || draggingScrollbar) { stopPull(); return; }
-      const strength = attraction(performance.now());
-      if (strength <= 0) { stopPull(); return; }
-      const dt = Math.min((now - (lastFrame || now - 16)) / 1000, .032);
-      lastFrame = now;
-      const distance = anchor.y - scrollY;
-      velocity = clamp(velocity + (64 * strength * distance - 16 * velocity) * dt, -500, 500);
-      if (Math.abs(distance) < .8 && Math.abs(velocity) < 10) {
-        expectedY = anchor.y;
-        window.scrollTo({top: anchor.y, behavior: 'instant'});
-        stopPull();
-        return;
-      }
-      expectedY = clamp(scrollY + velocity * dt, 0, document.documentElement.scrollHeight - innerHeight);
-      window.scrollTo({top: expectedY, behavior: 'instant'});
-      animation = requestAnimationFrame(step);
-    }
-    animation = requestAnimationFrame(step);
-  }
-  function evaluate() {
-    if (reducedMotion.matches || touching || draggingScrollbar || attraction(performance.now()) <= 0) { stopPull(); return; }
+  function updateCooldown(delta, now) {
     const target = targetAt(scrollY);
-    if (!target || Math.abs(target.y - scrollY) < .8) { stopPull(); return; }
-    if (anchor?.section !== target.section) { stopPull(); anchor = target; }
-    else anchor = target;
-    pull();
+    if (!target) { clearCooldown(); return; }
+    if (cooldownSection !== target.section) clearCooldown();
+    const distance = target.y - scrollY;
+    if (delta * distance > 0) clearCooldown();
+    else if (delta * distance < 0 || distance === 0) {
+      cooldownSection = target.section;
+      cooldownUntil = now + 500;
+    }
+  }
+  function stopSnap() {
+    clearTimeout(snapTimer);
+    cancelAnimationFrame(snapFrame);
+    snapFrame = 0;
+    snapping = false;
+    expectedY = null;
+    lastScrollY = scrollY;
+  }
+  function moveTo(y) {
+    expectedY = y;
+    window.scrollTo({top: y, behavior: 'instant'});
+    expectedY = lastScrollY = scrollY;
     syncFrames();
   }
-  function scheduleRest() {
-    clearTimeout(restTimer);
-    const delay = clamp(140 + motionSpeed * 110, 160, 600);
-    restTimer = setTimeout(() => {
-      if (touching || draggingScrollbar) return;
-      motionSpeed = 0;
-      evaluate();
-    }, delay);
+  function snap() {
+    if (touching || draggingScrollbar) return;
+    const target = targetAt(scrollY);
+    if (!target) { clearCooldown(); return; }
+    if (cooldownSection !== target.section) clearCooldown();
+    if (performance.now() < cooldownUntil) { scheduleSnap(); return; }
+    const max = Math.max(0, document.documentElement.scrollHeight - innerHeight);
+    const y = clamp(scrollY + target.section.getBoundingClientRect().top - chapterNav.getBoundingClientRect().height, 0, max);
+    if (scrollY === y) return;
+    if (reducedMotion.matches) { moveTo(y); return; }
+    const start = scrollY, began = performance.now(), duration = 360;
+    snapping = true;
+    // Closed-form path: x(t) = start + (target - start) * (3u² - 2u³).
+    function step(now) {
+      const u = clamp((now - began) / duration, 0, 1);
+      moveTo(start + (y - start) * u * u * (3 - 2 * u));
+      if (u < 1) snapFrame = requestAnimationFrame(step);
+      else { snapFrame = 0; snapping = false; }
+    }
+    snapFrame = requestAnimationFrame(step);
   }
-  function recordWheel(delta) {
-    const now = performance.now();
-    const interval = now - lastWheelAt;
-    motionSpeed = Math.abs(delta) / Math.max(interval > 300 ? 180 : interval, 16);
-    lastWheelAt = lastMotionAt = now;
-    if (motionSpeed >= 1.4) stopPull();
-    scheduleRest();
+  function scheduleSnap() {
+    clearTimeout(snapTimer);
+    if (touching || draggingScrollbar || snapping) return;
+    const remaining = cooldownUntil - performance.now();
+    snapTimer = setTimeout(snap, Math.max(120, remaining + 1));
   }
   function interactive(target) {
     return target instanceof Element && target.closest('input, select, textarea, button, a, [role="slider"], [contenteditable="true"]');
   }
   window.addEventListener('wheel', event => {
-    if (event.ctrlKey || event.defaultPrevented || Math.abs(event.deltaX) >= Math.abs(event.deltaY) || interactive(event.target)) return;
-    recordWheel(event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? innerHeight : 1));
+    if (event.ctrlKey || event.defaultPrevented || Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return;
+    stopSnap();
+    if (interactive(event.target)) return;
+    updateCooldown(event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? innerHeight : 1), performance.now());
+    scheduleSnap();
   }, {passive: true});
   window.addEventListener('touchstart', () => {
     touching = true;
-    clearTimeout(restTimer);
-    stopPull();
+    stopSnap();
   }, {passive: true});
   function endTouch() {
     touching = false;
-    scheduleRest();
+    scheduleSnap();
   }
   window.addEventListener('touchend', endTouch, {passive: true});
   window.addEventListener('touchcancel', endTouch, {passive: true});
   window.addEventListener('scroll', () => {
-    const now = performance.now();
     const delta = scrollY - lastScrollY;
-    const interval = now - lastScrollAt;
-    const ownScroll = expectedY !== null && Math.abs(scrollY - expectedY) < 2;
+    const ownScroll = snapping || expectedY !== null && scrollY === expectedY;
     lastScrollY = scrollY;
-    lastScrollAt = now;
     expectedY = null;
     syncFrames();
     if (ownScroll || !delta) return;
-    const observed = Math.abs(delta) / Math.max(interval, 16);
-    motionSpeed = now - lastWheelAt < 70 ? Math.max(motionSpeed, observed) : observed;
-    lastMotionAt = now;
-    evaluate();
-    scheduleRest();
+    updateCooldown(delta, performance.now());
+    scheduleSnap();
   }, {passive: true});
   document.addEventListener('keydown', event => {
-    if (!interactive(event.target) && ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) stopPull();
+    if (!interactive(event.target) && ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) stopSnap();
   });
   document.addEventListener('pointerdown', event => {
     if (event.pointerType === 'mouse' && event.clientX >= document.documentElement.clientWidth) {
       draggingScrollbar = true;
-      clearTimeout(restTimer);
-      stopPull();
+      stopSnap();
     }
   });
   window.addEventListener('pointerup', () => {
-    if (draggingScrollbar) { draggingScrollbar = false; scheduleRest(); }
+    if (draggingScrollbar) { draggingScrollbar = false; scheduleSnap(); }
   });
   document.addEventListener('click', event => {
     const link = event.target.closest('a[href^="#"]');
@@ -162,23 +148,25 @@
     const target = targets.find(item => '#' + item.section.id === link.hash);
     if (!target) return;
     event.preventDefault();
-    stopPull();
+    stopSnap();
+    clearCooldown();
     history.pushState(null, '', link.hash);
     window.scrollTo({top: target.y, behavior: reducedMotion.matches ? 'instant' : 'smooth'});
   });
-  window.addEventListener('popstate', () => { stopPull(); scheduleRest(); });
-  reducedMotion.addEventListener('change', () => { stopPull(); syncFrames(); });
+  window.addEventListener('popstate', () => { stopSnap(); clearCooldown(); scheduleSnap(); });
+  reducedMotion.addEventListener('change', () => { if (reducedMotion.matches) { stopSnap(); scheduleSnap(); } syncFrames(); });
   window.addEventListener('message', event => {
     const frame = frames.find(item => item.contentWindow === event.source);
     if (!frame) return;
     const message = event.data;
     if (message?.type === 'ramnet:ready') frame.contentWindow.postMessage({type: 'ramnet:scroll-mode', capture: captureFrames}, '*');
     if (message?.type === 'ramnet:scroll-touch') {
-      if (message.active) { touching = true; clearTimeout(restTimer); stopPull(); }
+      if (message.active) { touching = true; stopSnap(); }
       else endTouch();
     }
     if (message?.type === 'ramnet:scroll-input' && Number.isFinite(message.delta)) {
-      if (!message.touch) recordWheel(message.delta);
+      stopSnap();
+      if (!message.touch) updateCooldown(message.delta, performance.now());
       window.scrollBy({top: message.delta, behavior: 'instant'});
     }
   });

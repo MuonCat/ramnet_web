@@ -3,4 +3,4 @@
 
 *.txt
 
-__chrome_mobile_profile/
+__*
