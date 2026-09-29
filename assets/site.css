@@ -62,7 +62,8 @@ a.resource-link:hover { background: #cfdeef; border-color: var(--accent); }
 .autoplay-toggle { flex: none; display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 7px 11px; border: 1px solid var(--line); border-radius: 4px; background: transparent; color: var(--body); font-size: 11px; white-space: nowrap; }
 .autoplay-toggle:hover { border-color: #9bb8d9; background: #d9e4f2; color: var(--accent-ink); }
 .autoplay-toggle[aria-pressed="true"] { border-color: #729ed5; background: var(--accent); color: #203c60; font-weight: 700; box-shadow: 0 0 0 2px #82afe633; }
-.autoplay-icon { width: 11px; text-align: center; font-size: 10px; }
+.autoplay-icon { width: 14px; display: grid; place-items: center; }
+.autoplay-icon svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .reading-progress { position: absolute; left: 0; top: -1px; height: 2px; width: 100%; transform: scaleX(0); transform-origin: left; background: #82afe6; }
 main.article { --text-inset: clamp(72px, 9vw, 120px); --content-width: calc(100% - var(--text-inset)); --figure-overhang: min(calc(var(--text-inset) / 2), max(0px, calc((100vw - 100%) / 2 - 32px))); width: calc(100% - clamp(40px, 7vw, 88px)); max-width: 1160px; margin: auto; }
 .paper-section { padding: clamp(36px, 6vh, 82px) 0 76px; border-bottom: 1px solid var(--line); scroll-margin-top: 78px; }
@@ -119,6 +120,9 @@ tr:last-child td:first-child { color: var(--accent-ink); }
 .experiment-heading { display: inline-flex; align-items: center; justify-content: flex-end; gap: 3px; max-width: 100%; line-height: 1.15; vertical-align: middle; }
 .experiment-heading-label { min-width: 0; white-space: normal; }
 .experiment-heading-label > span { display: block; white-space: nowrap; }
+.experiment-table thead th.stacked-heading { text-align: center; }
+.stacked-heading .experiment-heading { justify-content: center; }
+.stacked-heading .experiment-heading-label { text-align: center; }
 .experiment-heading-arrow { flex: none; color: #53677d; font-size: 11px; }
 .experiment-table thead th[scope="colgroup"] { text-align: center; border-inline: 1px solid var(--line); }
 .experiment-table th[scope="row"], .experiment-table thead tr:first-child th:first-child { width: 16%; text-align: left; white-space: normal; background: var(--paper); }
@@ -255,7 +259,9 @@ noscript p { padding: 16px; background: #d9e4f2; color: var(--ink); text-align: 
   .experiment-table { width: max-content; min-width: 100%; table-layout: auto; font-size: 12px; }
   .experiment-table th, .experiment-table td { padding: 8px 10px; }
   .experiment-scale-text { position: sticky; left: 0; z-index: 2; padding-right: 10px; background: var(--paper); }
-  .experiment-table thead th { position: sticky; top: 0; z-index: 3; height: 42px; padding: 7px 10px; white-space: nowrap; background: #e1dccf; }
+  .experiment-table thead th { position: sticky; top: 0; z-index: 3; height: 42px; padding: 7px 10px; white-space: nowrap; overflow-wrap: normal; background: #e1dccf; }
+  .experiment-heading { max-width: none; }
+  .experiment-heading-label { white-space: nowrap; }
   .experiment-table thead tr:nth-child(2) th { top: 42px; }
   .experiment-table thead tr:first-child th:first-child { background: #e1dccf; }
   .equation { padding: 18px 15px; font-size: 19px; }

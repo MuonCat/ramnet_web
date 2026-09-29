@@ -34,6 +34,21 @@
     }
   }
 
+  function playbackIcon(playing) {
+    const path = playing ? 'M7 5v10M13 5v10' : 'm7 4 9 6-9 6z';
+    return `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="${path}"/></svg>`;
+  }
+
+  function setPlaybackIcon(button, playing) {
+    const mode = playing ? 'pause' : 'play';
+    if (button.dataset.playbackIcon !== mode) {
+      button.innerHTML = playbackIcon(playing);
+      button.dataset.playbackIcon = mode;
+    }
+    button.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+    button.title = playing ? 'Pause' : 'Play';
+  }
+
   function bindInteractions(container, content) {
     const update = () => {
       container.classList.toggle('compact-interactions', compactInteractions.matches);
@@ -96,6 +111,7 @@
 
   window.RamnetRuntime = {
     compactInteractions, compactLayout, narrowLayout, reducedMotion,
-    applyTheme, bindInteractions, createScope, mountStandalone
+    applyTheme, bindInteractions, createScope, mountStandalone,
+    playbackIcon, setPlaybackIcon
   };
 })();

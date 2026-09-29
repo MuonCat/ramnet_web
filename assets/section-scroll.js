@@ -146,6 +146,8 @@
     window.scrollTo({top: target.y, behavior: reducedMotion.matches ? 'instant' : 'smooth'});
   });
   const autoplayButton = document.getElementById('autoplay-toggle');
+  const autoplayIcon = autoplayButton.querySelector('.autoplay-icon');
+  autoplayIcon.innerHTML = window.RamnetRuntime.playbackIcon(false);
   const desktopAutoplay = matchMedia('(min-width: 761px) and (pointer: fine)');
   let autoplayTimer = 0, autoplayFrame = 0, autoplayVisit = 0;
   function stopAutoplay() {
@@ -160,7 +162,7 @@
     delete document.documentElement.dataset.autoplaySection;
     autoplayButton.setAttribute('aria-pressed', 'false');
     autoplayButton.setAttribute('aria-label', 'Start automatic section playback');
-    autoplayButton.querySelector('.autoplay-icon').textContent = '▶';
+    autoplayIcon.innerHTML = window.RamnetRuntime.playbackIcon(false);
     window.dispatchEvent(new Event('ramnet:autoplay-change'));
     scheduleSnap();
   }
@@ -193,7 +195,7 @@
     document.documentElement.classList.add('is-autoplaying');
     autoplayButton.setAttribute('aria-pressed', 'true');
     autoplayButton.setAttribute('aria-label', 'Stop automatic section playback');
-    autoplayButton.querySelector('.autoplay-icon').textContent = 'Ⅱ';
+    autoplayIcon.innerHTML = window.RamnetRuntime.playbackIcon(true);
     window.dispatchEvent(new Event('ramnet:autoplay-change'));
     const current = sections.findLast(section => section.getBoundingClientRect().top <= chapterNav.getBoundingClientRect().bottom + 80);
     playSection(Math.max(0, sections.indexOf(current)));

@@ -228,7 +228,7 @@ function draw(){
 }
 function resize(){hideTooltip();const viewport=$('viewport');view.width=viewport.clientWidth;view.height=viewport.clientHeight;const dpr=Math.min(devicePixelRatio||1,3);canvas.width=Math.round(view.width*dpr);canvas.height=Math.round(view.height*dpr);view.scale=Math.min((view.width-18)/data.geo.W,(view.height-12)/data.geo.H);draw();}
 function updateUI(){stageTimeline.update(playhead);}
-function setPlaying(value){playing=value;lastFrame=0;$('play').innerHTML=playing?'<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 5v10M13 5v10"/></svg>':'<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7 4 9 6-9 6z"/></svg>';$('play').title=playing?'Pause (Space)':'Play (Space)';$('play').setAttribute('aria-label',playing?'Pause':'Play');}
+function setPlaying(value){playing=value;lastFrame=0;window.RamnetRuntime.setPlaybackIcon($('play'),playing);$('play').title=playing?'Pause (Space)':'Play (Space)';}
 function seekAction(i){i=clamp(i,0,actionGroups.length-1);const s=stages[actionGroups[i].first];playhead=(s.start+Math.min(.08,s.weight*.025))/totalWeight*cfg.duration;setPlaying(false);hideTooltip();draw();}
 function applyStyle(){document.documentElement.style.setProperty('--radius',cfg.panelRadius+'px');document.documentElement.style.setProperty('--space',cfg.space+'px');}
 function hideTooltip(){pointer=null;hover=null;$('tooltip').style.display='none';}

@@ -31,6 +31,7 @@ svg { width: 17px; height: 17px; display: block; fill: none; stroke: currentColo
 .icon-button { font-size: 17px; }
 .icon-btn svg { width: 15px; height: 15px; }
 .play, .main-play { background: #729ed526; border-color: #a5b9d1; }
+.play svg, .main-play svg { width: 20px; height: 20px; stroke-width: 1.8; }
 .transport, .transport-buttons { display: flex; align-items: center; gap: 6px; }
 .stage { position: relative; overflow: hidden; }
 .token-row { display: flex; justify-content: center; align-items: center; gap: 6px; height: 68px; overflow: hidden; }

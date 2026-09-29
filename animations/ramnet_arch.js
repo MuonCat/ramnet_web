@@ -324,7 +324,7 @@ function render(){
  stageTimeline.update(elapsed);canvas.classList.toggle('pannable',view.width>AW+.01);
 }
 function resize(){const dpr=Math.min(devicePixelRatio||1,2),width=Math.max(880,canvas.clientWidth),height=width/params.aspectRatio;canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);ctx.setTransform(canvas.width/W,0,0,canvas.height/H,0,0);render();}
-function updatePlayback(){ $('play').innerHTML=playing?'<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 5v10M13 5v10"/></svg>':'<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7 4 9 6-9 6z"/></svg>';$('play').setAttribute('aria-label',playing?'Pause':'Play');lastTime=null;}
+function updatePlayback(){window.RamnetRuntime.setPlaybackIcon($('play'),playing);lastTime=null;}
 function seekStage(i,part=.1){playing=false;i=clamp(i,0,stages.length-1);elapsed=groupStart(i)+groupDuration(i)*part;updatePlayback();render();}
 function buildActions(){stageTimeline.setStages(stages.map(([,label,,,description],i)=>({label,description,duration:groupDuration(i)})));}
 function applyStyle(){Object.assign(C,params.colors);const style=document.documentElement.style;for(const key of ['bg','paper','ink','muted','line','accent','highlight','frame'])style.setProperty('--'+key,C[key]);style.setProperty('--radius',params.panelRadius+'px');style.setProperty('--spacing',params.spacing+'px');style.setProperty('--ui-scale',params.uiScale);style.setProperty('--scene-ratio',params.aspectRatio);}

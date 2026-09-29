@@ -181,6 +181,7 @@
       const label = document.createElement('span');
       label.className = 'experiment-heading-label';
       if (column.lines) {
+        cell.classList.add('stacked-heading');
         for (const [index, text] of column.lines.entries()) {
           const line = document.createElement('span');
           line.textContent = index ? text : text + ' ';

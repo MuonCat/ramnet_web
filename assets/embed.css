@@ -87,7 +87,8 @@ body, .exhibit-body { color: #30383f; font-family: "Segoe UI", Arial, sans-serif
 .exhibit-gsu .gamma-control output { font-size: 14px; font-weight: 600; color: var(--diagram-purple-ink); }
 .exhibit-gsu .gamma-symbol { font-weight: 600; color: var(--diagram-purple-ink); }
 .gsu-controls { display: flex; align-items: flex-start; gap: 12px; padding-top: 16px; }
-.gsu-controls #gsu-play { flex: 0 0 44px; height: 56px; padding: 0; border: 1px solid #cec7b8; border-radius: 7px; background: transparent; color: #425d7e; font-size: 16px; }
+.gsu-controls #gsu-play { flex: 0 0 44px; height: 56px; display: grid; place-items: center; padding: 0; border: 1px solid #cec7b8; border-radius: 7px; background: transparent; color: #425d7e; }
+.gsu-controls #gsu-play svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .gsu-progress-scroll { flex: 1; min-width: 0; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; scrollbar-color: #b9bdc2 transparent; }
 #gsu-progress { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); min-width: 432px; border: 1px solid #cec7b8; border-radius: 7px; overflow: hidden; }
 .gsu-progress-step { position: relative; min-width: 0; min-height: 54px; padding: 10px 8px; border: 0; border-right: 1px solid #cec7b8; border-radius: 0; background: transparent; color: #38434b; font: 600 13px/1.4 "Segoe UI", Arial, sans-serif; }

@@ -284,7 +284,7 @@ function layoutScene(){
  capeLabel.setAttribute('x',capeLeft-capeLabelBox.x);
  const capeHitHeight=window.ramnetCompactInteractions.matches?120:40;
  nodes.capeHit=rect(capeControl,capeLeft-10,capeY-capeHitHeight/2,capeLabelBox.width+capeGap+capeWidth+20,capeHitHeight,'transparent');nodes.capeHit.setAttribute('class','cape-hit');
- nodes.capeTrack=element('rect',{x:capeX,y:capeY-capeHeight/2,width:capeWidth,height:capeHeight,rx:capeHeight/2,fill:'#b0b7a7'},capeControl);
+ nodes.capeTrack=element('rect',{x:capeX,y:capeY-capeHeight/2,width:capeWidth,height:capeHeight,rx:capeHeight/2,fill:'#b0b7a7',class:'cape-track'},capeControl);
  nodes.capeThumb=element('circle',{cx:capeX+capeHeight/2,cy:capeY,r:6,fill:'#e8e2d3'},capeControl);
  geometry.capeStart=capeX+capeHeight/2;geometry.capeTravel=capeWidth-capeHeight;
  capeControl.addEventListener('click',toggleCape);

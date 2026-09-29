@@ -612,7 +612,10 @@ function buildWaveformScene() {
     row.point=svg('circle',{r:3,fillRole:'bar',fill:row.c,stroke:'#f6f0e3','stroke-width':1.2},waveformReadout);
     row.address=label('',0,row.y+rowHeight+12+(depth===config.U?20:18)*fontScale,{'text-anchor':'middle','font-size':depth===config.U?20:18,fill:row.c},waveformReadout);
     row.addressParts=[];
-    for(let u=config.U-1;u>=0;u--)row.addressParts[u]=svg('tspan',{fill:depth===config.U||u===row.u?color(u):'#7c8478'},row.address);
+    for(let u=config.U-1;u>=0;u--){
+      const relevant=depth===config.U||u===row.u;
+      row.addressParts[u]=svg('tspan',{fill:relevant?color(u):'#a9afb1','fill-opacity':relevant?1:.55},row.address);
+    }
   });
   const hit=svg('rect',{x:plotX,y:startY,width:plotWidth,height:height-startY-12,fill:'transparent',style:'cursor:crosshair',role:'presentation'},scene);
   const follow=event=>{

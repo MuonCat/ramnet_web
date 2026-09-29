@@ -266,7 +266,7 @@ document.addEventListener('pointerdown',event=>{const input=event.target.closest
 document.addEventListener('pointerup',event=>{if(gammaDragging){gammaDragging=false;updateInteractionHover(event);}});
 document.addEventListener('pointercancel',()=>{if(gammaDragging){gammaDragging=false;queueInteractionExit();}});
 function resize(){const dpr=Math.min(window.devicePixelRatio||1,3);canvas.width=Math.round(canvas.clientWidth*dpr);canvas.height=Math.round(canvas.clientHeight*dpr);ctx.setTransform(canvas.width/sceneWidth,0,0,canvas.height/sceneHeight,0,0);draw();}
-function playback(){ $('gsu-play').textContent=playing?'Ⅱ':'▶';$('gsu-play').setAttribute('aria-label',playing?'Pause':'Play');document.querySelectorAll('#gsu-progress [data-stage]').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.stage)===checkpoint))); }
+function playback(){ window.RamnetRuntime.setPlaybackIcon($('gsu-play'),playing);document.querySelectorAll('#gsu-progress [data-stage]').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.stage)===checkpoint))); }
 function seek(t){clearInteraction();elapsed=clamp(t,0,total());playing=false;playback();draw();}
 function selectAction(i){seek(startOf(clamp(i,0,8))+.001);}
 function frame(now){const delta=lastFrame?Math.min((now-lastFrame)/1000,.1):0;lastFrame=now;if(playing&&!document.hidden){elapsed+=delta*params.speed;if(elapsed>=total()){if(params.loop)nextRound();else{elapsed=total();playing=false;playback();}}}draw();requestAnimationFrame(frame);}
