@@ -5,43 +5,133 @@ const {document, requestAnimationFrame, cancelAnimationFrame} = scope;
 const diagram=window.ramnetDiagramTheme;
 const $ = id => document.getElementById(id);
 const NS = 'http://www.w3.org/2000/svg';
-const SECTION_NAMES={distribution:'Soft Radix Address',tree:'Multilevel Decision Tree',heatmap:'Joint Distribution',waveform:'Waveform Modulation'};
-const SECTIONS=Object.keys(SECTION_NAMES);
+const SECTION_NAMES={distribution:'Soft Radix Address',tree:'Multilevel Decision Tree',heatmap:'Joint Distribution',regroup:'Regroupable Address',waveform:'Waveform Modulation'};
+const SECTIONS=Object.keys(SECTION_NAMES).filter(name=>$(name+'-page')&&$(name+'-card')&&$(name+'-tab'));
 const DEFAULTS = {U:4,dp:4,factors:[
   [0.5096578959952033,0.15216308786133387,0.15320826445326508,0.18497075169019783],
   [0.5133835541711417,0.04571478941259041,0.19246478358994867,0.24843687282631935],
   [0.45657829225840624,0.16719224201013133,0.20525359515296399,0.17097587057849858],
   [0.18977007985781985,0.2962820281189687,0.20192554112274083,0.31202235090047065]
-],temperature:0.85,duration:15,sectionDelay:0.5,speed:1,heatmapDuration:15,heatmapSpeed:1,heatmapRange:1,heatmapOverlayOpacity:8,waveformRevealDuration:3.5,waveformScanDuration:12,waveformSpeed:1,waveformHeight:96,waveformGap:48,waveformAddressGap:8,treeExpandDuration:1,treePruneDuration:1.5,treeHoldDuration:1.5,treeSpeed:1,topK:8,cardWidth:138,cardGap:25,upperGap:100,lowerGap:108,barGap:30,factorAspect:1.4,outputAspect:1,interactionAspect:1.8,factorPadding:10,factorPlotHeight:73,barRadiusRatio:6,frameRadiusRatio:4.5,barRadius:1.2,frameRadius:6,radius:6,animationRadius:20,lineRadius:6,spacing:25,height:130,treeNodeWidth:16,treeNodeHeight:16,treeNodeRadius:8,treeParentGapRatio:1.5,arrowHueOffset:0,arrowSaturationOffset:0,arrowLightnessOffset:0,frameHueOffset:0,frameSaturationOffset:0,frameLightnessOffset:0,backgroundHueOffset:0,backgroundSaturationOffset:0,backgroundLightnessOffset:0,barHueOffset:0,barSaturationOffset:0,barLightnessOffset:0,outputScale:'auto',loop:true,uiFontScale:100,diagramFontScale:100,colors:[diagram.colors.indigo,diagram.colors.purple,diagram.colors.green,diagram.colors.gold],outputColor:diagram.colors.sky};
+],temperature:0.85,duration:15,sectionDelay:0.5,speed:1,heatmapDuration:15,heatmapSpeed:1,regroupDuration:15,regroupSpeed:1,waveformRevealDuration:3.5,waveformScanDuration:12,waveformSpeed:1,waveformHeight:96,waveformGap:48,waveformAddressGap:8,treeExpandDuration:1,treePruneDuration:1.5,treeHoldDuration:1.5,treeSpeed:1,topK:8,cardWidth:138,cardGap:25,upperGap:100,lowerGap:108,barGap:30,factorAspect:1.4,outputAspect:1,interactionAspect:1.8,factorPadding:10,factorPlotHeight:73,barRadiusRatio:6,frameRadiusRatio:4.5,barRadius:1.2,frameRadius:6,radius:6,animationRadius:20,lineRadius:6,spacing:25,height:130,treeNodeWidth:16,treeNodeHeight:16,treeNodeRadius:8,treeParentGapRatio:1.5,arrowHueOffset:0,arrowSaturationOffset:0,arrowLightnessOffset:0,frameHueOffset:0,frameSaturationOffset:0,frameLightnessOffset:0,backgroundHueOffset:0,backgroundSaturationOffset:0,backgroundLightnessOffset:0,barHueOffset:0,barSaturationOffset:0,barLightnessOffset:0,outputScale:'auto',loop:true,uiFontScale:100,diagramFontScale:100,colors:[diagram.colors.indigo,diagram.colors.purple,diagram.colors.green,diagram.colors.gold],outputColor:diagram.colors.sky};
 let config = {...structuredClone(DEFAULTS),factors:null};
 let distributions = [], probabilities = [], groups = [], sourceNodes = [], routeNodes = [], addressNodes = [];
 let bars = [], binSize = 1, maxGroup = 1, outputScaleMax = 1, total = 256, bits = 2;
 let topBars = new Set();
-let progress = 0, playing = true, previousTimestamp = null, currentIndex = -1, activeAction = -1;
+let progress = 0, previousTimestamp = null, currentIndex = -1, activeAction = -1;
 let outputBox, highlight, scanLine, outputRoute;
 let addressGroup;
-let pointerScanning = false, hoverScanning = false;
-let treeHoverTarget = null;
-let sectionSwitchAt = null;
+let viewState='animation',pageHovered=false,interactionRegion=null;
+let lastOperation=null,resumeDelay=null;
+let parameterTimer=null;
+const parameterPointers=new Set(),PARAMETER_COOLDOWN_MS=1000;
+let sectionSwitchAt = null, repeatSection = false;
 let factorEditors = [];
 let activeSection = 'distribution', treeLayers = [], treeOutputs = [], treeOutputGroup;
 let pageOrder=[...SECTIONS],pageFlip=null;
 let articleLayout=null;
-let heatmapCells=[],heatmapBlocks=[],heatmapSources=[],heatmapSourceLabels=[];
-let heatmapOuterRow,heatmapOuterColumn,heatmapSelection,heatmapPoint;
-let heatmapLayout;
-let heatmapArrows=[];
+let heatmapSources=[],heatmapSourceLabels=[],heatmapNodes=[],heatmapEdges=[];
+let heatmapLayout,heatmapPoints,heatmapHover=null,heatmapLastFrame=0,heatmapTime=0;
+const heatmapScales=[.9,.97,1.03,1.1];
+const heatmapOrbit={radius:8,thetaRate:.075,phiRate:.09,phiMean:30*Math.PI/180,phiAmplitude:20*Math.PI/180};
+const heatmapProjectionSize=measureHeatmapOrbit();
+let regroupSources=[],regroupStrips,regroupPanels,regroupLinks=[];
 let waveformRows=[],waveformBars=[],waveformScan,waveformReadout,waveformLayout;
 let multiplyY = 285;
 const chart = {x:56,width:888,bottom:513,height:130};
 let actions = [];
 function sectionDuration(section=activeSection) {
   if(section==='heatmap')return config.heatmapDuration;
+  if(section==='regroup')return config.regroupDuration;
   if(section==='waveform')return config.waveformRevealDuration+config.waveformScanDuration;
   return section==='tree'?config.U*(config.treeExpandDuration+config.treePruneDuration)+config.treeHoldDuration:config.duration;
 }
 function sectionSpeed() { return config[activeSection==='distribution'?'speed':activeSection+'Speed']; }
 function nextSection() {return SECTIONS[(SECTIONS.indexOf(activeSection)+1)%SECTIONS.length];}
+function setViewState(next,{restart=false}={}) {
+  // Every transition between the two active modes passes through rest.
+  if(next!=='rest'&&viewState!=='rest'&&(next!==viewState||restart))setViewState('rest');
+  if(viewState==='animation'&&next!=='animation') {
+    resumeDelay=sectionSwitchAt===null?null:Math.max(0,sectionSwitchAt-performance.now());
+    lastOperation=null;
+  }
+  if(next==='interaction')lastOperation='diagram';
+  if(next===viewState&&!restart)return;
+  viewState=next;sectionSwitchAt=null;previousTimestamp=null;currentIndex=-1;
+  if(next==='animation') {
+    if(restart){progress=0;repeatSection=false;}
+    lastOperation=null;resumeDelay=null;
+  }
+  if(next!=='interaction'){interactionRegion=null;heatmapHover=null;}
+  updatePlayback();
+}
+function resumeAnimation() {
+  const operation=lastOperation,delay=resumeDelay;
+  if(operation!==null)repeatSection=progress>1-sectionSpeed()/sectionDuration();
+  setViewState('animation');
+  if(progress>=1)sectionSwitchAt=performance.now()+(operation===null&&delay!==null?delay:config.sectionDelay*1000);
+  render();
+}
+function refreshViewState() {
+  const resting=pageHovered||parameterTimer!==null||parameterPointers.size>0;
+  const next=interactionRegion?'interaction':resting?'rest':'animation';
+  if(next===viewState)return;
+  if(next==='animation'){resumeAnimation();return;}
+  setViewState(next);render();
+}
+function cancelParameterPause() {
+  window.clearTimeout(parameterTimer);parameterTimer=null;parameterPointers.clear();
+}
+function scheduleParameterResume() {
+  window.clearTimeout(parameterTimer);parameterTimer=null;
+  if(parameterPointers.size)return;
+  parameterTimer=window.setTimeout(()=>{
+    parameterTimer=null;refreshViewState();
+  },PARAMETER_COOLDOWN_MS);
+}
+function pauseForParameters() {
+  interactionRegion=null;setViewState('rest');lastOperation='parameters';
+  scheduleParameterResume();render();
+}
+function scenePoint(scene,event) {
+  const point=scene.createSVGPoint();point.x=event.clientX;point.y=event.clientY;
+  return point.matrixTransform(scene.getScreenCTM().inverse());
+}
+function bindInteractionRegion(node,follow) {
+  node.setAttribute('data-interaction-region','');
+  let touchPointer=null;
+  const enter=event=>{
+    if(window.ramnetCompactInteractions.matches)return;
+    cancelParameterPause();setViewState('interaction');interactionRegion=node;follow(event);
+  };
+  for(const type of ['pointerenter','pointermove'])node.addEventListener(type,event=>{
+    if(event.pointerType==='mouse'||event.pointerId===touchPointer)enter(event);
+  });
+  node.addEventListener('pointerdown',event=>{
+    if(window.ramnetCompactInteractions.matches)return;
+    if(event.pointerType!=='mouse'){touchPointer=event.pointerId;node.setPointerCapture(event.pointerId);}
+    enter(event);
+  });
+  node.addEventListener('pointerleave',event=>{
+    if(event.pointerType==='mouse'&&interactionRegion===node){interactionRegion=null;refreshViewState();}
+  });
+  for(const type of ['pointerup','pointercancel','lostpointercapture'])node.addEventListener(type,event=>{
+    if(event.pointerId!==touchPointer&&type!=='pointercancel')return;
+    touchPointer=null;
+    if(interactionRegion===node){interactionRegion=null;refreshViewState();}
+    if(node.hasPointerCapture(event.pointerId))node.releasePointerCapture(event.pointerId);
+  });
+}
+
+function bindFactorScan(node,scene,u,left,step,choices=config.dp) {
+  node.dataset.scanFactor=u;node.dataset.scanChoices=choices;
+  bindInteractionRegion(node,event=>{
+    const index=indexAt(progress),stride=config.dp**u,current=Math.floor(index/stride)%choices;
+    const selected=Math.max(0,Math.min(choices-1,Math.floor((scenePoint(scene,event).x-left)/step)));
+    node.dataset.scanValue=selected;
+    if(current!==selected)seekIndex(index+(selected-current)*stride);else render();
+  });
+}
+
 function applyPaint(node,attrs) {
   for(const channel of ['fill','stroke']) {
     const role=node.getAttribute(`data-${channel}-role`);
@@ -121,6 +211,20 @@ function colorHsl(base) {
 function outputColor() {
   return config.outputColor;
 }
+function probabilityAppearance(base,strength) {
+  if(activeSection==='heatmap') {
+    const [hue]=colorHsl(base),weight=Math.sqrt(strength);
+    return {fill:`hsl(${hue} ${8+84*weight}% ${70-22*weight}%)`,'fill-opacity':.6+.35*weight};
+  }
+  // Tint and alpha multiply: split the contrast equally between them.
+  const weight=Math.sqrt(.12+.88*strength),darken=.92;
+  const paper=$(activeSection+'-page').style.getPropertyValue('--page-shade');
+  const channels=[1,3,5].map(offset=>{
+    const background=parseInt(paper.slice(offset,offset+2),16);
+    return Math.round(background+(parseInt(base.slice(offset,offset+2),16)*darken-background)*weight);
+  });
+  return {fill:`rgb(${channels.join(' ')})`,'fill-opacity':weight};
+}
 function paint(base,role) {
   const [h,s,l]=colorHsl(base);
   const hue=(h+config[role+'HueOffset']+360)%360;
@@ -180,11 +284,13 @@ function moveFactorBoundary(u,d,position) {
   // Only the two adjacent segments exchange mass; all other probabilities stay fixed.
   row[d]=boundary-left;row[d+1]=right-boundary;
   config.factors[u]=row;
+  pauseForParameters();
   generate();updateFactorEditor(u);buildScene();
 }
 function setFactorShare(u,d,value,source=config.factors[u]) {
   const share=Math.max(0,Math.min(1,value)),remaining=source.reduce((sum,p,i)=>sum+(i===d?0:p),0);
   config.factors[u]=source.map((p,i)=>i===d?share:(1-share)*(remaining?p/remaining:1/(config.dp-1)));
+  pauseForParameters();
   generate();updateFactorEditor(u);buildScene();
 }
 function buildFactorEditors() {
@@ -256,11 +362,11 @@ function buildFactorEditors() {
   }
 }
 function buildScene() {
-  sectionSwitchAt=null;
-  if(activeSection==='tree')buildTreeScene();else if(activeSection==='heatmap')buildHeatmapScene();else if(activeSection==='waveform')buildWaveformScene();else buildDistributionScene();
+  interactionRegion=null;
+  if(viewState==='interaction')setViewState('rest');
+  if(activeSection==='tree')buildTreeScene();else if(activeSection==='heatmap')buildHeatmapScene();else if(activeSection==='regroup')buildRegroupScene();else if(activeSection==='waveform')buildWaveformScene();else buildDistributionScene();
 }
 function buildDistributionScene() {
-  resumeFromHover();pointerScanning=false;
   const scene=$('scene'); scene.replaceChildren();
   const cardY=85,cardHeight=factorSize(config.cardWidth).height;
   chart.height=config.height*config.outputAspect;
@@ -294,13 +400,15 @@ function buildDistributionScene() {
       const bx=layout.left+d*step+step*config.barGap/200,bw=step*(1-config.barGap/100),bh=distributions[u][d]*plotHeight;
       const tag=label(binary(d),compactLabels?cx:layout.left+(d+.5)*step,76,{'text-anchor':'middle','font-size':16,fill:'#7c8478'},card);
       const bar=svg('rect',{x:bx,y:sourceBaseline-bh,width:bw,height:bh,rx:shapeRadius(bw,bh,'bar'),fillRole:'bar',fill:c,'fill-opacity':0.4,class:'source-bar',tabindex:0,role:'button','aria-label':`Factor ${u}, ${binary(d)}, probability ${number(distributions[u][d])}`},card);
-      const choose=()=>{const parts=digits(Math.max(0,currentIndex));parts[u]=d;seekIndex(address(parts));};
+      const choose=()=>{const parts=digits(indexAt(progress));parts[u]=d;seekIndex(address(parts));};
       bar.addEventListener('click',choose);
       bar.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();choose();}});
       row.push({bar,tag,compactLabels});
     }
     svg('line',{x1:layout.left,y1:sourceBaseline,x2:layout.right,y2:sourceBaseline,strokeRole:'frame',stroke:c,'stroke-opacity':0.2},card);
-    sourceNodes[u]={row,arrowY:cardY+cardHeight+8};
+    const factorHit=svg('rect',{x,y:cardY,width:groupWidth,height:cardHeight,fill:'transparent',style:'cursor:pointer'},card);
+    bindFactorScan(factorHit,scene,u,layout.left,step);
+    sourceNodes[u]={row,center:cx,arrowY:cardY+cardHeight+8};
   }
   scene.appendChild(paths);
   const multiplyX=sceneWidth/2;
@@ -323,21 +431,9 @@ function buildDistributionScene() {
   scanLine=svg('line',{y1:chart.bottom+4,y2:chart.bottom+27,strokeRole:'frame',stroke:outputColor(),'stroke-width':1.2,'stroke-opacity':0.5,'stroke-dasharray':'2 4'});
   outputRoute=svg('path',{fill:'none',strokeRole:'arrow',stroke:outputColor(),'stroke-width':1.6,'stroke-opacity':0.65,'marker-end':`url(#arrow-${config.U})`});
   const hit=svg('rect',{x:chart.x,y:chart.bottom-chart.height-chart.inset,width:chart.width,height:chart.height+chart.inset+13,fill:'transparent',style:'cursor:crosshair',role:'presentation'});
-  const scan=event=>{
-    const p=scene.createSVGPoint();p.x=event.clientX;p.y=event.clientY;
-    const local=p.matrixTransform(scene.getScreenCTM().inverse());
-    seekIndex(Math.max(0,Math.min(total-1,Math.floor((local.x-chart.x)/chart.width*total))));
-  };
-  hit.addEventListener('pointerenter',event=>{if(event.pointerType==='mouse'){hoverScanning=true;scan(event);}});
-  hit.addEventListener('pointerleave',event=>{if(event.pointerType==='mouse')resumeFromHover({switchAtEnd:true});});
-  hit.addEventListener('pointerdown',event=>{
-    if(event.pointerType!=='mouse'){pointerScanning=true;hit.setPointerCapture(event.pointerId);}
-    scan(event);
-  });
-  hit.addEventListener('pointermove',event=>{if(event.pointerType==='mouse'||pointerScanning)scan(event);});
-  for(const type of ['pointerup','pointercancel','lostpointercapture'])hit.addEventListener(type,event=>{
-    pointerScanning=false;
-    if(type==='pointercancel'&&event.pointerType==='mouse')resumeFromHover();
+  bindInteractionRegion(hit,event=>{
+    const local=scenePoint(scene,event);
+    seekIndex(Math.floor((local.x-chart.x)/chart.width*total));
   });
   addressGroup=svg('g',{'pointer-events':'none'});
   const addressText=label('',0,0,{'text-anchor':'middle','font-size':20,'letter-spacing':0.5},addressGroup);
@@ -351,7 +447,6 @@ function treeCurve(x1,y1,x2,y2) {
   return `M${x1} ${y1}C${x1} ${middle} ${x2} ${middle} ${x2} ${y2}`;
 }
 function buildTreeScene() {
-  resumeFromHover();pointerScanning=false;treeHoverTarget=null;
   const scene=$('tree-scene');scene.replaceChildren();treeLayers=[];treeOutputs=[];
   const {width:fw,height:fh}=factorSize(config.cardWidth),fx=48;
   const left=fx+fw+52,rootY=54,baseRowGap=Math.max(100+config.upperGap/4,fh+20,config.treeNodeHeight+50);
@@ -427,139 +522,321 @@ function buildTreeScene() {
   const resultTop=rootY+config.U*rowGap+config.treeNodeHeight/2+4;
   const hit=svg('rect',{x:32,y:rootY-20,width:sceneWidth-64,height:height-rootY+20,fill:'transparent',style:'cursor:ns-resize',role:'presentation'},scene);
   const follow=event=>{
-    if(event.pointerType!=='mouse')return;
-    sectionSwitchAt=null;
-    const point=scene.createSVGPoint();point.x=event.clientX;point.y=event.clientY;
-    const local=point.matrixTransform(scene.getScreenCTM().inverse()),y=local.y;
+    const local=scenePoint(scene,event),y=local.y;
     const depth=Math.max(0,Math.min(config.U-1,Math.round((y-rootY)/rowGap)-1));
     const nearFactor=local.x>=fx-20&&local.x<=fx+fw+20&&Math.abs(y-(rootY+(depth+1)*rowGap))<=treeLayers[depth].factorHalfHeight;
     const outputAction=actions[config.U*2];
     if(nearFactor) {
       const start=actions[depth*2].start,end=actions[depth*2+1].end;
       const position=(y-(rootY+(depth+1)*rowGap-treeLayers[depth].factorHalfHeight))/(treeLayers[depth].factorHalfHeight*2);
-      treeHoverTarget=start+(end-start)*Math.max(0,Math.min(1,position));
+      progress=start+(end-start)*Math.max(0,Math.min(1,position));
     } else {
-      treeHoverTarget=y>=resultTop?(outputAction.start+outputAction.end)/2:Math.max(0,(y-rootY)/(resultTop-rootY))*outputAction.start;
+      progress=y>=resultTop?(outputAction.start+outputAction.end)/2:Math.max(0,(y-rootY)/(resultTop-rootY))*outputAction.start;
     }
-    const changed=!hoverScanning||playing;
-    hoverScanning=true;playing=false;
-    if(changed)updatePlayback();
+    render();
   };
-  hit.addEventListener('pointerenter',follow);hit.addEventListener('pointermove',follow);
-  for(const type of ['pointerleave','pointercancel'])hit.addEventListener(type,event=>{
-    if(event.pointerType!=='mouse')return;
-    resumeFromHover({switchAtEnd:type==='pointerleave'});
-  });
+  bindInteractionRegion(hit,follow);
   render();
 }
-function buildHeatmapFactor(scene,u,x,y,width,height) {
-  const c=color(u);
-  const group=svg('g',{transform:`translate(${x} ${y})`},scene);
-  heatmapSources[u]=[];heatmapSourceLabels[u]=[];
-  svg('rect',{width,height,rx:shapeRadius(width,height,'frame'),fillRole:'background',fill:c,'fill-opacity':.04,strokeRole:'frame',stroke:c,'stroke-opacity':diagram.alpha.border},group);
+function buildCompactFactor(scene,u,x,y,width,height) {
+  const c=color(u),group=svg('g',{transform:'translate('+x+' '+y+')'},scene);
+  const bars=[],labels=[];
+  svg('rect',{width,height,rx:shapeRadius(width,height,'frame'),fillRole:'background',fill:c,'fill-opacity':.055,strokeRole:'frame',stroke:c,'stroke-opacity':diagram.alpha.border},group);
   const fontScale=config.diagramFontScale/100;
   const layout=factorLayout(0,0,width,height,true),compact=layout.step<bits*16*fontScale*.6+4;
   distributions[u].forEach((p,code)=>{
     const barWidth=layout.step*(1-config.barGap/100),barHeight=p*layout.plotHeight,barX=layout.left+(code+.5)*layout.step-barWidth/2;
-    heatmapSources[u].push(svg('rect',{x:barX,y:layout.baseline-barHeight,width:barWidth,height:barHeight,rx:shapeRadius(barWidth,barHeight,'bar'),fillRole:'bar',fill:c,'fill-opacity':.25},group));
+    bars.push(svg('rect',{x:barX,y:layout.baseline-barHeight,width:barWidth,height:barHeight,rx:shapeRadius(barWidth,barHeight,'bar'),fillRole:'bar',fill:c,'fill-opacity':.25},group));
     const node=label(binary(code),compact?width/2:layout.left+(code+.5)*layout.step,layout.labelY,{'text-anchor':'middle','font-size':16,fill:c},group);
-    heatmapSourceLabels[u].push({node,compact});
+    labels.push({node,compact});
   });
   svg('line',{x1:layout.left,y1:layout.baseline,x2:layout.right,y2:layout.baseline,strokeRole:'frame',stroke:c,'stroke-opacity':.2},group);
+  return {group,bars,labels,layout};
+}
+function buildHeatmapFactor(scene,u,x,y,width,height) {
+  const {group,bars,labels,layout}=buildCompactFactor(scene,u,x,y,width,height);
+  heatmapSources[u]=bars;heatmapSourceLabels[u]=labels;
+  svg('rect',{width,height,fill:'transparent',style:'cursor:pointer'},group);
+  bindInteractionRegion(group,event=>{
+    const local=scenePoint(scene,event),d=Math.max(0,Math.min(config.dp-1,Math.floor((local.x-x-layout.left)/layout.step)));
+    heatmapHover={u,d};progress=((config.U-1-u)*config.dp+d)/(config.U*config.dp);renderHeatmap();
+  });
 }
 function buildHeatmapScene() {
-  resumeFromHover();pointerScanning=false;
   const scene=$('heatmap-scene');scene.replaceChildren();
-  const sourceX=28,sourceSize=factorSize(config.cardWidth);
-  const baseX=sourceX+sourceSize.width+64,baseY=64;
-  const {width:sceneWidth,height}=animationSize(scene,Math.max(480,sourceSize.height*4+config.cardGap*3+64));
-  const size=Math.min(sceneWidth-baseX-32,height-baseY-32),offsetX=(sceneWidth-baseX-32-size)/2,offsetY=(height-baseY-32-size)/2;
-  const x=baseX+offsetX,y=baseY+offsetY,width=size,gridHeight=size,gap=config.cardGap*.6;
-  const blockWidth=(width-gap*3)/4,blockHeight=(gridHeight-gap*3)/4;
-  const paddingX=blockWidth*config.factorPadding/100,paddingY=blockHeight*config.factorPadding/100;
-  const gridWidth=blockWidth-paddingX*2,gridInnerHeight=blockHeight-paddingY*2,stepX=gridWidth/4,stepY=gridInnerHeight/4;
-  const insetX=stepX*config.barGap/200,insetY=stepY*config.barGap/200,cellWidth=stepX-insetX*2,cellHeight=stepY-insetY*2;
-  heatmapLayout={x,y,width,height:gridHeight,gap,blockWidth,blockHeight,paddingX,paddingY,stepX,stepY};
-  heatmapCells=[];heatmapBlocks=[];heatmapSources=[];heatmapSourceLabels=[];
-  const sourceStart=(height-sourceSize.height*4-config.cardGap*3)/2;
-  for(let u=3;u>=0;u--)buildHeatmapFactor(scene,u,sourceX+offsetX,sourceStart+(3-u)*(sourceSize.height+config.cardGap),sourceSize.width,sourceSize.height);
-  heatmapArrows=Array.from({length:4},(_,u)=>Array.from({length:u<2?4:1},()=>svg('path',{fill:'none',strokeRole:'arrow',stroke:color(u),'stroke-width':2,'stroke-linecap':'round','stroke-linejoin':'round','pointer-events':'none','data-factor':u},scene)));
-  const overlayOpacity=config.heatmapOverlayOpacity/100;
-  heatmapOuterRow=svg('rect',{x,y,width,height:blockHeight,rx:shapeRadius(width,blockHeight,'frame'),fill:color(3),'fill-opacity':overlayOpacity,'pointer-events':'none'},scene);
-  heatmapOuterColumn=svg('rect',{x,y,width:blockWidth,height:gridHeight,rx:shapeRadius(blockWidth,gridHeight,'frame'),fill:color(2),'fill-opacity':overlayOpacity,'pointer-events':'none'},scene);
-  const min=Math.min(...probabilities),max=Math.max(...probabilities),span=max-min;
   const topSlots=new Set([...probabilities.keys()].sort((a,b)=>probabilities[b]-probabilities[a]||a-b).slice(0,config.topK));
-  for(let outerRow=0;outerRow<4;outerRow++) {
-    for(let outerColumn=0;outerColumn<4;outerColumn++) {
-      const bx=x+outerColumn*(blockWidth+gap),by=y+outerRow*(blockHeight+gap),gx=bx+paddingX,gy=by+paddingY;
-      const group=svg('g',{},scene);
-      svg('rect',{x:bx,y:by,width:blockWidth,height:blockHeight,rx:shapeRadius(blockWidth,blockHeight,'frame'),fillRole:'background',fill:outputColor(),'fill-opacity':.02,strokeRole:'frame',stroke:outputColor(),'stroke-opacity':diagram.alpha.border,'stroke-width':1},group);
-      for(let row=0;row<4;row++) {
-        for(let column=0;column<4;column++) {
-          const slot=address([column,row,outerColumn,outerRow]),cx=gx+column*stepX+insetX,cy=gy+row*stepY+insetY;
-          const strength=span>0?(probabilities[slot]-min)/span:.5;
-          const cell=svg('rect',{x:cx,y:cy,width:cellWidth,height:cellHeight,rx:shapeRadius(cellWidth,cellHeight,'bar'),fillRole:'bar',fill:outputColor(),'fill-opacity':probabilities[slot]>0?.08+.9*strength*config.heatmapRange:.015},group);
-          heatmapCells[slot]={cell,x:cx,y:cy,width:cellWidth,height:cellHeight};
-        }
-      }
-      const row=svg('rect',{x:gx,y:gy,width:gridWidth,height:stepY,fill:color(1),'fill-opacity':overlayOpacity,'pointer-events':'none'},group);
-      const column=svg('rect',{x:gx,y:gy,width:stepX,height:gridInnerHeight,fill:color(0),'fill-opacity':overlayOpacity,'pointer-events':'none'},group);
-      heatmapBlocks.push({x:gx,y:gy,row,column});
-    }
+  scene.setAttribute('aria-label','Four-dimensional address lattice. Each factor value activates a 64-point slice.');
+  const sourceX=28,sourceSize=factorSize(config.cardWidth);
+  const {width,height}=animationSize(scene,Math.max(480,sourceSize.height*4+config.cardGap*3+64));
+  const sourceStart=(height-sourceSize.height*4-config.cardGap*3)/2;
+  heatmapSources=[];heatmapSourceLabels=[];heatmapNodes=[];heatmapEdges=[];
+  for(let u=3;u>=0;u--)buildHeatmapFactor(scene,u,sourceX,sourceStart+(3-u)*(sourceSize.height+config.cardGap),sourceSize.width,sourceSize.height);
+  const rightX=sourceX+sourceSize.width+30,rightWidth=width-rightX-25;
+  heatmapLayout={x:rightX+rightWidth/2,y:height/2,
+    unit:Math.min(rightWidth*.88/heatmapProjectionSize.width,height*.8/heatmapProjectionSize.height)};
+  const edgeGroup=svg('g',{'pointer-events':'none'},scene);
+  for(let s=0;s<4;s++)for(let axis=0;axis<3;axis++)for(let a=0;a<4;a++)for(let b=0;b<4;b++) {
+    const from=[0,0,0,s],to=[0,0,0,s],other=[0,1,2].filter(u=>u!==axis);
+    from[other[0]]=to[other[0]]=a;from[other[1]]=to[other[1]]=b;to[axis]=3;
+    const node=svg('line',{stroke:outputColor(),'stroke-width':.75,'stroke-opacity':.1},edgeGroup);
+    heatmapEdges.push({node,from:address(from),to:address(to),parts:from,axis});
   }
-  const cellSize=Math.min(cellWidth,cellHeight);
-  heatmapSelection=svg('rect',{width:cellWidth,height:cellHeight,rx:shapeRadius(cellWidth,cellHeight,'bar'),fillRole:'bar',fill:outputColor(),'fill-opacity':overlayOpacity,'pointer-events':'none'},scene);
-  heatmapPoint=svg('circle',{r:Math.min(4.8,cellSize*.24),fill:'none',stroke:'#f6f0e3','stroke-width':1.4,'pointer-events':'none'},scene);
-  const markers=svg('g',{'pointer-events':'none','data-markers':'top-k'},scene);
-  for(const slot of topSlots) {
-    const {x,y,width,height}=heatmapCells[slot];
-    svg('circle',{cx:x+width/2,cy:y+height/2,r:Math.min(3.2,cellSize*.14),fillRole:'frame',fill:'#294955','data-slot':slot},markers);
-  }
-  const hit=svg('rect',{x,y,width,height:gridHeight,fill:'transparent',style:'cursor:crosshair',role:'presentation'},scene);
-  const follow=event=>{
-    const point=scene.createSVGPoint();point.x=event.clientX;point.y=event.clientY;
-    const local=point.matrixTransform(scene.getScreenCTM().inverse());
-    const outerColumn=Math.max(0,Math.min(3,Math.floor((local.x-x)/(blockWidth+gap)))),outerRow=Math.max(0,Math.min(3,Math.floor((local.y-y)/(blockHeight+gap))));
-    const column=Math.max(0,Math.min(3,Math.floor((local.x-x-outerColumn*(blockWidth+gap)-paddingX)/stepX)));
-    const row=Math.max(0,Math.min(3,Math.floor((local.y-y-outerRow*(blockHeight+gap)-paddingY)/stepY)));
-    seekIndex(address([column,row,outerColumn,outerRow]));
-  };
-  hit.addEventListener('pointerenter',event=>{if(event.pointerType==='mouse'){hoverScanning=true;follow(event);}});
-  hit.addEventListener('pointermove',event=>{if(event.pointerType==='mouse'||pointerScanning)follow(event);});
-  hit.addEventListener('pointerdown',event=>{if(event.pointerType!=='mouse'){pointerScanning=true;hit.setPointerCapture(event.pointerId);}follow(event);});
-  hit.addEventListener('pointerleave',event=>{if(event.pointerType==='mouse')resumeFromHover({switchAtEnd:true});});
-  for(const type of ['pointerup','pointercancel','lostpointercapture'])hit.addEventListener(type,event=>{
-    pointerScanning=false;
-    if(type==='pointercancel'&&event.pointerType==='mouse')resumeFromHover();
-  });
-  currentIndex=-1;render();
-}
-function renderHeatmap() {
-  const index=indexAt(progress),parts=digits(index);
-  if(index!==currentIndex) {
-    currentIndex=index;
-    const {x,y,blockWidth,blockHeight,gap,paddingX,paddingY,stepX,stepY}=heatmapLayout;
-    set(heatmapOuterRow,{y:y+parts[3]*(blockHeight+gap)});
-    set(heatmapOuterColumn,{x:x+parts[2]*(blockWidth+gap)});
-    heatmapBlocks.forEach(block=>{
-      set(block.row,{y:block.y+parts[1]*stepY});set(block.column,{x:block.x+parts[0]*stepX});
+  heatmapPoints=svg('g',{'pointer-events':'none'},scene);
+  const min=Math.min(...probabilities),max=Math.max(...probabilities);
+  for(let slot=0;slot<total;slot++) {
+    const parts=digits(slot),strength=max===min?.5:(probabilities[slot]-min)/(max-min),top=topSlots.has(slot);
+    const node=svg('circle',{r:4.5,...probabilityAppearance(outputColor(),strength),stroke:top?'#202020':'#30383f','stroke-opacity':top?.95:.28+.3*strength,'stroke-width':top?1.4:.7,
+      'pointer-events':'all',style:'cursor:pointer','data-slot':slot,'data-top-k':top},heatmapPoints);
+    bindInteractionRegion(node,()=>{
+      const factor=config.U-1-Math.min(config.U-1,Math.floor(progress*config.U));
+      heatmapHover={slot};progress=((config.U-1-factor)*config.dp+parts[factor])/(config.U*config.dp);
+      renderHeatmap();
     });
-    set(heatmapArrows[3][0],{d:`M${x-48} ${y+(parts[3]+.5)*blockHeight+parts[3]*gap}h20m-5-4 5 4-5 4`});
-    set(heatmapArrows[2][0],{d:`M${x+(parts[2]+.5)*blockWidth+parts[2]*gap} ${y-48}v20m-4-5 4 5 4-5`});
-    for(let i=0;i<4;i++) {
-      set(heatmapArrows[1][i],{d:`M${x-22} ${y+i*(blockHeight+gap)+paddingY+(parts[1]+.5)*stepY}h18m-5-4 5 4-5 4`});
-      set(heatmapArrows[0][i],{d:`M${x+i*(blockWidth+gap)+paddingX+(parts[0]+.5)*stepX} ${y-22}v18m-4-5 4 5 4-5`});
-    }
-    for(let u=0;u<4;u++) {
-      heatmapSources[u].forEach((bar,d)=>set(bar,{'fill-opacity':d===parts[u]?1:diagram.alpha.low}));
-      heatmapSourceLabels[u].forEach(({node,compact},code)=>set(node,{opacity:compact?(code===parts[u]?1:0):code===parts[u]?1:.55,'font-weight':code===parts[u]?700:400}));
-    }
-    const cell=heatmapCells[index];set(heatmapSelection,{x:cell.x,y:cell.y});set(heatmapPoint,{cx:cell.x+cell.width/2,cy:cell.y+cell.height/2});
+    heatmapNodes.push({node,parts,strength,slot,top,scale:heatmapScales[parts[3]],depth:0});
   }
-  renderTimeline(0,index.toString(2).padStart(bits*config.U,'0'));
+  heatmapLastFrame=0;currentIndex=-1;renderHeatmap();
+}
+function heatmapProject(parts,scale,cosTheta,sinTheta,cosPhi,sinPhi) {
+  const x=(parts[0]-1.5)*scale,y=(parts[1]-1.5)*scale,z=(parts[2]-1.5)*scale;
+  // Camera = r * (cos(phi)*cos(theta), cos(phi)*sin(theta), sin(phi)), looking at the origin.
+  const radial=x*cosTheta+y*sinTheta,horizontal=-x*sinTheta+y*cosTheta;
+  const vertical=z*cosPhi-radial*sinPhi,depth=radial*cosPhi+z*sinPhi;
+  const perspective=heatmapOrbit.radius/(heatmapOrbit.radius-depth);
+  return {x:horizontal*perspective,y:-vertical*perspective,depth,perspective};
+}
+function measureHeatmapOrbit() {
+  // Size the entire orbit once. Outer corners bound every inner lattice point.
+  let width=0,height=0;
+  const scale=Math.max(...heatmapScales);
+  for(let yaw=0;yaw<=36;yaw++)for(let tilt=0;tilt<=20;tilt++) {
+    const theta=yaw*Math.PI/72,phi=heatmapOrbit.phiMean+heatmapOrbit.phiAmplitude*(tilt/10-1);
+    const cosTheta=Math.cos(theta),sinTheta=Math.sin(theta),cosPhi=Math.cos(phi),sinPhi=Math.sin(phi);
+    let top=Infinity,bottom=-Infinity;
+    for(const x of [0,3])for(const y of [0,3])for(const z of [0,3]) {
+      const point=heatmapProject([x,y,z],scale,cosTheta,sinTheta,cosPhi,sinPhi);
+      width=Math.max(width,2*Math.abs(point.x));
+      top=Math.min(top,point.y);bottom=Math.max(bottom,point.y);
+    }
+    height=Math.max(height,bottom-top);
+  }
+  return {width:width*1.01,height:height*1.01};
+}
+function renderHeatmap(timestamp=heatmapTime) {
+  const scanning=viewState!=='rest';
+  const scan=Math.min(15,Math.floor(progress*16));
+  const {u,d}=heatmapHover??{u:3-Math.floor(scan/4),d:scan%4};
+  const slotParts=heatmapHover?.slot===undefined?null:digits(heatmapHover.slot);
+  for(let factor=0;factor<4;factor++) {
+    const selectedValue=scanning?(slotParts?slotParts[factor]:factor===u?d:-1):-1;
+    heatmapSources[factor].forEach((bar,value)=>set(bar,{'fill-opacity':scanning?(value===selectedValue?1:.22):.55}));
+    heatmapSourceLabels[factor].forEach(({node,compact},value)=>{
+      const selected=value===selectedValue;
+      set(node,{opacity:compact?(selected||!scanning&&value===0?1:0):scanning&&!selected?.55:1,'font-weight':selected?700:400});
+    });
+  }
+  const time=timestamp/1000,theta=heatmapOrbit.thetaRate*time;
+  const phi=heatmapOrbit.phiMean+heatmapOrbit.phiAmplitude*Math.sin(heatmapOrbit.phiRate*time);
+  const cosTheta=Math.cos(theta),sinTheta=Math.sin(theta),cosPhi=Math.cos(phi),sinPhi=Math.sin(phi);
+  const points=Array.from({length:total});
+  heatmapNodes.forEach(item=>{
+    const point=heatmapProject(item.parts,item.scale,cosTheta,sinTheta,cosPhi,sinPhi);
+    points[item.slot]={...point,x:heatmapLayout.x+point.x*heatmapLayout.unit,y:heatmapLayout.y+point.y*heatmapLayout.unit};
+  });
+  for(const edge of heatmapEdges) {
+    const from=points[edge.from],to=points[edge.to],active=scanning&&!slotParts&&edge.parts[u]===d&&(edge.axis!==u||u===3);
+    set(edge.node,{x1:from.x.toFixed(1),y1:from.y.toFixed(1),x2:to.x.toFixed(1),y2:to.y.toFixed(1),
+      stroke:active?color(u):outputColor(),'stroke-opacity':active?.22:.06,'stroke-width':active?1:.7});
+  }
+  heatmapNodes.forEach(item=>{
+    const point=points[item.slot],active=scanning&&(slotParts?item.slot===heatmapHover.slot:item.parts[u]===d);
+    item.depth=point.depth;
+    set(item.node,{cx:point.x.toFixed(1),cy:point.y.toFixed(1),
+      r:((active?4.5:3.1)*1.5*point.perspective).toFixed(1),
+      ...probabilityAppearance(active&&!slotParts?color(u):outputColor(),item.strength),
+      stroke:item.top?'#202020':active&&slotParts?outputColor():'#30383f',
+      'stroke-opacity':item.top?.95:active&&slotParts?.9:.28+.3*item.strength,'stroke-width':item.top||active&&slotParts?1.4:.7});
+  });
+  heatmapNodes.sort((a,b)=>a.depth-b.depth);
+  // Keep hovered nodes attached unless their depth order actually changes.
+  let next=heatmapPoints.firstElementChild;
+  for(const {node} of heatmapNodes) {
+    if(node===next)next=next.nextElementSibling;
+    else heatmapPoints.insertBefore(node,next);
+  }
+}
+function buildRegroupStrip(scene,x,y,width,height,values,c) {
+  const inset=8,left=x+inset,step=(width-inset*2)/values.length;
+  const max=probabilityCeiling(Math.max(...values)),baseline=y+height-inset,plotHeight=height-inset*2;
+  const gap=Math.min(1.2,step*.2),group=svg('g',{'data-regroup-distribution':64},scene);
+  svg('rect',{x,y,width,height,rx:shapeRadius(width,height,'frame'),fillRole:'background',fill:c,
+    'fill-opacity':.045,strokeRole:'frame',stroke:c,'stroke-opacity':diagram.alpha.border},group);
+  const bars=values.map((value,i)=>{
+    const barHeight=value/max*plotHeight;
+    return svg('rect',{x:left+i*step+gap/2,y:baseline-barHeight,width:step-gap,height:barHeight,rx:1,
+      fillRole:'bar',fill:c,'fill-opacity':.55,'data-probability':value},group);
+  });
+  svg('line',{x1:left,y1:baseline,x2:x+width-inset,y2:baseline,stroke:c,'stroke-opacity':.25},group);
+  const selection=svg('rect',{x:left,y:y+3,width:step,height:height-6,rx:1,
+    fill:c,'fill-opacity':.12,stroke:c,'stroke-width':1.2},group);
+  return {group,x,y,width,height,left,step,bars,selection};
+}
+function buildRegroupMatrix(scene,x,y,cols,cellSize,rowColor,columnColor,topSlots) {
+  const rows=total/cols,width=cols*cellSize,height=rows*cellSize;
+  const gap=Math.min(.9,cellSize*.15),min=Math.min(...probabilities),max=Math.max(...probabilities);
+  const group=svg('g',{'data-regroup-matrix':cols===4?'64x4':'4x64'},scene);
+  for(let slot=0;slot<total;slot++) {
+    const selected=topSlots.has(slot),strength=max===min?.5:(probabilities[slot]-min)/(max-min);
+    svg('rect',{x:x+(slot%cols)*cellSize+gap/2,y:y+Math.floor(slot/cols)*cellSize+gap/2,
+      width:cellSize-gap,height:cellSize-gap,rx:Math.min(1,cellSize/8),
+      ...probabilityAppearance(outputColor(),strength),
+      stroke:'#202020','stroke-width':1.2,'stroke-opacity':selected?.95:0,
+      'data-slot':slot,'data-top-k':selected,'data-layout':cols===4?'64x4':'4x64'},group);
+  }
+  const rowGuide=svg('rect',{x,y,width,height:cellSize,fill:rowColor,'fill-opacity':.12,
+    stroke:rowColor,'stroke-opacity':.65,'stroke-width':.8},group);
+  const columnGuide=svg('rect',{x,y,width:cellSize,height,fill:columnColor,'fill-opacity':.12,
+    stroke:columnColor,'stroke-opacity':.65,'stroke-width':.8},group);
+  const selection=svg('rect',{x,y,width:cellSize-gap,height:cellSize-gap,rx:1,
+    fill:'none',stroke:'#3269a8','stroke-width':1.6,'pointer-events':'none'},group);
+  svg('rect',{x,y,width,height,rx:1.5,fill:'none',stroke:'#7f929d',
+    'stroke-width':1,'stroke-opacity':.65,'pointer-events':'none'},group);
+  svg('rect',{x,y,width,height,fill:'transparent',style:'cursor:crosshair'},group);
+  bindInteractionRegion(group,event=>{
+    const local=scenePoint(scene,event);
+    const column=Math.max(0,Math.min(cols-1,Math.floor((local.x-x)/cellSize)));
+    const row=Math.max(0,Math.min(rows-1,Math.floor((local.y-y)/cellSize)));
+    seekIndex(row*cols+column);
+  });
+  return {x,y,width,height,cols,cellSize,gap,rowGuide,columnGuide,selection};
+}
+function buildRegroupScene() {
+  const scene=$('regroup-scene');scene.replaceChildren();
+  const topSlots=new Set([...probabilities.keys()].sort((a,b)=>probabilities[b]-probabilities[a]||a-b).slice(0,config.topK));
+  const sourceSize=factorSize(config.cardWidth);
+  const {width,height}=animationSize(scene,660);
+  const factorGap=Math.max(config.cardGap,Math.min(64,(width-sourceSize.width*4-220)/3));
+  const pitch=sourceSize.width+factorGap,sourceWidth=sourceSize.width*4+factorGap*3;
+  const cellSize=Math.min(sourceWidth+40,height-80)/64;
+  const sourceX=(width-sourceWidth-46-40-cellSize*4-40)/2+46;
+  const sourceY=height*.45-sourceSize.height/2,sourceBottom=sourceY+sourceSize.height;
+  const centers=Array.from({length:4},(_,i)=>sourceX+i*pitch+sourceSize.width/2);
+  const upperMultiply={x:centers[1],y:sourceY-52},lowerMultiply={x:centers[2],y:sourceBottom+52};
+  const stripWidth=sourceSize.width*3+factorGap*2,stripHeight=64;
+  const wideX=sourceX+(sourceWidth-cellSize*64)/2,wideY=height-24-cellSize*4;
+  const tallY=height-24-cellSize*64,tallX=sourceX+sourceWidth+40;
+  const mergedColors=['#8c4b46','#784653'];
+  const routeColor=u=>u<config.U?color(u):mergedColors[u-config.U];
+  const factorX=(u,index)=>{
+    const bar=index===null?null:regroupSources[u][digits(index)[u]];
+    return sourceX+(3-u)*pitch+(bar?Number(bar.getAttribute('x'))+Number(bar.getAttribute('width'))/2:sourceSize.width/2);
+  };
+  const defs=svg('defs',{},scene);
+  for(let u=0;u<=config.U+1;u++) {
+    const marker=svg('marker',{id:'regroup-arrow-'+u,viewBox:'0 0 8 8',refX:8,refY:4,
+      markerWidth:6,markerHeight:6,markerUnits:'userSpaceOnUse',orient:'auto'},defs);
+    svg('path',{d:'M0 0L8 4L0 8Z',fillRole:'arrow',fill:routeColor(u)},marker);
+  }
+  const routes=svg('g',{'pointer-events':'none'},scene);
+  const connect=(points,u=config.U)=>svg('path',{d:points?roundedRoute(points):'',fill:'none',
+    strokeRole:'arrow',stroke:routeColor(u),'stroke-width':1.6,'stroke-opacity':.75,
+    'stroke-linecap':'round','stroke-linejoin':'round','marker-end':'url(#regroup-arrow-'+u+')'},routes);
+  const multiply=(node,c)=>{
+    svg('circle',{cx:node.x,cy:node.y,r:16,fill:'none',stroke:c,'stroke-width':1.2},scene);
+    svg('path',{d:'M'+(node.x-5.5)+' '+(node.y-5.5)+'l11 11m0-11-11 11',
+      fill:'none',stroke:c,'stroke-width':1.6,'stroke-linecap':'round'},scene);
+  };
+  regroupLinks=[];
+  for(let i=0;i<3;i++) {
+    const u=3-i,endX=upperMultiply.x+(i-1)*19;
+    regroupLinks.push({path:connect(null,u),points:index=>{
+      const x=factorX(u,index);
+      return i===1?[[x,sourceY-5],[x,upperMultiply.y+32],[upperMultiply.x,upperMultiply.y+32],[upperMultiply.x,upperMultiply.y+19]]:
+        [[x,sourceY-5],[x,upperMultiply.y],[endX,upperMultiply.y]];
+    }});
+  }
+  for(let i=1;i<4;i++) {
+    const u=3-i,endX=lowerMultiply.x+(i-2)*19;
+    regroupLinks.push({path:connect(null,u),points:index=>{
+      const x=factorX(u,index);
+      return i===2?[[x,sourceBottom+5],[x,lowerMultiply.y-32],[lowerMultiply.x,lowerMultiply.y-32],[lowerMultiply.x,lowerMultiply.y-19]]:
+        [[x,sourceBottom+5],[x,lowerMultiply.y],[endX,lowerMultiply.y]];
+    }});
+  }
+  multiply(upperMultiply,mergedColors[0]);multiply(lowerMultiply,mergedColors[1]);
+  regroupSources=[];
+  for(let i=0;i<4;i++) {
+    const u=3-i;
+    const factorX=sourceX+i*pitch,factor=buildCompactFactor(scene,u,factorX,sourceY,sourceSize.width,sourceSize.height);
+    regroupSources[u]=factor.bars;
+    const hit=svg('rect',{width:sourceSize.width,height:sourceSize.height,fill:'transparent'},factor.group);
+    bindFactorScan(hit,scene,u,factorX+factor.layout.left,factor.layout.step);
+  }
+  const upperValues=Array.from({length:64},(_,i)=>{
+    const p=digits(i*4);return distributions[3][p[3]]*distributions[2][p[2]]*distributions[1][p[1]];
+  });
+  const lowerValues=Array.from({length:64},(_,i)=>{
+    const p=digits(i);return distributions[2][p[2]]*distributions[1][p[1]]*distributions[0][p[0]];
+  });
+  regroupStrips={
+    upper64:buildRegroupStrip(scene,sourceX,62,stripWidth,stripHeight,upperValues,mergedColors[0]),
+    lower64:buildRegroupStrip(scene,sourceX+pitch,lowerMultiply.y+64,stripWidth,stripHeight,lowerValues,mergedColors[1])
+  };
+  regroupPanels={
+    tall:buildRegroupMatrix(scene,tallX,tallY,4,cellSize,mergedColors[0],color(0),topSlots),
+    wide:buildRegroupMatrix(scene,wideX,wideY,64,cellSize,color(3),mergedColors[1],topSlots)
+  };
+  const upper=regroupStrips.upper64,lower=regroupStrips.lower64;
+  bindFactorScan(upper.group,scene,1,upper.left,upper.step,64);
+  bindFactorScan(lower.group,scene,0,lower.left,lower.step,64);
+  const upperX=index=>upper.left+(index===null?32:Math.floor(index/4)+.5)*upper.step;
+  const lowerX=index=>lower.left+(index===null?32:index%64+.5)*lower.step;
+  regroupLinks.push(
+    {path:connect(null),points:index=>[[upperMultiply.x,upperMultiply.y-19],
+      [upperMultiply.x,(upperMultiply.y-19+upper.y+upper.height+5)/2],
+      [upperX(index),(upperMultiply.y-19+upper.y+upper.height+5)/2],[upperX(index),upper.y+upper.height+5]]},
+    {path:connect(null,config.U+1),points:index=>[[lowerMultiply.x,lowerMultiply.y+19],
+      [lowerMultiply.x,(lowerMultiply.y+19+lower.y-5)/2],
+      [lowerX(index),(lowerMultiply.y+19+lower.y-5)/2],[lowerX(index),lower.y-5]]},
+    {path:connect(null),points:index=>{
+      const y=tallY+(index===null?32:Math.floor(index/4)+.5)*cellSize,outerX=tallX+cellSize*4+40;
+      return [[upperX(index),upper.y-5],[upperX(index),12],[outerX,12],[outerX,y],[tallX+cellSize*4+5,y]];
+    }},
+    {path:connect(null,0),points:index=>{
+      const x=tallX+(index===null?2:index%4+.5)*cellSize;
+      const startX=factorX(0,index);
+      return [[startX,sourceY-5],[startX,26],[x,26],[x,tallY-5]];
+    }},
+    {path:connect(null,config.U+1),points:index=>{
+      const x=wideX+(index===null?32:index%64+.5)*cellSize,y=(lower.y+lower.height+wideY)/2;
+      return [[lowerX(index),lower.y+lower.height+5],[lowerX(index),y],[x,y],[x,wideY-5]];
+    }},
+    {path:connect(null,3),points:index=>{
+      const y=wideY+(index===null?2:Math.floor(index/64)+.5)*cellSize,outerX=wideX-26;
+      const startX=factorX(3,index);
+      return [[startX,sourceBottom+5],[startX,sourceBottom+28],[outerX,sourceBottom+28],[outerX,y],[wideX-5,y]];
+    }}
+  );
+  currentIndex=-1;renderRegroup();
+}
+function renderRegroup() {
+  const index=indexAt(progress),scanning=viewState!=='rest';
+  if(index===currentIndex)return;
+  currentIndex=index;
+  const parts=digits(index);
+  regroupSources.forEach((bars,u)=>bars.forEach((bar,d)=>set(bar,{'fill-opacity':scanning?(d===parts[u]?1:.24):.55})));
+  for(const [name,value] of [['upper64',Math.floor(index/4)],['lower64',index%64]]) {
+    const strip=regroupStrips[name];
+    set(strip.selection,{x:strip.left+value*strip.step,opacity:scanning?1:0});
+    strip.bars.forEach((bar,i)=>set(bar,{'fill-opacity':scanning&&i===value?1:.55}));
+  }
+  for(const panel of Object.values(regroupPanels)) {
+    const x=panel.x+(index%panel.cols)*panel.cellSize,y=panel.y+Math.floor(index/panel.cols)*panel.cellSize;
+    set(panel.rowGuide,{y,opacity:scanning?1:0});set(panel.columnGuide,{x,opacity:scanning?1:0});
+    set(panel.selection,{x:x+panel.gap/2,y:y+panel.gap/2,opacity:scanning?1:0});
+  }
+  for(const link of regroupLinks)set(link.path,{d:roundedRoute(link.points(scanning?index:null))});
 }
 function buildWaveformScene() {
-  resumeFromHover();pointerScanning=false;
   const scene=$('waveform-scene');scene.replaceChildren();waveformRows=[];waveformBars=[];
   const sourceX=48,sourceWidth=config.cardWidth,x=sourceX+sourceWidth+52,fontScale=config.diagramFontScale/100,startY=28;
   const baseRowHeight=Math.max(config.waveformHeight,(24*fontScale+18)/(1-2*config.factorPadding/100)),gap=Math.max(config.waveformGap,16+24.3*fontScale+config.waveformAddressGap),footer=Math.max(48,32*fontScale+20);
@@ -618,32 +895,24 @@ function buildWaveformScene() {
     }
   });
   const hit=svg('rect',{x:plotX,y:startY,width:plotWidth,height:height-startY-12,fill:'transparent',style:'cursor:crosshair',role:'presentation'},scene);
-  const follow=event=>{
-    const point=scene.createSVGPoint();point.x=event.clientX;point.y=event.clientY;
-    const local=point.matrixTransform(scene.getScreenCTM().inverse());
-    seekIndex(Math.max(0,Math.min(total-1,Math.floor((local.x-plotX)/plotWidth*total))));
-  };
-  hit.addEventListener('pointerenter',event=>{if(event.pointerType==='mouse'){hoverScanning=true;follow(event);}});
-  hit.addEventListener('pointermove',event=>{if(event.pointerType==='mouse'||pointerScanning)follow(event);});
-  hit.addEventListener('pointerdown',event=>{if(event.pointerType!=='mouse'){pointerScanning=true;hit.setPointerCapture(event.pointerId);}follow(event);});
-  hit.addEventListener('pointerleave',event=>{if(event.pointerType==='mouse')resumeFromHover({switchAtEnd:true});});
-  for(const type of ['pointerup','pointercancel','lostpointercapture'])hit.addEventListener(type,event=>{
-    pointerScanning=false;
-    if(type==='pointercancel'&&event.pointerType==='mouse')resumeFromHover();
+  bindInteractionRegion(hit,event=>{
+    const local=scenePoint(scene,event);
+    seekIndex(Math.floor((local.x-plotX)/plotWidth*total));
   });
   currentIndex=-1;render();
 }
 function renderWaveform() {
-  const scanStart=config.waveformRevealDuration/sectionDuration(),scanning=progress>=scanStart;
+  const scanStart=config.waveformRevealDuration/sectionDuration();
+  const revealed=viewState!=='animation'||progress>=scanStart,scanning=viewState!=='rest'&&revealed;
   waveformRows.forEach((row,depth)=>{
-    const reveal=scanning?1:Math.max(0,Math.min(1,progress/scanStart*(config.U+1)-depth));
+    const reveal=revealed?1:Math.max(0,Math.min(1,progress/scanStart*(config.U+1)-depth));
     set(row.group,{opacity:Math.min(1,reveal*4)});
     if(row.revealClip)set(row.revealClip,{width:waveformLayout.plotWidth*(1-(1-reveal)**3)});
     row.codeGroups.forEach((codeGroup,code)=>{
       const amount=1-(1-Math.max(0,Math.min(1,reveal*config.dp-code)))**3;
       set(codeGroup,{opacity:amount});set(row.sourceGroups[code],{opacity:amount});
       const {node,compact}=row.sourceLabels[code];
-      if(!scanning)set(node,{opacity:compact?(code===Math.min(config.dp-1,Math.floor(reveal*config.dp))?1:0):1,'font-weight':400});
+      if(!scanning)set(node,{opacity:compact?(code===(viewState==='rest'?0:Math.min(config.dp-1,Math.floor(reveal*config.dp)))?1:0):1,'font-weight':400});
     });
     if(!scanning)row.sourceBars.forEach(bar=>set(bar,{'fill-opacity':.6}));
   });
@@ -669,7 +938,7 @@ function renderWaveform() {
     });
   }
   waveformRows.slice(0,config.U).forEach(row=>row.rowBars.forEach((bar,i)=>set(bar,{'fill-opacity':scanning&&i===index?1:.5})));
-  waveformBars.forEach((bar,i)=>set(bar,{'fill-opacity':scanning&&i===index?1:topSlots.has(i)?.65:diagram.alpha.low}));
+  waveformBars.forEach((bar,i)=>set(bar,{'fill-opacity':viewState==='rest'?.55:scanning&&i===index?1:topSlots.has(i)?.65:diagram.alpha.low}));
   renderTimeline(scanning?1:0,scanning?index.toString(2).padStart(bits*config.U,'0'):'3 → 2 → 1 → 0');
 }
 function layoutPages() {
@@ -724,7 +993,7 @@ function layoutPages() {
   });
 }
 function arrangePages() {
-  const shades=['#eee8db','#e8e1d2','#e1d9c8','#dad1bf'];
+  const shades=['#eee8db','#e8e1d2','#e1d9c8','#dad1bf','#d3cab6'];
   for(const [depth,name] of pageOrder.entries()) {
     const card=$(name+'-card'),tab=$(name+'-tab'),layer=$(name+'-page');
     card.hidden=false;
@@ -736,15 +1005,14 @@ function arrangePages() {
     layer.dataset.depth=card.dataset.depth=tab.dataset.depth=depth;
   }
 }
-function switchSection(section,{restart=true}={}) {
+function switchSection(section) {
   if(pageFlip){pageFlip.forEach(animation=>animation.cancel());pageFlip=null;}
   arrangePages();
   const targetDepth=pageOrder.indexOf(section),turnedPages=pageOrder.slice(0,targetDepth);
   const turnedShades=turnedPages.map(name=>$(name+'-page').style.getPropertyValue('--page-shade'));
   pageOrder=[...pageOrder.slice(targetDepth),...turnedPages];
-  hoverScanning=false;pointerScanning=false;treeHoverTarget=null;sectionSwitchAt=null;activeSection=section;
-  if(restart)progress=0;
-  previousTimestamp=null;
+  cancelParameterPause();interactionRegion=null;activeSection=section;
+  setViewState('animation',{restart:true});
   arrangePages();
   for(const name of SECTIONS) {
     const selected=name===section;
@@ -785,8 +1053,9 @@ function switchSection(section,{restart=true}={}) {
   }
 }
 function renderTree() {
-  const next=actions.findIndex(action=>progress<action.end),phase=next<0?actions.length-1:next;
-  const action=actions[phase],local=Math.max(0,Math.min(1,(progress-action.start)/(action.end-action.start||1)));
+  const t=viewState==='rest'?1:progress;
+  const next=actions.findIndex(action=>t<action.end),phase=next<0?actions.length-1:next;
+  const action=actions[phase],local=Math.max(0,Math.min(1,(t-action.start)/(action.end-action.start||1)));
   treeLayers.forEach((layer,depth)=>{
     const expansion=depth*2,pruning=expansion+1,cut=phase>pruning?1:phase===pruning?local:0;
     const prune=Math.max(0,Math.min(1,(cut-.2)/.25));
@@ -797,7 +1066,7 @@ function renderTree() {
     set(layer.revealClip,{height:layer.revealHeight*reveal});
     set(layer.layer,{opacity:phase<expansion?0:1});
     set(layer.factorArrow,{opacity:reveal});
-    set(layer.factor,{opacity:phase===expansion||phase===pruning?1:.4});
+    set(layer.factor,{opacity:viewState==='rest'||phase===expansion||phase===pruning?1:.4});
     layer.factorBars.forEach(bar=>set(bar,{'fill-opacity':phase===expansion?.85:.55}));
     layer.nodes.forEach(node=>{
       const x=node.candidateX+(node.x-node.candidateX)*regroup,y=node.y-16*(1-reveal);
@@ -814,11 +1083,18 @@ function renderTree() {
   renderTimeline(phase,phase===actions.length-1?`Top-${config.topK}`:`${config.U-1-Math.floor(phase/2)} · ${phase%2?'裁剪':'展开'}`);
 }
 function stepPlayback(direction) {
-  sectionSwitchAt=null;
-  if(activeSection!=='tree'){seekIndex(currentIndex+direction);return;}
-  treeHoverTarget=null;
-  const next=Math.max(0,Math.min(actions.length-1,activeAction+direction));
-  progress=Math.min(1,actions[next].start+.00001);playing=false;previousTimestamp=null;render();updatePlayback();
+  const index=indexAt(progress);
+  cancelParameterPause();setViewState('interaction');
+  if(activeSection==='heatmap'){
+    heatmapHover=null;
+    progress=Math.max(0,Math.min(15,Math.floor(progress*16)+direction))/16;
+  } else if(activeSection==='tree') {
+    const next=Math.max(0,Math.min(actions.length-1,activeAction+direction));
+    progress=Math.min(1,actions[next].start+.00001);
+  } else {
+    seekIndex(index+direction);return;
+  }
+  render();
 }
 function indexAt(t) {
   if(activeSection==='waveform') {
@@ -832,42 +1108,34 @@ function indexProgress(index) {
   return index/total;
 }
 function seekIndex(index) {
-  sectionSwitchAt=null;
-  playing=false;progress=indexProgress(Math.max(0,Math.min(total-1,index)));previousTimestamp=null;render();updatePlayback();
-}
-function resumeFromHover({switchAtEnd=false}={}) {
-  if(!hoverScanning)return;
-  const atEnd=activeSection!=='tree'?indexAt(progress)===total-1:(treeHoverTarget??progress)>=actions[actions.length-1].start;
-  if(switchAtEnd&&atEnd) {
-    hoverScanning=false;treeHoverTarget=null;playing=false;
-    sectionSwitchAt=performance.now()+config.sectionDelay*1000;previousTimestamp=null;updatePlayback();return;
-  }
-  hoverScanning=false;treeHoverTarget=null;
-  playing=progress<1;previousTimestamp=null;updatePlayback();
+  cancelParameterPause();setViewState('interaction');
+  progress=indexProgress(Math.max(0,Math.min(total-1,index)));render();
 }
 function render() {
   if(activeSection==='tree'){renderTree();return;}
   if(activeSection==='heatmap'){renderHeatmap();return;}
+  if(activeSection==='regroup'){renderRegroup();return;}
   if(activeSection==='waveform'){renderWaveform();return;}
-  const index=indexAt(progress),parts=digits(index),actionIndex=0;
+  const index=indexAt(progress),parts=digits(index),actionIndex=0,scanning=viewState!=='rest';
+  for(const node of [highlight,scanLine,addressGroup])set(node,{opacity:scanning?1:0});
   if(index!==currentIndex) {
     currentIndex=index;
     for(let u=0;u<config.U;u++) {
       for(let d=0;d<config.dp;d++) {
-        const selected=d===parts[u],nodes=sourceNodes[u].row[d];
-        set(nodes.bar,{'fill-opacity':selected?1:0.28});
-        set(nodes.tag,{fill:selected?color(u):'#7c8478','font-weight':selected?700:400,opacity:nodes.compactLabels&&!selected?0:1});
+        const selected=scanning&&d===parts[u],nodes=sourceNodes[u].row[d];
+        set(nodes.bar,{'fill-opacity':scanning?(selected?1:.28):.55});
+        set(nodes.tag,{fill:selected?color(u):'#7c8478','font-weight':selected?700:400,opacity:nodes.compactLabels&&!selected&&(scanning||d!==0)?0:1});
         nodes.bar.setAttribute('aria-pressed',String(selected));
       }
       const bar=sourceNodes[u].row[parts[u]].bar;
-      const sx=Number(bar.getAttribute('x'))+Number(bar.getAttribute('width'))/2,sy=sourceNodes[u].arrowY;
+      const sx=scanning?Number(bar.getAttribute('x'))+Number(bar.getAttribute('width'))/2:sourceNodes[u].center,sy=sourceNodes[u].arrowY;
       const multiplyX=chart.x+chart.width/2,outer=u===0||u===3,ex=multiplyX+(u>=2?(outer?-25:-9):(outer?25:9));
       routeNodes[u].setAttribute('d',roundedRoute(outer?[[sx,sy],[sx,multiplyY],[ex,multiplyY]]:[[sx,sy],[sx,multiplyY-40],[ex,multiplyY-40],[ex,multiplyY-23]]));
       addressNodes[u].textContent=binary(parts[u]);
     }
-    const bin=Math.floor(index/binSize),x=chart.x+(index+.5)/total*chart.width;
-    const step=chart.width/groups.length,y=chart.bottom-probabilities[index]/outputScaleMax*chart.plotHeight;
-    bars.forEach((bar,i)=>set(bar,{'fill-opacity':i===bin?1:topBars.has(i)?.65:diagram.alpha.low}));
+    const bin=Math.floor(index/binSize),x=chart.x+(scanning?(index+.5)/total:.5)*chart.width;
+    const step=chart.width/groups.length,y=scanning?chart.bottom-probabilities[index]/outputScaleMax*chart.plotHeight:chart.bottom-chart.height;
+    bars.forEach((bar,i)=>set(bar,{'fill-opacity':scanning?(i===bin?1:topBars.has(i)?.65:diagram.alpha.low):.55}));
     set(highlight,{x:chart.x+bin*step});set(scanLine,{x1:x,x2:x});
     const startY=multiplyY+21,turnY=Math.min(multiplyY+65,(startY+y-8)/2);
     const multiplyX=chart.x+chart.width/2;
@@ -889,7 +1157,7 @@ function buildActions() {
   if(activeSection==='waveform') {
     const start=config.waveformRevealDuration/duration;
     actions=[{name:'逐层呈现',start:0,end:start,detail:'每行按 00 → 01 → 10 → 11 同步呈现因子与对应的周期柱，最后显示逐点乘积'},{name:'同步扫描',start,end:1,detail:'虚线对齐五行，子地址组成完整地址'}];
-  } else if(activeSection!=='tree')actions=[{name:SECTION_NAMES[activeSection],start:0,end:1,detail:activeSection==='heatmap'?'全地址扫描，外层及所有内层网格同步高亮行列':'全地址从左向右连续扫描'}];
+  } else if(activeSection!=='tree')actions=[{name:SECTION_NAMES[activeSection],start:0,end:1,detail:activeSection==='heatmap'?'依次激活四个因子的十六个取值，每个取值对应六十四个地址':'全地址从左向右连续扫描'}];
   else {
     const durations=Array.from({length:config.U*2},(_,i)=>i%2?config.treePruneDuration:config.treeExpandDuration).concat(config.treeHoldDuration);
     let elapsed=0;
@@ -913,44 +1181,85 @@ function syncControls(){
   style.setProperty('--interaction-aspect',config.interactionAspect);
   style.setProperty('--ui-font-scale',config.uiFontScale/100);layoutPages();
 }
-function updatePlayback(){}
+function updatePlayback(){document.querySelector('.animation-shell').dataset.viewState=viewState;}
 function applyConfig(next,{regenerate=true,restart=false}={}) {
   config=next;if(restart)progress=0;
   scope.setCycleDuration?.(SECTIONS.reduce((seconds,section)=>seconds+sectionDuration(section)/config[section==='distribution'?'speed':section+'Speed']+config.sectionDelay,0));
   previousTimestamp=null;
   syncControls();if(regenerate)generate();buildFactorEditors();buildActions();buildScene();updatePlayback();
 }
-function change(key,value){config[key]=value;applyConfig(config,{regenerate:false});}
+function change(key,value) {
+  config[key]=value;pauseForParameters();
+  syncControls();buildActions();buildScene();
+}
 function togglePlay() {
-  treeHoverTarget=null;sectionSwitchAt=null;
-  if(!playing&&progress>=1)progress=0;
-  playing=!playing;previousTimestamp=null;updatePlayback();render();
+  cancelParameterPause();interactionRegion=null;
+  if(viewState==='animation'){setViewState('rest');render();}else resumeAnimation();
 }
 function frame(timestamp) {
-  if(sectionSwitchAt!==null&&timestamp>=sectionSwitchAt&&!document.hidden) {
-    if(activeSection===SECTIONS[SECTIONS.length-1]) {
-      config.factors=null;generate();buildFactorEditors();
-    }
-    sectionSwitchAt=null;playing=true;switchSection(nextSection());
-  } else if(previousTimestamp!==null&&activeSection==='tree'&&treeHoverTarget!==null&&!document.hidden) {
-    const elapsed=Math.min((timestamp-previousTimestamp)/1000,.1),difference=treeHoverTarget-progress;
-    if(Math.abs(difference)<.00001) {
-      progress=treeHoverTarget;
-    } else {
-      progress+=Math.sign(difference)*Math.min(Math.abs(difference)*(1-Math.exp(-elapsed/.12)),elapsed*1.5);
-    }
+  if(viewState==='interaction'&&interactionRegion?.hasAttribute('data-scan-factor')&&!document.hidden&&previousTimestamp!==null) {
+    const stride=config.dp**Number(interactionRegion.dataset.scanFactor);
+    const selected=Number(interactionRegion.dataset.scanValue),choices=Number(interactionRegion.dataset.scanChoices),position=progress*total;
+    // Remove the fixed factor or group, advance through matches, then insert it again.
+    const elapsed=Math.min(timestamp-previousTimestamp,100);
+    const compact=(Math.floor(position/(stride*choices))*stride+position%stride+elapsed/1000*sectionSpeed()/sectionDuration()*total)%(total/choices);
+    progress=((Math.floor(compact/stride)*choices+selected)*stride+compact%stride)/total;
     render();
-  } else if(previousTimestamp!==null&&playing&&!hoverScanning&&!document.hidden) {
-    progress+=Math.min((timestamp-previousTimestamp)/1000,.1)*sectionSpeed()/sectionDuration();
-    if(progress>=1) {
-      progress=1;playing=false;
-      if(activeSection!==SECTIONS[SECTIONS.length-1]||config.loop)sectionSwitchAt=timestamp+config.sectionDelay*1000;
-      updatePlayback();
+  }
+  if(viewState==='animation'&&!document.hidden) {
+    if(sectionSwitchAt!==null&&timestamp>=sectionSwitchAt) {
+      if(repeatSection) {
+        setViewState('animation',{restart:true});render();
+      } else {
+        if(activeSection===SECTIONS[SECTIONS.length-1]) {
+          config.factors=null;generate();buildFactorEditors();
+        }
+        switchSection(nextSection());
+      }
+    } else if(previousTimestamp!==null&&progress<1) {
+      const elapsed=Math.min(timestamp-previousTimestamp,100);
+      progress=Math.min(1,progress+elapsed/1000*sectionSpeed()/sectionDuration());
+      if(progress>=1) {
+        if(repeatSection||activeSection!==SECTIONS[SECTIONS.length-1]||config.loop)sectionSwitchAt=timestamp+config.sectionDelay*1000;
+        else setViewState('rest');
+      }
+      if(activeSection!=='heatmap')render();
     }
-    render();
+  }
+  if(activeSection==='heatmap'&&!document.hidden) {
+    if(previousTimestamp!==null)heatmapTime+=Math.min(timestamp-previousTimestamp,100);
+    if(timestamp-heatmapLastFrame>=32) {
+      heatmapLastFrame=timestamp;renderHeatmap();
+    }
   }
   previousTimestamp=timestamp;requestAnimationFrame(frame);
 }
+const hoverSurfaces=SECTIONS.map(name=>$(name+'-card'));
+const insidePage=target=>target&&hoverSurfaces.some(surface=>surface.contains(target));
+for(const surface of hoverSurfaces) {
+  surface.addEventListener('pointerenter',event=>{
+    if(event.pointerType!=='mouse'||window.ramnetCompactInteractions.matches)return;
+    pageHovered=true;refreshViewState();
+  });
+  surface.addEventListener('pointermove',event=>{
+    if(event.pointerType!=='mouse'||window.ramnetCompactInteractions.matches)return;
+    pageHovered=true;
+    if(!event.target.closest('[data-interaction-region]')){interactionRegion=null;refreshViewState();}
+  });
+  surface.addEventListener('pointerleave',event=>{
+    if(event.pointerType!=='mouse'||insidePage(event.relatedTarget))return;
+    pageHovered=false;interactionRegion=null;refreshViewState();
+  });
+}
+const parameterPanel=$('distribution-interactions');
+parameterPanel.addEventListener('pointerdown',event=>{
+  if(!event.target.closest('input,.factor-divider,.factor-segment,.factor-value'))return;
+  parameterPointers.add(event.pointerId);pauseForParameters();
+},true);
+for(const type of ['pointerup','pointercancel','lostpointercapture'])parameterPanel.addEventListener(type,event=>{
+  if(!parameterPointers.delete(event.pointerId))return;
+  scheduleParameterResume();refreshViewState();
+},true);
 $('topK').addEventListener('input',()=>change('topK',Number($('topK').value)));
 for(const name of SECTIONS) {
   $(name+'-tab').addEventListener('click',()=>{if(activeSection!==name)switchSection(name);});
@@ -976,9 +1285,18 @@ exhibitHost?.addEventListener('ramnet:content-layout',event=>{
   document.documentElement.style.setProperty('--article-text-width',width+'px');
   layoutPages();buildScene();
 });
-window.ramnetCompactInteractions.addEventListener('change',()=>{hoverScanning=false;pointerScanning=false;treeHoverTarget=null;layoutPages();});
-arrangePages();applyConfig(config);scope.onAutoplayStart?.(()=>{pageOrder=[...SECTIONS];playing=true;switchSection('distribution');});requestAnimationFrame(frame);
-new ResizeObserver(()=>{layoutPages();buildScene();}).observe(document.querySelector('.animation-shell'));
+window.ramnetCompactInteractions.addEventListener('change',()=>{
+  pageHovered=false;interactionRegion=null;cancelParameterPause();
+  setViewState('animation',{restart:true});layoutPages();buildScene();
+});
+arrangePages();applyConfig(config);scope.onAutoplayStart?.(()=>{pageOrder=[...SECTIONS];switchSection('distribution');});requestAnimationFrame(frame);
+const cardScroll=document.querySelector('.card-scroll');
+let cardScrollWidth=cardScroll.clientWidth;
+new ResizeObserver(()=>{
+  if(cardScroll.clientWidth===cardScrollWidth)return;
+  cardScrollWidth=cardScroll.clientWidth;
+  layoutPages();buildScene();
+}).observe(cardScroll);
 exhibitHost?.addEventListener('ramnet:fit',()=>{layoutPages();buildScene();});
 };
 if (document.body.classList.contains('exhibit-product_softmax')) window.RamnetRuntime.mountStandalone('product_softmax');

@@ -64,7 +64,7 @@ a.resource-link:hover { background: #cfdeef; border-color: var(--accent); }
 .autoplay-toggle[aria-pressed="true"] { border-color: #729ed5; background: var(--accent); color: #203c60; font-weight: 700; box-shadow: 0 0 0 2px #82afe633; }
 .autoplay-icon { width: 14px; display: grid; place-items: center; }
 .autoplay-icon svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.reading-progress { position: absolute; left: 0; top: -1px; height: 2px; width: 100%; transform: scaleX(0); transform-origin: left; background: #82afe6; }
+.reading-progress { position: absolute; left: 0; top: -1px; height: 4px; width: 100%; transform: scaleX(0); transform-origin: left; background: #82afe6; }
 main.article { --text-inset: clamp(72px, 9vw, 120px); --content-width: calc(100% - var(--text-inset)); --figure-overhang: min(calc(var(--text-inset) / 2), max(0px, calc((100vw - 100%) / 2 - 32px))); width: calc(100% - clamp(40px, 7vw, 88px)); max-width: 1160px; margin: auto; }
 .paper-section { padding: clamp(36px, 6vh, 82px) 0 76px; border-bottom: 1px solid var(--line); }
 .section-opening { margin-bottom: 48px; display: flow-root; }

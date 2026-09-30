@@ -12,10 +12,10 @@
     window.ramnetInitialHash = location.hash === '#top' ? '' : location.hash;
     if (location.hash) history.replaceState(history.state, '', location.pathname + location.search);
   </script>
-  <script defer src="assets/animation-runtime.js"></script><script defer src="assets/exhibit-markup.js"></script>
+  <script defer src="assets/animation-runtime.js"></script><script defer src="assets/exhibit-markup.js?v=factor-view-20261001"></script>
   <script defer src="data/probes/niah_traces.js"></script><script defer src="data/probes/niah_slot_maps.js"></script><script defer src="data/probes/head_traces.js"></script>
   <script defer src="assets/stage-timeline.js"></script>
-  <script defer src="animations/attn_cmp.js"></script><script defer src="animations/ramnet_arch.js"></script><script defer src="animations/product_softmax.js"></script><script defer src="animations/cape.js"></script><script defer src="animations/gsu.js"></script><script defer src="animations/cal_pipeline.js"></script><script defer src="animations/niah_probe.js"></script><script defer src="animations/head_probe.js?v=paper-tape-20260930"></script>
+  <script defer src="animations/attn_cmp.js"></script><script defer src="animations/ramnet_arch.js"></script><script defer src="animations/product_softmax.js?v=joint-opacity-range-20261001"></script><script defer src="animations/cape.js"></script><script defer src="animations/gsu.js"></script><script defer src="animations/cal_pipeline.js"></script><script defer src="animations/niah_probe.js"></script><script defer src="animations/head_probe.js?v=paper-tape-20260930"></script>
   <script defer src="assets/exhibit-host.js"></script><script defer src="assets/site.js"></script><script defer src="assets/hero.js"></script><script defer src="assets/section-scroll.js?v=section-alignment-20260930"></script><script defer src="data/experiments.js"></script><script defer src="assets/experiments.js"></script><script defer src="assets/reading-position.js?v=section-alignment-20260930"></script>
 </head>
 <body id="top">
@@ -90,7 +90,7 @@
 <section class="paper-section" id="addressing" aria-labelledby="heading-addressing"><div class="section-opening">
 <div class="section-heading"><div class="section-kicker"><span>03</span>Product Softmax</div><h2 id="heading-addressing">Product Softmax: Many Slots, Few Logits</h2></div>
 <figure class="exhibit-figure" id="figure-3">
-  <div class="figure-stage"><div class="embedded-exhibit" data-exhibit="product_softmax" role="group" aria-label="One product structure. Four perspectives." style="min-height:950px"></div></div>
+  <div class="figure-stage"><div class="embedded-exhibit" data-exhibit="product_softmax" role="group" aria-label="One product structure. Five perspectives." style="min-height:950px"></div></div>
 </figure>
 </div>
 <div class="prose">
@@ -103,10 +103,12 @@
 <h3>Multilevel Decision Tree</h3>
 <p>Each tree level represents one address component, and each root-to-leaf path represents a slot. Its weight is the product of the branch weights. Sharing the same component distribution across a level makes the highest-weight paths efficient to find.</p>
 <h3>Joint Distribution</h3>
-<p>Arrange the slots on a multidimensional grid, with one distribution per axis. The weight at each point is the product of its axis-wise probabilities. Flatten the grid to recover the full address distribution.</p>
+<p>Picture the 256 slots as a four-dimensional lattice: three address digits locate a point in each cube, while the fourth selects its scale. Each of the <strong class="text-highlight">16 factor values</strong> broadcasts across a 64-slot slice. A slot's weight is the product of the four factors at its intersection.</p>
+<h3>Regroupable Address</h3>
+<p>The same product can be regrouped without changing any slot weight. Combine three factors into a 64-way coordinate and keep the fourth as a 4-way coordinate, or reverse the split. The identical address then traces a tall <span class="math">64 × 4</span> map or a wide <span class="math">4 × 64</span> map, exposing different spatial layouts of the same distribution.</p>
 <h3>Waveform Modulation</h3>
 <p>In slot-index order, each address component forms a repeating, piecewise-constant waveform. Higher-order digits select broad regions; lower-order digits vary over shorter intervals. Their pointwise product produces the final distribution.</p>
-<p>All four views describe the same distribution. RAM-Net builds addresses one component at a time, retaining only the <strong class="text-highlight">Top-K candidates</strong> at each step. This finds the final addresses without materializing the full <span class="math"><i>M</i></span>-dimensional distribution.</p>
+<p>All five views describe the same distribution. RAM-Net builds addresses one component at a time, retaining only the <strong class="text-highlight">Top-K candidates</strong> at each step. This finds the final addresses without materializing the full <span class="math"><i>M</i></span>-dimensional distribution.</p>
 </div></section>
 <section class="paper-section" id="position" aria-labelledby="heading-position"><div class="section-opening">
 <div class="section-heading"><div class="section-kicker"><span>04</span>Position-aware addresses</div><h2 id="heading-position">CAPE: Position-Aware Memory Access</h2></div>
