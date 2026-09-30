@@ -6,17 +6,17 @@
   <title>RAM-Net — Linear-Time Sequence Modeling with Sparsely Addressable State</title>
   <meta name="description" content="Explore RAM-Net: a larger recurrent memory with sparse read and write access. An interactive explanation of Product Softmax, CAPE, Gated Sparse Update and the CUDA execution pipeline.">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/site.css?v=section-alignment-20260930">
+  <link rel="stylesheet" href="assets/site.css?v=flip-overflow-20261001">
   <script>
     history.scrollRestoration = 'manual';
     window.ramnetInitialHash = location.hash === '#top' ? '' : location.hash;
     if (location.hash) history.replaceState(history.state, '', location.pathname + location.search);
   </script>
-  <script defer src="assets/animation-runtime.js"></script><script defer src="assets/exhibit-markup.js?v=factor-view-20261001"></script>
+  <script defer src="assets/animation-runtime.js"></script><script defer src="assets/exhibit-markup.js?v=mobile-topk-hint-20261001"></script>
   <script defer src="data/probes/niah_traces.js"></script><script defer src="data/probes/niah_slot_maps.js"></script><script defer src="data/probes/head_traces.js"></script>
   <script defer src="assets/stage-timeline.js"></script>
-  <script defer src="animations/attn_cmp.js"></script><script defer src="animations/ramnet_arch.js"></script><script defer src="animations/product_softmax.js?v=joint-opacity-range-20261001"></script><script defer src="animations/cape.js"></script><script defer src="animations/gsu.js"></script><script defer src="animations/cal_pipeline.js"></script><script defer src="animations/niah_probe.js"></script><script defer src="animations/head_probe.js?v=paper-tape-20260930"></script>
-  <script defer src="assets/exhibit-host.js"></script><script defer src="assets/site.js"></script><script defer src="assets/hero.js"></script><script defer src="assets/section-scroll.js?v=section-alignment-20260930"></script><script defer src="data/experiments.js"></script><script defer src="assets/experiments.js"></script><script defer src="assets/reading-position.js?v=section-alignment-20260930"></script>
+  <script defer src="animations/attn_cmp.js"></script><script defer src="animations/ramnet_arch.js"></script><script defer src="animations/product_softmax.js?v=regroup-view-labels-20261001"></script><script defer src="animations/cape.js"></script><script defer src="animations/gsu.js"></script><script defer src="animations/cal_pipeline.js"></script><script defer src="animations/niah_probe.js"></script><script defer src="animations/head_probe.js?v=paper-tape-20260930"></script>
+  <script defer src="assets/exhibit-host.js"></script><script defer src="assets/site.js?v=flip-overflow-20261001"></script><script defer src="assets/hero.js"></script><script defer src="assets/section-scroll.js?v=section-alignment-20260930"></script><script defer src="data/experiments.js"></script><script defer src="assets/experiments.js"></script><script defer src="assets/reading-position.js?v=section-alignment-20260930"></script>
 </head>
 <body id="top">
 <a class="skip-link" href="#memory">Skip to the paper</a>
@@ -103,9 +103,11 @@
 <h3>Multilevel Decision Tree</h3>
 <p>Each tree level represents one address component, and each root-to-leaf path represents a slot. Its weight is the product of the branch weights. Sharing the same component distribution across a level makes the highest-weight paths efficient to find.</p>
 <h3>Joint Distribution</h3>
-<p>Picture the 256 slots as a four-dimensional lattice: three address digits locate a point in each cube, while the fourth selects its scale. Each of the <strong class="text-highlight">16 factor values</strong> broadcasts across a 64-slot slice. A slot's weight is the product of the four factors at its intersection.</p>
+<p>Each slot is a point in a four-dimensional address lattice, with one coordinate from each factor. Fixing one factor value selects a <strong class="text-highlight">64-slot slice</strong>: that value is broadcast across the slice and multiplied by the other three factors to determine each slot's weight.</p>
+<p>The rotating projection uses three coordinates for position and the fourth for cube scale. Color strength represents the joint weight; the highlighted slice shows where the active factor value contributes. Black outlines mark the Top-K slots.</p>
 <h3>Regroupable Address</h3>
-<p>The same product can be regrouped without changing any slot weight. Combine three factors into a 64-way coordinate and keep the fourth as a 4-way coordinate, or reverse the split. The identical address then traces a tall <span class="math">64 × 4</span> map or a wide <span class="math">4 × 64</span> map, exposing different spatial layouts of the same distribution.</p>
+<p>The product structure lets us <strong class="text-highlight">regroup factors without changing any slot weight</strong>. View A combines factors 1–3 into a 64-way row coordinate, with factor 4 selecting one of four columns. View B uses factor 1 for four rows and combines factors 2–4 into 64 columns.</p>
+<p>The same address sequence scans both the <span class="math">64 × 4</span> and <span class="math">4 × 64</span> arrays, tracing different spatial patterns. These are two views of one address space: every slot keeps its weight, and the same Top-K slots retain their black outlines.</p>
 <h3>Waveform Modulation</h3>
 <p>In slot-index order, each address component forms a repeating, piecewise-constant waveform. Higher-order digits select broad regions; lower-order digits vary over shorter intervals. Their pointwise product produces the final distribution.</p>
 <p>All five views describe the same distribution. RAM-Net builds addresses one component at a time, retaining only the <strong class="text-highlight">Top-K candidates</strong> at each step. This finds the final addresses without materializing the full <span class="math"><i>M</i></span>-dimensional distribution.</p>

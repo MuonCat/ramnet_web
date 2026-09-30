@@ -31,7 +31,7 @@ def exhibit_markup(name):
     styles = ([f"animations/{name}.css", "assets/embed.css"]
               if name not in ("niah_probe", "head_probe") else ["assets/probes.css"])
     if name == "product_softmax":
-        styles = [f"{path}?v=factor-view-20261001" for path in styles]
+        styles = [f"{path}?v=mobile-topk-hint-20261001" for path in styles]
     return {"bodyClass": classes.group(1), "html": markup, "styles": styles}
 
 

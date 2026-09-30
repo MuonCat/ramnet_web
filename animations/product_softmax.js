@@ -293,21 +293,37 @@ function setFactorShare(u,d,value,source=config.factors[u]) {
   pauseForParameters();
   generate();updateFactorEditor(u);buildScene();
 }
+function bindControlHint(control,show,hide) {
+  control.addEventListener('pointerenter',show);
+  control.addEventListener('focus',show);
+  control.addEventListener('pointerdown',show);
+  control.addEventListener('pointerleave',()=>{
+    if(!control.matches(':active,:focus-visible')&&!control.classList.contains('dragging'))hide();
+  });
+  control.addEventListener('blur',()=>{if(!control.matches(':hover'))hide();});
+  for(const type of ['pointerup','lostpointercapture'])control.addEventListener(type,()=>{
+    if(!control.matches(':hover,:focus-visible'))hide();
+  });
+  control.addEventListener('pointercancel',hide);
+}
 function buildFactorEditors() {
   $('factor-editors').replaceChildren();factorEditors=[];
   for(let u=config.U-1;u>=0;u--) {
     const card=document.createElement('div');card.className='factor-editor';card.style.setProperty('--factor-color',paint(color(u),'bar'));card.style.setProperty('--factor-ink',diagram.text(color(u)));
     const rail=document.createElement('div');rail.className='factor-rail';
     const segments=document.createElement('div');segments.className='factor-segments';rail.append(segments);
-    const values=document.createElement('div');values.className='factor-values';values.style.gridTemplateColumns=`repeat(${config.uiFontScale>105?2:Math.min(config.dp,4)},minmax(0,1fr))`;
+    const values=document.createElement('div');values.className='factor-values';values.setAttribute('aria-hidden','true');
     const editor={segments:[],handles:[],values:[],cells:[]};factorEditors[u]=editor;
+    const showValues=(...indices)=>editor.cells.forEach((cell,d)=>{cell.hidden=!indices.includes(d);});
     for(let d=0;d<config.dp;d++) {
       const segment=document.createElement('div');segment.className='factor-segment';segments.append(segment);editor.segments.push(segment);
-      const cell=document.createElement('div');cell.className='factor-value';
+      const cell=document.createElement('div');cell.className='factor-value';cell.hidden=true;
       const index=document.createElement('span');index.textContent=binary(d);
       const value=document.createElement('output');cell.append(index,value);values.append(cell);editor.values.push(value);
       editor.cells.push(cell);
-      for(const control of [segment,cell]) {
+      bindControlHint(segment,()=>showValues(d),()=>showValues());
+      {
+        const control=segment;
         control.tabIndex=0;control.setAttribute('role','slider');control.setAttribute('aria-orientation','vertical');
         control.setAttribute('aria-label',`Factor ${u}, share of ${binary(d)}`);control.setAttribute('aria-valuemin','0');control.setAttribute('aria-valuemax','100');
         let gesture=null;
@@ -330,6 +346,7 @@ function buildFactorEditors() {
         });
         control.addEventListener('keydown',event=>{
           if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Home','End','Enter',' '].includes(event.key))return;
+          showValues(d);
           event.preventDefault();event.stopPropagation();
           const step=event.shiftKey ? .001 : .01,share=config.factors[u][d];
           setFactorShare(u,d,event.key==='Home'?0:event.key==='End'?1:share+(['Enter',' '].includes(event.key) ? .05 : ['ArrowUp','ArrowRight'].includes(event.key)?step:-step));
@@ -338,6 +355,7 @@ function buildFactorEditors() {
       if(d===config.dp-1)continue;
       const handle=document.createElement('div');handle.className='factor-divider';handle.tabIndex=0;handle.setAttribute('role','slider');handle.setAttribute('aria-orientation','horizontal');
       handle.setAttribute('aria-label',`Factor ${u}, boundary between ${binary(d)} and ${binary(d+1)}`);
+      bindControlHint(handle,()=>showValues(d,d+1),()=>showValues());
       let pointer=null;
       const move=event=>{const bounds=rail.getBoundingClientRect();moveFactorBoundary(u,d,(event.clientX-bounds.left)/bounds.width);};
       handle.addEventListener('pointerdown',event=>{
@@ -352,6 +370,7 @@ function buildFactorEditors() {
       });
       handle.addEventListener('keydown',event=>{
         if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(event.key))return;
+        showValues(d,d+1);
         event.preventDefault();event.stopPropagation();
         const row=config.factors[u],position=row.slice(0,d+1).reduce((a,b)=>a+b,0),step=event.shiftKey ? .001 : .005;
         moveFactorBoundary(u,d,event.key==='Home'?0:event.key==='End'?1:position+(['ArrowRight','ArrowUp'].includes(event.key)?step:-step));
@@ -722,7 +741,7 @@ function buildRegroupScene() {
   const centers=Array.from({length:4},(_,i)=>sourceX+i*pitch+sourceSize.width/2);
   const upperMultiply={x:centers[1],y:sourceY-52},lowerMultiply={x:centers[2],y:sourceBottom+52};
   const stripWidth=sourceSize.width*3+factorGap*2,stripHeight=64;
-  const wideX=sourceX+(sourceWidth-cellSize*64)/2,wideY=height-24-cellSize*4;
+  const wideX=sourceX+(sourceWidth-cellSize*64)/2,wideY=height-46-cellSize*4;
   const tallY=height-24-cellSize*64,tallX=sourceX+sourceWidth+40;
   const mergedColors=['#8c4b46','#784653'];
   const routeColor=u=>u<config.U?color(u):mergedColors[u-config.U];
@@ -785,6 +804,12 @@ function buildRegroupScene() {
     tall:buildRegroupMatrix(scene,tallX,tallY,4,cellSize,mergedColors[0],color(0),topSlots),
     wide:buildRegroupMatrix(scene,wideX,wideY,64,cellSize,color(3),mergedColors[1],topSlots)
   };
+  const captionStyle={'font-size':17,'font-weight':700,'letter-spacing':.6,
+    'font-family':'Inter, Segoe UI, Arial, sans-serif','text-anchor':'middle','pointer-events':'none'};
+  const sideX=tallX-15,sideY=tallY+cellSize*32;
+  label('View A',sideX,sideY,{...captionStyle,fill:mergedColors[0],
+    transform:`rotate(-90 ${sideX} ${sideY})`},scene);
+  label('View B',wideX+cellSize*32,height-14,{...captionStyle,fill:mergedColors[1]},scene);
   const upper=regroupStrips.upper64,lower=regroupStrips.lower64;
   bindFactorScan(upper.group,scene,1,upper.left,upper.step,64);
   bindFactorScan(lower.group,scene,0,lower.left,lower.step,64);
@@ -957,11 +982,9 @@ function layoutPages() {
   measure.font=`700 ${style.fontSize} ${style.fontFamily}`;
   const tabWidth=compact?0:Math.ceil(Math.max(...SECTIONS.map(name=>measure.measureText(SECTION_NAMES[name]).width)))+parseFloat(style.paddingLeft)+parseFloat(style.paddingRight)+2;
   if(articleLayout&&!compact) {
-    const center=articleLayout.left+articleLayout.width/2;
-    const available=document.querySelector('.card-scroll').clientWidth;
-    // Center the page body on the prose; tabs occupy the remaining right gutter.
-    const bodyWidth=Math.max(660-tabWidth-16,Math.min(articleLayout.width,2*Math.min(center-8,available-center-tabWidth-24)));
-    shell.style.marginLeft=(center-bodyWidth/2)+'px';
+    // The article reserves the tab gutter; the page body uses the prose width exactly.
+    const bodyWidth=articleLayout.width;
+    shell.style.marginLeft=articleLayout.left+'px';
     shell.style.marginRight='0px';
     shell.style.width=(bodyWidth+tabWidth+16)+'px';
   } else {
@@ -970,14 +993,21 @@ function layoutPages() {
     shell.style.removeProperty('width');
   }
   const width=shell.clientWidth-16,height=shell.clientHeight-16;
+  const flipContainer=document.querySelector('.card-scroll'),perspective=Math.max(3600,width*3);
+  // Reserve the maximum projected height without changing the figure's flow height.
+  flipContainer.style.setProperty('--page-perspective',perspective+'px');
+  flipContainer.style.setProperty('--page-flip-bleed',Math.ceil(height*width/(2*(perspective-width))+24)+'px');
   const bodyWidth=width-tabWidth,tabHeight=compact?44:Math.min(mobile?30:40,height*.5*(mobile?.18:.21));
-  const gap=compact?12:(height*.5-SECTIONS.length*tabHeight)/(SECTIONS.length-1);
-  const join=Math.min(mobile?4:14,gap/2),corner=Math.min(9,tabHeight/2),radius=config.animationRadius*.68;
+  const radius=config.animationRadius*.68,fontSize=parseFloat(style.fontSize);
+  const safeInset=radius+fontSize;
+  const gap=compact?12:Math.max(0,Math.min(fontSize*2.4,
+    (height-2*safeInset-SECTIONS.length*tabHeight)/(SECTIONS.length-1)));
+  const join=Math.min(mobile?4:14,gap/2),corner=Math.min(9,tabHeight/2);
   shell.style.setProperty('--page-body-width',bodyWidth+'px');
   shell.style.setProperty('--page-tab-width',tabWidth+'px');
   shell.style.setProperty('--page-tab-height',tabHeight+'px');
   SECTIONS.forEach((name,index)=>{
-    const top=(compact?(height-SECTIONS.length*tabHeight-(SECTIONS.length-1)*gap)/2:height*.25)+index*(tabHeight+gap),bottom=top+tabHeight,right=width-.5,end=height-.5;
+    const top=(height-SECTIONS.length*tabHeight-(SECTIONS.length-1)*gap)/2+index*(tabHeight+gap),bottom=top+tabHeight,right=width-.5,end=height-.5;
     $(name+'-tab').style.top=top+'px';
     if(compact) {
       $(name+'-tab').style.removeProperty('top');
@@ -991,6 +1021,16 @@ function layoutPages() {
       V ${end-radius} Q ${bodyWidth} ${end} ${bodyWidth-radius} ${end} H ${.5+radius} Q .5 ${end} .5 ${end-radius}
       V ${.5+radius} Q .5 .5 ${.5+radius} .5 Z`);
   });
+  const shellStyle=getComputedStyle(shell),tabsStyle=getComputedStyle(compactTabs);
+  const controls=document.querySelector('.interaction-panel'),controlsHeight=controls.offsetHeight;
+  // Exclude scrollbars and the scene height so width fitting cannot feed back into itself.
+  const chromeHeight=parseFloat(shellStyle.marginTop)+parseFloat(shellStyle.marginBottom)+controlsHeight+
+    (compact?compactTabs.offsetHeight+parseFloat(tabsStyle.marginTop)+parseFloat(tabsStyle.marginBottom):0);
+  document.body.getRootNode().host?.dispatchEvent(new CustomEvent('ramnet:layout-metrics',{detail:{
+    tabWidth,
+    aspect:config.interactionAspect,
+    chromeHeight
+  }}));
 }
 function arrangePages() {
   const shades=['#eee8db','#e8e1d2','#e1d9c8','#dad1bf','#d3cab6'];
@@ -1023,10 +1063,10 @@ function switchSection(section) {
   syncControls();buildActions();buildScene();updatePlayback();
   if(turnedPages.length&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     const frames=[
-      {transform:'perspective(3600px) rotateY(0deg)',opacity:1},
-      {offset:.45,transform:'perspective(3600px) rotateY(-48deg)',opacity:1},
-      {offset:.8,transform:'perspective(3600px) rotateY(-78deg)',opacity:1},
-      {transform:'perspective(3600px) rotateY(-89deg)',opacity:0}
+      {transform:'perspective(var(--page-perspective)) rotateY(0deg)',opacity:1},
+      {offset:.45,transform:'perspective(var(--page-perspective)) rotateY(-48deg)',opacity:1},
+      {offset:.8,transform:'perspective(var(--page-perspective)) rotateY(-78deg)',opacity:1},
+      {transform:'perspective(var(--page-perspective)) rotateY(-89deg)',opacity:0}
     ];
     pageFlip=turnedPages.map((name,depth)=>{
       const page=$(name+'-page');
@@ -1038,9 +1078,9 @@ function switchSection(section) {
       if(pageFlip!==outward)return;
       outward.forEach(animation=>animation.cancel());arrangePages();
       const attachFrames=[
-        {transform:'perspective(3600px) translateZ(-260px) scale(.72)',opacity:.55},
-        {offset:.55,transform:'perspective(3600px) translateZ(-100px) scale(.88)',opacity:.85},
-        {transform:'perspective(3600px) translateZ(0) scale(1)',opacity:1}
+        {transform:'perspective(var(--page-perspective)) translateZ(-260px) scale(.72)',opacity:.55},
+        {offset:.55,transform:'perspective(var(--page-perspective)) translateZ(-100px) scale(.88)',opacity:.85},
+        {transform:'perspective(var(--page-perspective)) translateZ(0) scale(1)',opacity:1}
       ];
       pageFlip=turnedPages.map(name=>$(name+'-page').animate(attachFrames.map(frame=>({...frame,transformOrigin:`${$(name+'-card').clientWidth}px center`})),{duration:500,easing:'cubic-bezier(.45,0,.55,1)'}));
       const attaching=pageFlip;
@@ -1260,7 +1300,20 @@ for(const type of ['pointerup','pointercancel','lostpointercapture'])parameterPa
   if(!parameterPointers.delete(event.pointerId))return;
   scheduleParameterResume();refreshViewState();
 },true);
-$('topK').addEventListener('input',()=>change('topK',Number($('topK').value)));
+const topK=$('topK'),topKHint=document.createElement('output');
+topKHint.className='control-hint';topKHint.hidden=true;topKHint.setAttribute('aria-hidden','true');
+topK.parentElement.append(topKHint);
+const showTopKHint=(value=Number(topK.value))=>{
+  topKHint.textContent=value;
+  topKHint.style.left=`calc(8px + (100% - 16px) * ${(value-Number(topK.min))/(Number(topK.max)-Number(topK.min))})`;
+  topKHint.hidden=false;
+};
+bindControlHint(topK,()=>showTopKHint(),()=>{topKHint.hidden=true;});
+topK.addEventListener('pointermove',event=>{
+  const bounds=topK.getBoundingClientRect(),fraction=Math.max(0,Math.min(1,(event.clientX-bounds.left-8)/(bounds.width-16)));
+  showTopKHint(event.buttons?Number(topK.value):Math.round(Number(topK.min)+fraction*(Number(topK.max)-Number(topK.min))));
+});
+topK.addEventListener('input',()=>{change('topK',Number(topK.value));showTopKHint();});
 for(const name of SECTIONS) {
   $(name+'-tab').addEventListener('click',()=>{if(activeSection!==name)switchSection(name);});
   $(name+'-tab').addEventListener('keydown',event=>{

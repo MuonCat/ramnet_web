@@ -30,5 +30,13 @@
 @media(max-width:1100px){.debug-content{grid-template-columns:1fr}.debug-content>.transport{padding:20px 0 0;border-left:0;border-top:1px solid var(--line)}}
 @media(max-width:540px){.debug-content{padding:18px 14px}}
 .settings-scope{min-width:0;padding-top:16px;border-top:1px solid var(--line)}.settings-scope+.settings-scope{margin-top:18px}.parameter-subgroup{padding:12px 0 0;border-top:1px solid var(--line);margin:12px 0 0}.parameter-subgroup>summary,.parameter-subgroup>h4,.parameter-cluster>h4{font-size:calc(13px * var(--ui-font-scale, .9));font-weight:600;margin:0 0 14px;color:#61795f}.parameter-cluster{padding:12px 10px 0;margin-bottom:12px;border:1px solid var(--line);border-radius:6px;background:#f6f8f3}.parameter-subgroup .parameter-head{font-size:calc(13px * var(--ui-font-scale, .9))}
+.exhibit-product_softmax .factor-editor{position:relative}
+.exhibit-product_softmax .factor-values{display:none;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);width:max-content;gap:8px;padding:6px 10px;background:#eee8db;border:1px solid #c8c0af;border-radius:5px;box-shadow:0 3px 10px #30383f14;pointer-events:none;z-index:10}
+.exhibit-product_softmax .factor-values:has(.factor-value:not([hidden])){display:flex}
+.exhibit-product_softmax .factor-values .factor-value{min-width:54px;padding:0;border:0;cursor:default}
+.exhibit-product_softmax .topk-track{padding-bottom:0}
+.exhibit-product_softmax .topk-ticks span{font-size:0;padding-top:0}
+.exhibit-product_softmax .control-hint{position:absolute;top:calc(100% + 2px);transform:translateX(-50%);padding:3px 7px;border:1px solid #c8c0af;border-radius:4px;background:#eee8db;color:#3269a8;font:600 11px/1.2 Consolas,monospace;pointer-events:none;z-index:10}
+.compact-interactions .exhibit-product_softmax .control-hint{top:auto;bottom:calc(100% + 6px)}
 @media(min-width:541px) and (max-width:850px){.settings-scope+.settings-scope{margin-top:0}.settings-scope{align-self:start}}
 @media(max-width:540px){.animation-shell .section-tab{padding:0 4px;font-size:calc(9px * var(--ui-font-scale,.9))}}
