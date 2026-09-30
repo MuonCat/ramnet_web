@@ -45,6 +45,21 @@ AUTOPLAY_HOOK = """<script>document.addEventListener('DOMContentLoaded', () => s
   history.replaceState(history.state, '', location.pathname + location.search + '#head-probes');
   document.getElementById('autoplay-toggle').click();
 }, 1200));</script>"""
+HOME_HOOK = """<script>document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    window.scrollTo({top: 200, behavior: 'instant'});
+    window.dispatchEvent(new Event('scroll'));
+    history.replaceState(history.state, '', location.pathname + location.search + '#memory');
+    window.scrollTo({top: 0, behavior: 'instant'});
+    window.dispatchEvent(new Event('scroll'));
+  }, 1000);
+  setTimeout(() => {
+    window.smokeHeroHash = location.hash;
+    history.replaceState(history.state, '', location.pathname + location.search + '#memory');
+    document.querySelector('.wordmark').click();
+    window.smokeTopLinkHash = location.hash;
+  }, 2000);
+});</script>"""
 RESULT_HOOK = """<script>document.addEventListener('DOMContentLoaded', () => {
   const scope=window.RamnetRuntime.createScope(document);
   const frame=()=>{ window.smokeFrameCount++; scope.requestAnimationFrame(frame); };
@@ -61,6 +76,8 @@ RESULT_HOOK = """<script>document.addEventListener('DOMContentLoaded', () => {
     beforeInput:window.smokeCallsBeforeInput,
     hashBeforeInput:window.smokeHashBeforeInput,
     hash:location.hash,
+    heroHash:window.smokeHeroHash,
+    topLinkHash:window.smokeTopLinkHash,
     autoplaySection:document.documentElement.dataset.autoplaySection,
     initialHash:window.ramnetInitialHash,
     hashOffset:document.getElementById('position')?.getBoundingClientRect().top-document.querySelector('.chapter-nav')?.getBoundingClientRect().bottom,
@@ -92,10 +109,10 @@ class QuietHandler(SimpleHTTPRequestHandler):
         pass
 
 
-def check_page(source, url, width, profile, reduced=False, restored=False, initial_hash="", closing=False, autoplay=False):
+def check_page(source, url, width, profile, reduced=False, restored=False, initial_hash="", closing=False, autoplay=False, home=False):
     path = source.with_name(f"_smoke_{source.name}")
     markup = source.read_text(encoding="utf-8")
-    markup = markup.replace("<head>", "<head>" + ERROR_HOOK + (RESTORE_HOOK if restored else "") + (CLOSING_HOOK if closing else "") + (AUTOPLAY_HOOK if autoplay else ""), 1)
+    markup = markup.replace("<head>", "<head>" + ERROR_HOOK + (RESTORE_HOOK if restored else "") + (CLOSING_HOOK if closing else "") + (AUTOPLAY_HOOK if autoplay else "") + (HOME_HOOK if home else ""), 1)
     markup = markup.replace("</body>", RESULT_HOOK + "</body>", 1)
     if restored or initial_hash:
         markup = markup.replace("}, 2500));</script>", "}, 4000));</script>", 1)
@@ -126,6 +143,8 @@ def check_page(source, url, width, profile, reduced=False, restored=False, initi
             raise RuntimeError(f"Closing page kept a chapter hash: {state}")
         if autoplay and (state["hash"] != "#memory" or state.get("autoplaySection") != "memory"):
             raise RuntimeError(f"Autoplay did not update the chapter hash: {state}")
+        if home and (state.get("heroHash") != "" or state.get("topLinkHash") != "" or state["hash"] != ""):
+            raise RuntimeError(f"The opening kept a chapter hash: {state}")
         if initial_hash and (state["hash"] != initial_hash or abs(state["hashOffset"]) > 3):
             raise RuntimeError(f"Hash navigation failed: {state}")
         if source.name == "index.html":
@@ -162,6 +181,7 @@ def main():
             check_page(ROOT / "index.html", None, 500, profile, reduced=True, initial_hash="#position")
             check_page(ROOT / "index.html", url, 1366, profile, closing=True)
             check_page(ROOT / "index.html", url, 1366, profile, reduced=True, autoplay=True)
+            check_page(ROOT / "index.html", url, 1366, profile, reduced=True, home=True)
             for name in ("attn_cmp", "ramnet_arch", "product_softmax", "cape",
                          "gsu", "cal_pipeline", "niah_probe", "head_probe"):
                 check_page(ROOT / "animations" / f"{name}.html", None, 900, profile)

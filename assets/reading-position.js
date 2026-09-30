@@ -25,14 +25,7 @@
       requestAnimationFrame(() => {
         if (interrupted) return;
         history.replaceState(history.state, '', location.pathname + location.search + initialHash);
-        const element = document.getElementById(decodeURIComponent(initialHash.slice(1)));
-        const section = element?.closest('.paper-section');
-        if (!section) return;
-        const navHeight = document.querySelector('.chapter-nav').getBoundingClientRect().height;
-        window.scrollTo({
-          top: scrollY + section.getBoundingClientRect().top - navHeight,
-          behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'
-        });
+        window.RamnetSectionScroll.navigateHash(initialHash);
       });
     };
     wait();

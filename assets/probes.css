@@ -43,7 +43,11 @@ svg { width: 17px; height: 17px; display: block; fill: none; stroke: currentColo
 .field-scroll { width: 100%; overflow: hidden; }
 .field { display: block; max-width: 100%; }
 .slot-array-note { margin: 7px 18px 0; color: #68727b; font-size: 11px; line-height: 1.45; }
-.slot-array-note strong { margin-right: 6px; color: #425d7e; font-weight: 650; }
+.slot-array-note strong { font-weight: 700; }
+.slot-array-note strong:first-child { margin-right: 6px; color: #425d7e; font-weight: 650; }
+.slot-array-note .blue { color: #3269a8; }
+.slot-array-note .write { color: #9b514d; }
+.slot-array-note .read { color: #2f6f49; }
 .packet-layer { position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; }
 .packet { position: absolute; transform: translate(-50%, -50%); }
 .probe-playback { display: flex; align-items: center; margin: 8px 0 0; }
@@ -66,7 +70,6 @@ svg { width: 17px; height: 17px; display: block; fill: none; stroke: currentColo
 .control-field.task { flex: 0 0 160px; }
 .control-field.example { flex: 1; }
 .control-field label, .control-label, .field-label { display: block; margin-bottom: 5px; color: var(--muted); font-size: 10px; letter-spacing: .6px; }
-.controls .legend { align-self: flex-end; height: 36px; }
 .task-switch { display: flex; height: 36px; }
 .task-switch button { flex: 1; border-radius: 0; padding-inline: 7px; font-size: 11px; }
 .task-switch button:first-child { border-radius: 5px 0 0 5px; }
@@ -139,7 +142,6 @@ html:not([data-probe-ready]) .probe-heads .board, .probe-heads:not([data-probe-r
   .controls { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 10px; }
   .controls .transport { grid-column: 1 / -1; height: 44px; justify-content: center; }
   .control-field.example { grid-column: 1 / -1; }
-  .controls .legend { grid-column: 1 / -1; justify-content: center; height: 26px; }
   .task-switch { height: 44px; }
   .token-row { height: 58px; gap: 4px; }
   .token { flex-basis: 44px; height: 30px; font-size: 10px; }

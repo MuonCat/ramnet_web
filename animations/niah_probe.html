@@ -10,7 +10,7 @@
 <main class="exhibit-root stage" id="stage">
   <div class="token-row" id="tokenRow" aria-label="Tokens around the current position"></div>
   <div class="field-scroll" id="fieldScroll"><canvas class="field" id="slotField" role="img" aria-label="Memory contents and active reads and writes across 1,024 slots"></canvas></div>
-  <p class="slot-array-note"><strong>Slot array</strong> 1,024 memory slots. Blue shows retained needle information; red and green outlines mark the current write and read.</p>
+  <p class="slot-array-note"><strong>Slot array</strong> 1,024 memory slots. <strong class="blue">Blue</strong> shows retained needle information; <strong class="write">red</strong> and <strong class="read">green</strong> outlines mark the current write and read.</p>
   <div class="probe-playback">
     <div class="timeline-wrap"><div class="timeline" id="timeline" role="slider" tabindex="0" aria-label="Sequence position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="timeline-track" id="timelineTrack"><div class="timeline-band needle" id="needleBand"></div><div id="readBands"></div><div class="timeline-marker-label needle" id="needleLabel">NEEDLE</div><div class="timeline-marker-label read" id="readLabel">READ</div><div class="timeline-caret" id="timelineCaret"></div></div></div></div>
   </div>
@@ -24,7 +24,6 @@
     <div class="control-field head"><label for="head">Head</label><select id="head"></select></div>
     <div class="control-field task"><span class="control-label">Task</span><div class="task-switch" role="group" aria-label="Retrieval task"><button type="button" data-task="niah_single_1" aria-pressed="true">S-NIAH-1</button><button type="button" data-task="niah_single_3" aria-pressed="false">S-NIAH-3</button></div><input id="task" type="hidden" value="niah_single_1"></div>
     <div class="control-field example"><label for="example">Example</label><select id="example"></select></div>
-    <div class="legend"><span><i class="write"></i>Write</span><span><i class="read"></i>Read</span></div>
   </div>
   <div class="packet-layer" id="packetLayer" aria-hidden="true"></div>
 </main>

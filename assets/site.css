@@ -11,7 +11,7 @@
   --sans: "Segoe UI", -apple-system, BlinkMacSystemFont, Arial, sans-serif;
 }
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; scroll-padding-top: 88px; }
+html { scroll-behavior: smooth; scroll-padding-top: var(--chapter-nav-height, 0px); }
 body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
 a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 4px; }
 button, a { -webkit-tap-highlight-color: transparent; }
@@ -66,7 +66,7 @@ a.resource-link:hover { background: #cfdeef; border-color: var(--accent); }
 .autoplay-icon svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .reading-progress { position: absolute; left: 0; top: -1px; height: 2px; width: 100%; transform: scaleX(0); transform-origin: left; background: #82afe6; }
 main.article { --text-inset: clamp(72px, 9vw, 120px); --content-width: calc(100% - var(--text-inset)); --figure-overhang: min(calc(var(--text-inset) / 2), max(0px, calc((100vw - 100%) / 2 - 32px))); width: calc(100% - clamp(40px, 7vw, 88px)); max-width: 1160px; margin: auto; }
-.paper-section { padding: clamp(36px, 6vh, 82px) 0 76px; border-bottom: 1px solid var(--line); scroll-margin-top: 78px; }
+.paper-section { padding: clamp(36px, 6vh, 82px) 0 76px; border-bottom: 1px solid var(--line); }
 .section-opening { margin-bottom: 48px; display: flow-root; }
 .section-heading { display: grid; grid-template-columns: 88px minmax(0,1fr); align-items: center; gap: 32px; margin-bottom: clamp(18px, 2.5vh, 32px); }
 .section-kicker { color: #64758a; line-height: 1.8; }
@@ -224,7 +224,6 @@ noscript p { padding: 16px; background: #d9e4f2; color: var(--ink); text-align: 
   .chapter-links a span { display: none; }
 }
 @media (max-width: 760px), (max-width: 1024px) and (max-aspect-ratio: 4/5), (max-width: 1024px) and (min-aspect-ratio: 3/2) {
-  html { scroll-padding-top: 74px; }
   .site-header { height: 64px; padding-inline: clamp(16px, 3vw, 22px); }
   .header-meta { gap: 12px; }
   .header-meta > span { display: none; }
@@ -241,7 +240,7 @@ noscript p { padding: 16px; background: #d9e4f2; color: var(--ink); text-align: 
   .chapter-links { gap: 20px; }
   .chapter-links a { padding-block: 18px 15px; }
   .autoplay-toggle { display: none; }
-  .paper-section { padding: clamp(28px, 5vh, 48px) 0 42px; scroll-margin-top: 65px; }
+  .paper-section { padding: clamp(28px, 5vh, 48px) 0 42px; }
   main.article { --text-inset: 0px; width: calc(100% - clamp(32px, 6vw, 44px)); }
   .embedded-exhibit { min-height: 0; }
   #figure-3 { width: var(--content-width); margin-left: var(--text-inset); }

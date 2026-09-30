@@ -9,6 +9,13 @@
   let cooldownSection = null, cooldownUntil = 0;
   let touching = false, draggingScrollbar = false, autoplay = false, snapArmed = false;
   let touchStartX = 0, touchStartY = 0, touchScrollIntent = false;
+  let alignedSection = null, historyFrame = 0;
+
+  function sectionY(section) {
+    if (!section) return 0;
+    const max = Math.max(0, document.documentElement.scrollHeight - innerHeight);
+    return clamp(scrollY + section.getBoundingClientRect().top - chapterNav.getBoundingClientRect().height, 0, max);
+  }
 
   function targetAt(y) {
     return targets.reduce((best, target) => {
@@ -18,6 +25,10 @@
   }
   function refreshTargets() {
     const inset = chapterNav.getBoundingClientRect().height;
+    const insetValue = `${inset}px`;
+    if (document.documentElement.style.getPropertyValue('--chapter-nav-height') !== insetValue) {
+      document.documentElement.style.setProperty('--chapter-nav-height', insetValue);
+    }
     const max = Math.max(0, document.documentElement.scrollHeight - innerHeight);
     const top = element => scrollY + element.getBoundingClientRect().top - inset;
     targets = sections.map((section, index) => {
@@ -25,7 +36,7 @@
       const paragraphs = [...previous.querySelectorAll('p')];
       const tail = paragraphs.at(-2) || paragraphs.at(-1);
       const heading = section.querySelector('.section-heading');
-      const y = clamp(top(section), 0, max);
+      const y = sectionY(section);
       // The visible top edge enters at the previous tail and exits through this heading.
       return {
         section,
@@ -34,6 +45,11 @@
         end: clamp(top(heading) + heading.getBoundingClientRect().height, y, max)
       };
     });
+    // Keep the landing aligned through late figure layout; user input releases it.
+    if (alignedSection && !snapping) {
+      const y = sectionY(alignedSection);
+      if (Math.abs(scrollY - y) > .5) moveTo(y);
+    }
     if (targetAt(scrollY)?.section !== cooldownSection) clearCooldown();
     scheduleSnap();
   }
@@ -57,6 +73,7 @@
     cancelAnimationFrame(snapFrame);
     snapFrame = 0;
     snapping = false;
+    alignedSection = null;
     expectedY = null;
     lastScrollY = scrollY;
   }
@@ -65,26 +82,34 @@
     window.scrollTo({top: y, behavior: 'instant'});
     expectedY = lastScrollY = scrollY;
   }
+  function alignSection(section) {
+    stopSnap();
+    clearCooldown();
+    alignedSection = section;
+    if (reducedMotion.matches || Math.abs(scrollY - sectionY(section)) < .5) {
+      moveTo(sectionY(section));
+      scheduleHashUpdate();
+      return;
+    }
+    const start = scrollY, began = performance.now(), duration = 360;
+    snapping = true;
+    // Closed-form path: x(t) = start + (target - start) * (3u² - 2u³).
+    function step(now) {
+      const u = clamp((now - began) / duration, 0, 1);
+      const y = sectionY(section);
+      moveTo(start + (y - start) * u * u * (3 - 2 * u));
+      if (u < 1) snapFrame = requestAnimationFrame(step);
+      else { snapFrame = 0; snapping = false; scheduleHashUpdate(); }
+    }
+    snapFrame = requestAnimationFrame(step);
+  }
   function snap() {
     if (!snapArmed || touching || draggingScrollbar) return;
     const target = targetAt(scrollY);
     if (!target) { clearCooldown(); return; }
     if (cooldownSection !== target.section) clearCooldown();
     if (performance.now() < cooldownUntil) { scheduleSnap(); return; }
-    const max = Math.max(0, document.documentElement.scrollHeight - innerHeight);
-    const y = clamp(scrollY + target.section.getBoundingClientRect().top - chapterNav.getBoundingClientRect().height, 0, max);
-    if (scrollY === y) return;
-    if (reducedMotion.matches) { moveTo(y); scheduleHashUpdate(); return; }
-    const start = scrollY, began = performance.now(), duration = 360;
-    snapping = true;
-    // Closed-form path: x(t) = start + (target - start) * (3u² - 2u³).
-    function step(now) {
-      const u = clamp((now - began) / duration, 0, 1);
-      moveTo(start + (y - start) * u * u * (3 - 2 * u));
-      if (u < 1) snapFrame = requestAnimationFrame(step);
-      else { snapFrame = 0; snapping = false; scheduleHashUpdate(); }
-    }
-    snapFrame = requestAnimationFrame(step);
+    alignSection(target.section);
   }
   function scheduleSnap() {
     clearTimeout(snapTimer);
@@ -100,7 +125,8 @@
     if (autoplay) return;
     clearTimeout(hashTimer);
     hashTimer = setTimeout(() => {
-      const visibleTop = chapterNav.getBoundingClientRect().bottom + 8;
+      const nav = chapterNav.getBoundingClientRect();
+      const visibleTop = nav.top > 1 ? 0 : nav.bottom + 8;
       setChapterHash(sections.findLast(item => item.getBoundingClientRect().top <= visibleTop));
     }, 650);
   }
@@ -144,6 +170,7 @@
     if ((touching || touchScrollIntent) && delta) snapArmed = true;
     if (delta) scheduleHashUpdate();
     if (ownScroll || !delta) return;
+    alignedSection = null;
     updateCooldown(delta, performance.now());
     scheduleSnap();
   }, {passive: true});
@@ -166,14 +193,19 @@
   document.addEventListener('click', event => {
     const link = event.target.closest('a[href^="#"]');
     if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (link.hash === '#top') {
+      event.preventDefault();
+      snapArmed = false;
+      setChapterHash(null);
+      alignSection(null);
+      return;
+    }
     const target = targets.find(item => '#' + item.section.id === link.hash);
     if (!target) return;
     event.preventDefault();
     snapArmed = true;
-    stopSnap();
-    clearCooldown();
     history.pushState(null, '', link.hash);
-    window.scrollTo({top: target.y, behavior: reducedMotion.matches ? 'instant' : 'smooth'});
+    alignSection(target.section);
   });
   const autoplayButton = document.getElementById('autoplay-toggle');
   const autoplayIcon = autoplayButton.querySelector('.autoplay-icon');
@@ -186,7 +218,7 @@
     autoplayVisit++;
     clearTimeout(autoplayTimer);
     cancelAnimationFrame(autoplayFrame);
-    if (autoplayFrame) window.scrollTo({top: scrollY, behavior: 'instant'});
+    stopSnap();
     autoplayFrame = 0;
     document.documentElement.classList.remove('is-autoplaying');
     delete document.documentElement.dataset.autoplaySection;
@@ -199,12 +231,12 @@
   function playSection(index) {
     if (!autoplay) return;
     const visit = ++autoplayVisit, section = sections[index];
-    const destination = () => clamp(scrollY + section.getBoundingClientRect().top - chapterNav.getBoundingClientRect().height, 0, Math.max(0, document.documentElement.scrollHeight - innerHeight));
+    const destination = () => sectionY(section);
     const started = performance.now();
-    window.scrollTo({top: destination(), behavior: reducedMotion.matches ? 'instant' : 'smooth'});
+    alignSection(section);
     function waitForArrival(now) {
       if (!autoplay || visit !== autoplayVisit) return;
-      if (Math.abs(scrollY - destination()) < 2 || now - started > 3000) {
+      if ((!snapping && Math.abs(scrollY - destination()) < 2) || now - started > 3000) {
         autoplayFrame = 0;
         setChapterHash(section);
         document.documentElement.dataset.autoplaySection = section.id;
@@ -239,7 +271,22 @@
   });
   document.addEventListener('visibilitychange', () => { if (document.hidden) stopAutoplay(); });
   desktopAutoplay.addEventListener('change', () => { if (!desktopAutoplay.matches) stopAutoplay(); });
-  window.addEventListener('popstate', () => { clearTimeout(hashTimer); snapArmed = touchScrollIntent = false; stopSnap(); clearCooldown(); refreshTargets(); });
+  function navigateHash(hash) {
+    if (!hash || hash === '#top') { setChapterHash(null); alignSection(null); return; }
+    const section = document.getElementById(decodeURIComponent(hash.slice(1)))?.closest('.paper-section');
+    if (section) { setChapterHash(section); alignSection(section); }
+  }
+  function historyNavigation() {
+    clearTimeout(hashTimer);
+    cancelAnimationFrame(historyFrame);
+    historyFrame = requestAnimationFrame(() => {
+      stopAutoplay();
+      snapArmed = touchScrollIntent = false;
+      navigateHash(location.hash);
+    });
+  }
+  window.addEventListener('popstate', historyNavigation);
+  window.addEventListener('hashchange', historyNavigation);
   window.addEventListener('pageshow', () => { clearTimeout(hashTimer); snapArmed = touchScrollIntent = touching = false; stopSnap(); clearCooldown(); refreshTargets(); });
   reducedMotion.addEventListener('change', () => { if (reducedMotion.matches) { stopSnap(); scheduleSnap(); } });
   const closing = document.querySelector('.closing');
@@ -269,4 +316,5 @@
   });
   sizeClosing();
   refreshTargets();
+  window.RamnetSectionScroll = {navigateHash};
 })();
