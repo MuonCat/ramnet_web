@@ -7,11 +7,10 @@ const diagram=window.ramnetDiagramTheme;
 // ram_attn_segment_parallel.cu. Worker slots visualize CUDA scheduling;
 // the kernel itself assigns a segment to each warp, not a persistent queue.
 const $=id=>document.getElementById(id);
-const defaults={T:32,u:3,k:4,m:4,duration:38,projectionTime:1,mergeTime:2,splitTime:1,flattenTime:2,sortTime:6,segmentTime:1,lengthTime:3,valuesTime:1.5,executeTime:15,finishTime:0.5,gap:8,segmentGap:24,radius:6,panelRadius:18,space:20,trail:0.5,write:diagram.colors.red,read:diagram.colors.green,value:diagram.colors.orange,output:diagram.colors.sky,state:diagram.colors.sky,mass:diagram.colors.blue,segment:diagram.colors.purple,speed:1,loop:true};
-let cfg={...defaults};
+const cfg={T:32,u:3,k:4,m:4,duration:38,projectionTime:1,mergeTime:2,splitTime:1,flattenTime:2,sortTime:6,segmentTime:1,lengthTime:3,valuesTime:1.5,executeTime:15,finishTime:0.5,gap:8,segmentGap:24,radius:6,panelRadius:18,space:20,trail:0.5,write:diagram.colors.red,read:diagram.colors.green,value:diagram.colors.orange,output:diagram.colors.sky,state:diagram.colors.sky,mass:diagram.colors.blue,segment:diagram.colors.purple};
 const colors={ink:'#30383f',muted:'#797f75',line:'#bebdaf',paper:'transparent'};
 const canvas=$('scene'),ctx=canvas.getContext('2d');
-let data,stages=[],actionGroups=[],totalWeight=0,playhead=0,lastFrame=0,hits=[],hover=null,pointer=null,playing=true,toastTimer;
+let data,stages=[],actionGroups=[],totalWeight=0,playhead=0,lastFrame=0,hits=[],hover=null,pointer=null,playing=true;
 const stageTimeline=new StageTimeline($('stage-timeline'),time=>{playhead=time;setPlaying(false);hideTooltip();draw();});
 const view={width:1,height:1,scale:1};
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
@@ -248,7 +247,7 @@ canvas.addEventListener('pointerleave',()=>{hideTooltip();if(!playing)draw();});
 document.addEventListener('keydown',e=>{if(e.target.closest('input,select,textarea,button'))return;if(e.code==='Space'){e.preventDefault();$('play').click();}else if(e.code==='ArrowRight'){e.preventDefault();seekAction(atTime().s.group+1);}else if(e.code==='ArrowLeft'){e.preventDefault();seekAction(atTime().s.group-1);}else if(e.code==='Escape'&&document.body.classList.contains('focus')){document.body.classList.remove('focus');resize();}});
 new ResizeObserver(resize).observe($('viewport'));document.body.getRootNode().host?.addEventListener('ramnet:fit',resize);
 document.addEventListener('visibilitychange',()=>lastFrame=0);
-function tick(now){const dt=lastFrame?Math.min((now-lastFrame)/1000,.1):0;lastFrame=now;if(playing&&!document.hidden){playhead+=dt*cfg.speed;if(playhead>=cfg.duration){if(cfg.loop){playhead%=cfg.duration;randomizeData();}else{playhead=cfg.duration;setPlaying(false);}}draw();}requestAnimationFrame(tick);}
-buildData();scope.setCycleDuration?.(cfg.duration/cfg.speed);applyStyle();setPlaying(true);resize();scope.onAutoplayStart?.(event=>{if(!event.detail?.resumeCurrent){$('restart').click();return;}event.detail.remainingMs=Math.max(0,(cfg.duration-playhead)/cfg.speed*1000);setPlaying(true);hideTooltip();draw();});requestAnimationFrame(tick);
+function tick(now){const dt=lastFrame?Math.min((now-lastFrame)/1000,.1):0;lastFrame=now;if(playing&&!document.hidden){playhead+=dt;if(playhead>=cfg.duration){playhead%=cfg.duration;randomizeData();}draw();}requestAnimationFrame(tick);}
+buildData();scope.setCycleDuration?.(cfg.duration);applyStyle();setPlaying(true);resize();scope.onAutoplayStart?.(event=>{if(!event.detail?.resumeCurrent){$('restart').click();return;}event.detail.remainingMs=Math.max(0,(cfg.duration-playhead)*1000);setPlaying(true);hideTooltip();draw();});requestAnimationFrame(tick);
 };
 if (document.body.classList.contains('exhibit-cal_pipeline')) window.RamnetRuntime.mountStandalone('cal_pipeline');

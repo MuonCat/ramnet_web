@@ -12,8 +12,8 @@ const slotPrepareSpan=.38*(.5-Math.sin(Math.asin(1-2*.22)/3)),slotPrepareDelay=s
 const minimumDurations=config=>[1,2.95,0,3,4,0,1+2.5*(1+slotPrepareDelay),4.2,2.5].map((factor,i)=>Math.max(1,Math.ceil((i===5?2*config.fadeDuration+etaMoveSeconds+etaHoldSeconds:factor*config.fadeDuration)*10-1e-9)/10));
 function fitDurations(config){const minimum=minimumDurations(config);config.durations=config.durations.map((value,i)=>Math.max(value,minimum[i]));}
 const progressGroups=[{name:'calculate α',color:'alpha',start:0,end:3},{name:'update mass',color:'mass',start:3,end:5,stop:.5},{name:'calculate η',color:'eta',start:5,end:6},{name:'update slot',color:'state',start:6,end:9,stopAction:7}];
-const defaults={colors:{...colors},n:8,initialMass:0.8,epsilon:0.0001,concentration:0.5,gammaRange:3.5,speed:1,loop:true,aspectRatio:1.95,retainedGap:200,columnSpacing:0.55,slotGap:7,cellRadius:6,panelRadius:22,spacing:20,lineWidth:2.2,vectorScale:0.94,massContrast:1.6,fadeDuration:1.2,interactionExitDelay:3,canvasExitDelay:1,durations:[1.5,3.6,4,3.6,4.8,4.6,4.4,5.1,3]};
-let params=structuredClone(defaults),elapsed=0,playing=true,lastFrame=0,toastTimer,activeAction=-1,roundData,gammaOverride=null;
+const params={colors:{...colors},n:8,initialMass:0.8,epsilon:0.0001,concentration:0.5,gammaRange:3.5,aspectRatio:1.95,retainedGap:200,columnSpacing:0.55,slotGap:7,cellRadius:6,panelRadius:22,spacing:20,lineWidth:2.2,vectorScale:0.94,massContrast:1.6,fadeDuration:1.2,interactionExitDelay:3,canvasExitDelay:1,durations:[1.5,3.6,4,3.6,4.8,4.6,4.4,5.1,3]};
+let elapsed=0,playing=true,lastFrame=0,activeAction=-1,roundData,gammaOverride=null;
 let sceneWidth=sceneHeight*params.aspectRatio;
 let checkpoint=null,hitRegions=[],hoverVector=null,drag=null,pointerPosition=null,resumeAfterHover=false,hoverTarget=null,hoverExitTimer,hoverExitZone=null,gammaDragging=false;
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)),mix=(a,b,t)=>a+(b-a)*t,smooth=t=>{t=clamp(t);return t*t*(3-2*t)},phase=(p,a,b)=>smooth((p-a)/(b-a));
@@ -148,7 +148,7 @@ function cancelInteractionExit(){clearTimeout(hoverExitTimer);hoverExitTimer=nul
 function clearInteraction(){cancelInteractionExit();resumeAfterHover=false;hoverTarget=null;gammaDragging=false;if(drag&&canvas.hasPointerCapture(drag.pointerId))canvas.releasePointerCapture(drag.pointerId);drag=null;pointerPosition=null;hoverVector=null;checkpoint=null;canvas.style.cursor='default';}
 function leaveInteraction(){
  cancelInteractionExit();hoverTarget=null;hoverVector=null;canvas.style.cursor='default';if(!resumeAfterHover)return;resumeAfterHover=false;checkpoint=null;
- if(elapsed>=total()&&params.loop)nextRound();
+ if(elapsed>=total())nextRound();
  playing=elapsed<total();lastFrame=0;playback();
 }
 function interactionBounds(target){
@@ -269,7 +269,7 @@ function resize(){const dpr=Math.min(window.devicePixelRatio||1,3);canvas.width=
 function playback(){ window.RamnetRuntime.setPlaybackIcon($('gsu-play'),playing);document.querySelectorAll('#gsu-progress [data-stage]').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.stage)===checkpoint))); }
 function seek(t){clearInteraction();elapsed=clamp(t,0,total());playing=false;playback();draw();}
 function selectAction(i){seek(startOf(clamp(i,0,8))+.001);}
-function frame(now){const delta=lastFrame?Math.min((now-lastFrame)/1000,.1):0;lastFrame=now;if(playing&&!document.hidden){elapsed+=delta*params.speed;if(elapsed>=total()){if(params.loop)nextRound();else{elapsed=total();playing=false;playback();}}}draw();requestAnimationFrame(frame);}
+function frame(now){const delta=lastFrame?Math.min((now-lastFrame)/1000,.1):0;lastFrame=now;if(playing&&!document.hidden){elapsed+=delta;if(elapsed>=total())nextRound();}draw();requestAnimationFrame(frame);}
 function applyStyle(){sceneHeight=Math.max(contentHeight,1200/params.aspectRatio);sceneOffset=(sceneHeight-contentHeight)/2;sceneWidth=sceneHeight*params.aspectRatio;canvas.style.aspectRatio=String(params.aspectRatio);const style=document.documentElement.style;style.setProperty('--radius',params.panelRadius+'px');style.setProperty('--space',params.spacing+'px');Object.assign(colors,params.colors);for(const [key,value] of Object.entries(colors))style.setProperty('--'+key,value);}
 $('gamma-live').onpointerdown=()=>{if(!$('gamma-live').disabled)finishStage();};
 $('gamma-live').oninput=e=>{if(e.target.disabled||locationAt().i>=5){draw();return;}const value=Number(e.target.value);finishStage();gammaOverride=value;draw();};
@@ -277,6 +277,6 @@ document.addEventListener('keydown',e=>{if(e.target.closest('input,select,button
 progressGroups.forEach((group,index)=>{const button=document.createElement('button');button.type='button';button.className='gsu-progress-step';button.style.setProperty('--stage-color',colors[group.color]);const label=document.createElement('span');label.textContent=group.name;button.append(label);button.dataset.stage=index;button.addEventListener('click',()=>{clearInteraction();finishStage(index);});$('gsu-progress').append(button);});
 $('gsu-play').addEventListener('click',()=>{clearInteraction();playing=!playing;lastFrame=0;playback();draw();});
 window.ramnetCompactInteractions.addEventListener('change',()=>{const resume=resumeAfterHover;clearInteraction();if(resume)playing=true;playback();draw();});
-document.addEventListener('visibilitychange',()=>{lastFrame=0;});new ResizeObserver(resize).observe(canvas);document.body.getRootNode().host?.addEventListener('ramnet:fit',resize);initialize();scope.setCycleDuration?.(total()/params.speed);applyStyle();playback();resize();scope.onAutoplayStart?.(event=>{if(event.detail?.resumeCurrent){event.detail.remainingMs=Math.max(0,(total()-elapsed)/params.speed*1000);clearInteraction();}else initialize();playing=true;lastFrame=0;playback();draw();});requestAnimationFrame(frame);
+document.addEventListener('visibilitychange',()=>{lastFrame=0;});new ResizeObserver(resize).observe(canvas);document.body.getRootNode().host?.addEventListener('ramnet:fit',resize);initialize();scope.setCycleDuration?.(total());applyStyle();playback();resize();scope.onAutoplayStart?.(event=>{if(event.detail?.resumeCurrent){event.detail.remainingMs=Math.max(0,(total()-elapsed)*1000);clearInteraction();}else initialize();playing=true;lastFrame=0;playback();draw();});requestAnimationFrame(frame);
 };
 if (document.body.classList.contains('exhibit-gsu')) window.RamnetRuntime.mountStandalone('gsu');

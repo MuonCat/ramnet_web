@@ -20,7 +20,7 @@ assets/
 animations/
   attn_cmp.{html,css,js}         注意力与存储方式对比
   ramnet_arch.{html,css,js}      RAM-Net 架构及分阶段播放器
-  product_softmax.{html,css,js}  四种视图、Top-K 和分布交互
+  product_softmax.{html,css,js}  五种视图、Top-K 和分布交互
   cape.{html,css,js}             CAPE 开关、分布拖动与位置响应
   gsu.{html,css,js}              质量、门控、向量的直接交互
   cal_pipeline.{html,css,js}     CUDA 执行流水线及分阶段播放器

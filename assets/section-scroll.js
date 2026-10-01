@@ -241,9 +241,9 @@
         setChapterHash(section);
         document.documentElement.dataset.autoplaySection = section.id;
         const detail = {id: section.id, resumeCurrent};
-        section.querySelector('.embedded-exhibit')?.dispatchEvent(new CustomEvent('ramnet:autoplay-start', {detail}));
-        window.dispatchEvent(new CustomEvent('ramnet:autoplay-section', {detail}));
         const exhibit = section.querySelector('.embedded-exhibit');
+        exhibit?.dispatchEvent(new CustomEvent('ramnet:autoplay-start', {detail}));
+        window.dispatchEvent(new CustomEvent('ramnet:autoplay-section', {detail}));
         const duration = resumeCurrent && Number.isFinite(detail.remainingMs) ? Math.max(250, detail.remainingMs) : Number(exhibit?.dataset.cycleMs || section.dataset.cycleMs) || 6000;
         autoplayTimer = setTimeout(() => playSection((index + 1) % sections.length), duration);
       } else autoplayFrame = requestAnimationFrame(waitForArrival);

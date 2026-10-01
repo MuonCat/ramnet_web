@@ -7,13 +7,7 @@ const $ = id => document.getElementById(id);
 const NS = 'http://www.w3.org/2000/svg';
 const SECTION_NAMES={distribution:'Soft Radix Address',tree:'Multilevel Decision Tree',heatmap:'Joint Distribution',regroup:'Regroupable Address',waveform:'Waveform Modulation'};
 const SECTIONS=Object.keys(SECTION_NAMES).filter(name=>$(name+'-page')&&$(name+'-card')&&$(name+'-tab'));
-const DEFAULTS = {U:4,dp:4,factors:[
-  [0.5096578959952033,0.15216308786133387,0.15320826445326508,0.18497075169019783],
-  [0.5133835541711417,0.04571478941259041,0.19246478358994867,0.24843687282631935],
-  [0.45657829225840624,0.16719224201013133,0.20525359515296399,0.17097587057849858],
-  [0.18977007985781985,0.2962820281189687,0.20192554112274083,0.31202235090047065]
-],temperature:0.85,duration:15,sectionDelay:0.5,speed:1,heatmapDuration:15,heatmapSpeed:1,regroupDuration:15,regroupSpeed:1,waveformRevealDuration:3.5,waveformScanDuration:12,waveformSpeed:1,waveformHeight:96,waveformGap:48,waveformAddressGap:8,treeExpandDuration:1,treePruneDuration:1.5,treeHoldDuration:1.5,treeSpeed:1,topK:8,cardWidth:138,cardGap:25,upperGap:100,lowerGap:108,barGap:30,factorAspect:1.4,outputAspect:1,interactionAspect:1.8,factorPadding:10,factorPlotHeight:73,barRadiusRatio:6,frameRadiusRatio:4.5,barRadius:1.2,frameRadius:6,radius:6,animationRadius:20,lineRadius:6,spacing:25,height:130,treeNodeWidth:16,treeNodeHeight:16,treeNodeRadius:8,treeParentGapRatio:1.5,arrowHueOffset:0,arrowSaturationOffset:0,arrowLightnessOffset:0,frameHueOffset:0,frameSaturationOffset:0,frameLightnessOffset:0,backgroundHueOffset:0,backgroundSaturationOffset:0,backgroundLightnessOffset:0,barHueOffset:0,barSaturationOffset:0,barLightnessOffset:0,outputScale:'auto',loop:true,uiFontScale:100,diagramFontScale:100,colors:[diagram.colors.indigo,diagram.colors.purple,diagram.colors.green,diagram.colors.gold],outputColor:diagram.colors.sky};
-let config = {...structuredClone(DEFAULTS),factors:null};
+let config = {U:4,dp:4,factors:null,temperature:0.85,duration:15,sectionDelay:0.5,heatmapDuration:15,regroupDuration:15,waveformRevealDuration:3.5,waveformScanDuration:12,waveformHeight:96,waveformGap:48,waveformAddressGap:8,treeExpandDuration:1,treePruneDuration:1.5,treeHoldDuration:1.5,topK:8,cardWidth:138,cardGap:25,upperGap:100,lowerGap:108,barGap:30,factorAspect:1.4,outputAspect:1,interactionAspect:1.8,factorPadding:10,factorPlotHeight:73,barRadiusRatio:6,frameRadiusRatio:4.5,barRadius:1.2,frameRadius:6,radius:6,animationRadius:20,lineRadius:6,spacing:25,height:130,treeNodeWidth:16,treeNodeHeight:16,treeNodeRadius:8,treeParentGapRatio:1.5,outputScale:'auto',uiFontScale:100,diagramFontScale:100,colors:[diagram.colors.indigo,diagram.colors.purple,diagram.colors.green,diagram.colors.gold],outputColor:diagram.colors.sky};
 let distributions = [], probabilities = [], groups = [], sourceNodes = [], routeNodes = [], addressNodes = [];
 let bars = [], binSize = 1, maxGroup = 1, outputScaleMax = 1, total = 256, bits = 2;
 let topBars = new Set();
@@ -45,7 +39,7 @@ function sectionDuration(section=activeSection) {
   if(section==='waveform')return config.waveformRevealDuration+config.waveformScanDuration;
   return section==='tree'?config.U*(config.treeExpandDuration+config.treePruneDuration)+config.treeHoldDuration:config.duration;
 }
-function sectionSpeed() { return config[activeSection==='distribution'?'speed':activeSection+'Speed']; }
+function sectionCycleDuration(section) { return sectionDuration(section)+config.sectionDelay; }
 function nextSection() {return SECTIONS[(SECTIONS.indexOf(activeSection)+1)%SECTIONS.length];}
 function setViewState(next,{restart=false}={}) {
   // Every transition between the two active modes passes through rest.
@@ -66,7 +60,7 @@ function setViewState(next,{restart=false}={}) {
 }
 function resumeAnimation() {
   const operation=lastOperation,delay=resumeDelay;
-  if(operation!==null)repeatSection=progress>1-sectionSpeed()/sectionDuration();
+  if(operation!==null)repeatSection=progress>1-1/sectionDuration();
   setViewState('animation');
   if(progress>=1)sectionSwitchAt=performance.now()+(operation===null&&delay!==null?delay:config.sectionDelay*1000);
   render();
@@ -135,7 +129,7 @@ function bindFactorScan(node,scene,u,left,step,choices=config.dp) {
 function applyPaint(node,attrs) {
   for(const channel of ['fill','stroke']) {
     const role=node.getAttribute(`data-${channel}-role`);
-    if(role&&attrs[channel]!==undefined)node.setAttribute(channel,paint(attrs[channel],role));
+    if(role&&attrs[channel]!==undefined)node.setAttribute(channel,attrs[channel]);
   }
   if((node.localName==='text'||node.localName==='tspan')&&attrs.fill)node.setAttribute('fill',diagram.text(attrs.fill));
   if(node.getAttribute('data-fill-role')==='bar') {
@@ -201,19 +195,17 @@ function address(parts) { return parts.reduce((n,d,u)=>n+d*config.dp**u,0); }
 function color(u) {
   return config.colors[u];
 }
-function colorHsl(base) {
+function colorHue(base) {
   const [r,g,b]=base.slice(1).match(/../g).map(value=>parseInt(value,16)/255);
-  const max=Math.max(r,g,b),min=Math.min(r,g,b),delta=max-min,l=(max+min)/2;
-  const h=delta?60*(max===r?((g-b)/delta+6)%6:max===g?(b-r)/delta+2:(r-g)/delta+4):0;
-  const s=delta?delta/(1-Math.abs(2*l-1)):0;
-  return [h,s*100,l*100];
+  const max=Math.max(r,g,b),delta=max-Math.min(r,g,b);
+  return delta?60*(max===r?((g-b)/delta+6)%6:max===g?(b-r)/delta+2:(r-g)/delta+4):0;
 }
 function outputColor() {
   return config.outputColor;
 }
 function probabilityAppearance(base,strength) {
   if(activeSection==='heatmap') {
-    const [hue]=colorHsl(base),weight=Math.sqrt(strength);
+    const hue=colorHue(base),weight=Math.sqrt(strength);
     return {fill:`hsl(${hue} ${8+84*weight}% ${70-22*weight}%)`,'fill-opacity':.6+.35*weight};
   }
   // Tint and alpha multiply: split the contrast equally between them.
@@ -224,13 +216,6 @@ function probabilityAppearance(base,strength) {
     return Math.round(background+(parseInt(base.slice(offset,offset+2),16)*darken-background)*weight);
   });
   return {fill:`rgb(${channels.join(' ')})`,'fill-opacity':weight};
-}
-function paint(base,role) {
-  const [h,s,l]=colorHsl(base);
-  const hue=(h+config[role+'HueOffset']+360)%360;
-  const saturation=Math.max(0,Math.min(100,s+config[role+'SaturationOffset']));
-  const lightness=Math.max(0,Math.min(100,l+config[role+'LightnessOffset']));
-  return `hsl(${hue} ${saturation}% ${lightness}%)`;
 }
 function number(value) { return value===0?'0':value>=0.001 ? value.toFixed(4) : value.toExponential(2); }
 function probabilityCeiling(value) {
@@ -309,7 +294,7 @@ function bindControlHint(control,show,hide) {
 function buildFactorEditors() {
   $('factor-editors').replaceChildren();factorEditors=[];
   for(let u=config.U-1;u>=0;u--) {
-    const card=document.createElement('div');card.className='factor-editor';card.style.setProperty('--factor-color',paint(color(u),'bar'));card.style.setProperty('--factor-ink',diagram.text(color(u)));
+    const card=document.createElement('div');card.className='factor-editor';card.style.setProperty('--factor-color',color(u));card.style.setProperty('--factor-ink',diagram.text(color(u)));
     const rail=document.createElement('div');rail.className='factor-rail';
     const segments=document.createElement('div');segments.className='factor-segments';rail.append(segments);
     const values=document.createElement('div');values.className='factor-values';values.setAttribute('aria-hidden','true');
@@ -1224,7 +1209,7 @@ function syncControls(){
 function updatePlayback(){document.querySelector('.animation-shell').dataset.viewState=viewState;}
 function applyConfig(next,{regenerate=true,restart=false}={}) {
   config=next;if(restart)progress=0;
-  scope.setCycleDuration?.(SECTIONS.reduce((seconds,section)=>seconds+sectionDuration(section)/config[section==='distribution'?'speed':section+'Speed']+config.sectionDelay,0));
+  scope.setCycleDuration?.(SECTIONS.reduce((seconds,section)=>seconds+sectionCycleDuration(section),0));
   previousTimestamp=null;
   syncControls();if(regenerate)generate();buildFactorEditors();buildActions();buildScene();updatePlayback();
 }
@@ -1242,7 +1227,7 @@ function frame(timestamp) {
     const selected=Number(interactionRegion.dataset.scanValue),choices=Number(interactionRegion.dataset.scanChoices),position=progress*total;
     // Remove the fixed factor or group, advance through matches, then insert it again.
     const elapsed=Math.min(timestamp-previousTimestamp,100);
-    const compact=(Math.floor(position/(stride*choices))*stride+position%stride+elapsed/1000*sectionSpeed()/sectionDuration()*total)%(total/choices);
+    const compact=(Math.floor(position/(stride*choices))*stride+position%stride+elapsed/1000/sectionDuration()*total)%(total/choices);
     progress=((Math.floor(compact/stride)*choices+selected)*stride+compact%stride)/total;
     render();
   }
@@ -1258,10 +1243,9 @@ function frame(timestamp) {
       }
     } else if(previousTimestamp!==null&&progress<1) {
       const elapsed=Math.min(timestamp-previousTimestamp,100);
-      progress=Math.min(1,progress+elapsed/1000*sectionSpeed()/sectionDuration());
+      progress=Math.min(1,progress+elapsed/1000/sectionDuration());
       if(progress>=1) {
-        if(repeatSection||activeSection!==SECTIONS[SECTIONS.length-1]||config.loop)sectionSwitchAt=timestamp+config.sectionDelay*1000;
-        else setViewState('rest');
+        sectionSwitchAt=timestamp+config.sectionDelay*1000;
       }
       if(activeSection!=='heatmap')render();
     }
@@ -1347,9 +1331,9 @@ arrangePages();applyConfig(config);scope.onAutoplayStart?.(event=>{
   cancelParameterPause();pageHovered=false;interactionRegion=null;
   if(viewState!=='animation')resumeAnimation();
   previousTimestamp=null;
-  const remaining=progress<1?(1-progress)*sectionDuration()/sectionSpeed()+config.sectionDelay:Math.max(0,(sectionSwitchAt-performance.now())/1000);
-  const later=SECTIONS.slice(SECTIONS.indexOf(activeSection)+1).reduce((seconds,section)=>seconds+sectionDuration(section)/config[section==='distribution'?'speed':section+'Speed']+config.sectionDelay,0);
-  event.detail.remainingMs=(remaining+later+(repeatSection?sectionDuration()/sectionSpeed()+config.sectionDelay:0))*1000;
+  const remaining=progress<1?(1-progress)*sectionDuration()+config.sectionDelay:Math.max(0,(sectionSwitchAt-performance.now())/1000);
+  const later=SECTIONS.slice(SECTIONS.indexOf(activeSection)+1).reduce((seconds,section)=>seconds+sectionCycleDuration(section),0);
+  event.detail.remainingMs=(remaining+later+(repeatSection?sectionCycleDuration(activeSection):0))*1000;
   render();
 });requestAnimationFrame(frame);
 const cardScroll=document.querySelector('.card-scroll');

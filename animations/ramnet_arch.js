@@ -37,14 +37,14 @@ const stages=[
 
 ["Project", "Write address", "Write Top-K", "Write CAPE", "GSU", "Read address", "Read Top-K", "Read CAPE", "Read & output"].forEach((label,i)=>stages[i][1]=label);
 ["Project the token into gate, γ, v, q and k.", "Decode the key into write addresses.", "Retain the highest-weight write addresses.", "Shift write addresses by the token position.", "Update only the selected slots with w, γ and v.", "Decode the query into read addresses.", "Retain the highest-weight read addresses.", "Shift read addresses by the token position.", "Read selected slots, normalize, apply the output gate and advance the token."].forEach((description,i)=>stages[i][4]=description);
-const defaults={U:5,dp:2,topK:4,temperature:.7,gamma:1,capeStep:1,initialMass:.8,speed:1,loop:true,pace:1,moduleFade:1.2,idleScale:.65,aspectRatio:2,zoom:1,archWidth:420,archOffsetY:37,routeRadius:22,connectorGap:8,upperModuleGap:26,subvecSpacing:32,memoryGap:40,gap:5,cellRadius:4,panelRadius:16,spacing:18,lineWidth:1.6,trail:1,fontScale:1,uiScale:1,writeColor:diagram.colors.red,readColor:diagram.colors.green,colors:{...C},durations:actions.map(a=>a[2])};
+const params={U:5,dp:2,topK:4,temperature:.7,gamma:1,capeStep:1,initialMass:.8,moduleFade:1.2,idleScale:.65,aspectRatio:2,zoom:1,archWidth:420,archOffsetY:37,routeRadius:22,connectorGap:8,upperModuleGap:26,subvecSpacing:32,memoryGap:40,gap:5,cellRadius:4,panelRadius:16,spacing:18,lineWidth:1.6,trail:1,fontScale:1,uiScale:1,writeColor:diagram.colors.red,readColor:diagram.colors.green,colors:{...C},durations:actions.map(a=>a[2])};
 const tokenBeltLayout={step:56,size:34,center:870,right:1354};
-let params=structuredClone(defaults),elapsed=0,playing=true,round=0,initialTime=2,lastTime=null,pan=0,memory=[],mass=[],data,toastTimer;
+let elapsed=0,playing=true,round=0,initialTime=2,lastTime=null,pan=0,memory=[],mass=[],data;
 const stageTimeline=new StageTimeline($('stage-timeline'),time=>{playing=false;elapsed=time;updatePlayback();render();});
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x)),mix=(a,b,p)=>a+(b-a)*p,ease=p=>{p=clamp(p);return p*p*(3-2*p)},phase=(p,a,b)=>ease((p-a)/(b-a)),mod=(n,m)=>(n%m+m)%m;
-const duration=i=>params.durations[i]*params.pace,total=()=>params.durations.reduce((a,b)=>a+b,0)*params.pace;
+const duration=i=>params.durations[i],total=()=>params.durations.reduce((a,b)=>a+b,0);
 function locationAt(){let start=0;for(let i=0;i<actions.length;i++){const d=duration(i);if(elapsed<start+d||i===actions.length-1)return {i,p:clamp((elapsed-start)/d),start};start+=d;}}
-function stageStart(i){return params.durations.slice(0,i).reduce((a,b)=>a+b,0)*params.pace;}
+function stageStart(i){return params.durations.slice(0,i).reduce((a,b)=>a+b,0);}
 const stageForAction=i=>stages.findIndex(([, ,first,last])=>i>=first&&i<last),groupStart=i=>stageStart(stages[i][2]),groupDuration=i=>stageStart(stages[i][3])-groupStart(i);
 function randomGenerator(seed){let s=seed>>>0;return ()=>{s=(Math.imul(s,1664525)+1013904223)>>>0;return (s+.5)/4294967296;};}
 function randomSeed(){return crypto.getRandomValues(new Uint32Array(1))[0];}
@@ -328,8 +328,8 @@ function updatePlayback(){window.RamnetRuntime.setPlaybackIcon($('play'),playing
 function seekStage(i,part=.1){playing=false;i=clamp(i,0,stages.length-1);elapsed=groupStart(i)+groupDuration(i)*part;updatePlayback();render();}
 function buildActions(){stageTimeline.setStages(stages.map(([,label,,,description],i)=>({label,description,duration:groupDuration(i)})));}
 function applyStyle(){Object.assign(C,params.colors);const style=document.documentElement.style;for(const key of ['bg','paper','ink','muted','line','accent','highlight','frame'])style.setProperty('--'+key,C[key]);style.setProperty('--radius',params.panelRadius+'px');style.setProperty('--spacing',params.spacing+'px');style.setProperty('--ui-scale',params.uiScale);style.setProperty('--scene-ratio',params.aspectRatio);}
-function togglePlay(){if(elapsed>=total()){if(params.loop)nextRound();else resetSimulation();}playing=!playing;updatePlayback();render();}
-function frame(timestamp){if(lastTime!==null&&playing){elapsed+=Math.min((timestamp-lastTime)/1000,.1)*params.speed;if(elapsed>=total()){if(params.loop){const remaining=elapsed-total();nextRound();elapsed=remaining;}else{elapsed=total();playing=false;updatePlayback();}}render();}lastTime=timestamp;requestAnimationFrame(frame);}
+function togglePlay(){if(elapsed>=total())nextRound();playing=!playing;updatePlayback();render();}
+function frame(timestamp){if(lastTime!==null&&playing){elapsed+=Math.min((timestamp-lastTime)/1000,.1);if(elapsed>=total()){const remaining=elapsed-total();nextRound();elapsed=remaining;}render();}lastTime=timestamp;requestAnimationFrame(frame);}
 document.addEventListener('visibilitychange',()=>{lastTime=null;});
 document.addEventListener('keydown',event=>{if(event.target.closest('input,select,button,summary,textarea'))return;if(event.code==='Space'){event.preventDefault();togglePlay();}if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();playing=false;elapsed=clamp(elapsed+(event.key==='ArrowLeft'?-.12:.12),0,total());updatePlayback();render();}});
 $('play').onclick=togglePlay;$('restart').onclick=()=>{resetSimulation();playing=true;updatePlayback();render();};$('previous').onclick=()=>seekStage(stageForAction(locationAt().i)-1);$('next').onclick=()=>seekStage(stageForAction(locationAt().i)+1);
@@ -338,6 +338,6 @@ canvas.addEventListener('pointerdown',event=>{if(viewport().width<=AW+.01)return
 canvas.addEventListener('pointermove',event=>{if(!dragPan||event.pointerId!==dragPan.id)return;const rightScale=1-(params.archWidth-330)/(W-400),pixelsPerUnit=canvas.getBoundingClientRect().width/W*rightScale;pan=clamp(dragPan.pan-(event.clientX-dragPan.x)/((viewport().width-AW)*pixelsPerUnit));render();});
 canvas.addEventListener('lostpointercapture',()=>{dragPan=null;canvas.classList.remove('dragging');});
 
-resetSimulation();scope.setCycleDuration?.(total()/params.speed);applyStyle();buildActions();updatePlayback();resize();new ResizeObserver(resize).observe(canvas);document.body.getRootNode().host?.addEventListener('ramnet:fit',resize);scope.onAutoplayStart?.(event=>{if(!event.detail?.resumeCurrent){$('restart').click();return;}event.detail.remainingMs=Math.max(0,(total()-elapsed)/params.speed*1000);playing=true;lastTime=null;updatePlayback();render();});requestAnimationFrame(frame);
+resetSimulation();scope.setCycleDuration?.(total());applyStyle();buildActions();updatePlayback();resize();new ResizeObserver(resize).observe(canvas);document.body.getRootNode().host?.addEventListener('ramnet:fit',resize);scope.onAutoplayStart?.(event=>{if(!event.detail?.resumeCurrent){$('restart').click();return;}event.detail.remainingMs=Math.max(0,(total()-elapsed)*1000);playing=true;lastTime=null;updatePlayback();render();});requestAnimationFrame(frame);
 };
 if (document.body.classList.contains('exhibit-ramnet_arch')) window.RamnetRuntime.mountStandalone('ramnet_arch');

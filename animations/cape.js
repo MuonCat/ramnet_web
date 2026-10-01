@@ -7,17 +7,17 @@ const diagram=window.ramnetDiagramTheme;
 // CAPE follows [P_t(a)]_i = a[(i + t) mod N], with writes at 0..T-1 and a read at T.
 const $ = id => document.getElementById(id);
 const editorHeight=294,minimumSegment=8,minimumProbability=minimumSegment/editorHeight;
-const defaults = {N:8,T:24,writeConcentration:.65,readConcentration:.65,writeBase:null,readBase:null,writeOverride:null,readOverrideCape:0,duration:22,writeDuration:6,readDuration:2,capeDuration:2,readAdjustDuration:6,writeAdjustDuration:6,speed:1,loop:true,aspectRatio:1.8,fontScale:1.25,gap:6,cellRadius:4,panelRadius:18,spacing:20,intensity:1};
-let params={...defaults}, progress=0, playing=true, previous=0, hovered=-1, toastTimer, roundMotion;
+const params = {N:8,T:24,writeConcentration:.65,readConcentration:.65,writeBase:null,readBase:null,writeOverride:null,readOverrideCape:0,duration:22,writeDuration:6,readDuration:2,capeDuration:2,readAdjustDuration:6,writeAdjustDuration:6,aspectRatio:1.8,fontScale:1.25,gap:6,cellRadius:4,panelRadius:18,intensity:1};
+let progress=0, playing=true, previous=0, hovered=-1, roundMotion;
 let hoverPaused=false, capeOverride=null, capeTransition=null;
 let distributionDrag=null;
 let adjustmentRestarts={3:null,4:null}, pendingAdjustment=null;
 const stages=[
- {name:'逐列写入',key:'writeDuration',preview:.6875,range:[2,12,.5]},
- {name:'读取历史',key:'readDuration',preview:.75,range:[.5,4,.1]},
- {name:'开启 CAPE',key:'capeDuration',preview:.85,range:[.5,4,.1]},
- {name:'调整读取',key:'readAdjustDuration',preview:.85,range:[2,12,.5]},
- {name:'调整写入',key:'writeAdjustDuration',preview:.75,range:[2,12,.5]}
+ {key:'writeDuration',preview:.6875},
+ {key:'readDuration',preview:.75},
+ {key:'capeDuration',preview:.85},
+ {key:'readAdjustDuration',preview:.85},
+ {key:'writeAdjustDuration',preview:.75}
 ];
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 const mod=(x,n)=>((x%n)+n)%n;
@@ -28,7 +28,7 @@ const format=x=>Number.isInteger(x)?String(x):String(Number(x.toFixed(2)));
 function stageProgress(p,index){const stage=stages[index];return clamp((p-stage.start)/(stage.end-stage.start))}
 function syncTiming(){
  params.duration=Number(stages.reduce((sum,stage)=>sum+params[stage.key],0).toFixed(1));
- scope.setCycleDuration?.(params.duration/params.speed);
+ scope.setCycleDuration?.(params.duration);
  let elapsed=0;
  stages.forEach((stage,i)=>{
   stage.start=elapsed/params.duration;elapsed+=params[stage.key];stage.end=i===stages.length-1?1:elapsed/params.duration;
@@ -383,14 +383,14 @@ function frame(now){
  if(!document.hidden){
   let changed=false;
   if(capeTransition&&!distributionDrag){
-   capeTransition.elapsed+=dt*params.speed;
+   capeTransition.elapsed+=dt;
    capeOverride=lerp(capeTransition.from,capeTransition.to,smooth(capeTransition.elapsed/capeTransition.duration));
    if(capeTransition.elapsed>=capeTransition.duration){capeOverride=capeTransition.to;capeTransition=null}
    changed=true;
   }
   if(playing&&!hoverPaused&&!distributionDrag){
-   progress+=dt*params.speed/params.duration;
-   if(progress>=1){if(params.loop){progress%=1;beginRound()}else{progress=1;playing=false}}
+   progress+=dt/params.duration;
+   if(progress>=1){progress%=1;beginRound()}
    changed=true;
   }
   if(changed)render();
@@ -411,6 +411,6 @@ document.addEventListener('keydown',event=>{
  if(event.code==='Space'){event.preventDefault();togglePlay()}
  else if(event.code==='ArrowLeft'||event.code==='ArrowRight'){event.preventDefault();seek(progress+(event.code==='ArrowRight'?1:-1)/params.duration/10)}
 });
-beginRound();render();scope.onAutoplayStart?.(event=>{if(event.detail?.resumeCurrent)event.detail.remainingMs=Math.max(0,(1-progress)*params.duration/params.speed*1000);else{progress=0;beginRound();}playing=true;hoverPaused=false;previous=0;render();});requestAnimationFrame(frame);
+beginRound();render();scope.onAutoplayStart?.(event=>{if(event.detail?.resumeCurrent)event.detail.remainingMs=Math.max(0,(1-progress)*params.duration*1000);else{progress=0;beginRound();}playing=true;hoverPaused=false;previous=0;render();});requestAnimationFrame(frame);
 };
 if (document.body.classList.contains('exhibit-cape')) window.RamnetRuntime.mountStandalone('cape');

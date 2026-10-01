@@ -4,8 +4,8 @@ const {document, requestAnimationFrame, cancelAnimationFrame} = scope;
 'use strict';
 const diagram=window.ramnetDiagramTheme;
     const $ = id => document.getElementById(id);
-    const defaults = {sceneAspectRatio:4,count:20,ratio:.2,height:88,outputHeightRatio:1,outputGap:6,gap:8,distance:320,cachePadding:17,endpointGap:8,radius:3,lineWidth:2.8,panelRadius:18,framePadding:6,selectionOpacity:24,compressionRatio:.25,comparisonGap:32,backgroundPadding:16,sparseGroupSize:4,sparseGroupGap:24,linearCacheCount:4,ramnetCacheCount:12,ramnetTopK:2,red:diagram.colors.red,green:diagram.colors.green,gray:'#d3cfc4',processedColor:'#939b94',fullColor:diagram.colors.pink,compressedColor:diagram.colors.purple,sparseColor:diagram.colors.gold,linearColor:diagram.colors.green,ramnetColor:diagram.colors.sky,packetOpacity:diagram.alpha.strong*100,overlapFade:128,writeTime:.3,scanTime:.1,readTime:.3,blankTime:.1,speed:1,loop:true};
-    let params = {...defaults}, actions = [], total = 0, time = 0, playing = true, lastStamp = null, currentIndex = -1, geometries=[];
+    const params = {sceneAspectRatio:4,count:20,ratio:.2,height:88,outputHeightRatio:1,outputGap:6,gap:8,distance:320,cachePadding:17,endpointGap:8,radius:3,lineWidth:2.8,panelRadius:18,framePadding:6,selectionOpacity:24,compressionRatio:.25,comparisonGap:32,backgroundPadding:16,sparseGroupSize:4,sparseGroupGap:24,linearCacheCount:4,ramnetCacheCount:12,ramnetTopK:2,red:diagram.colors.red,green:diagram.colors.green,gray:'#d3cfc4',processedColor:'#939b94',fullColor:diagram.colors.pink,compressedColor:diagram.colors.purple,sparseColor:diagram.colors.gold,linearColor:diagram.colors.green,ramnetColor:diagram.colors.sky,packetOpacity:diagram.alpha.strong*100,overlapFade:128,writeTime:.3,scanTime:.1,readTime:.3,blankTime:.1};
+    let actions = [], total = 0, time = 0, playing = true, lastStamp = null, currentIndex = -1, geometries=[];
     let randomState=Date.now()>>>0||1;
     const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
     const ease = t => {t=clamp(t,0,1);return t*t*(3-2*t);};
@@ -229,14 +229,14 @@ const diagram=window.ramnetDiagramTheme;
     function togglePlay(){if(!playing&&time>=total){time=0;currentIndex=-1;}playing=!playing;lastStamp=null;updatePlayback();render();}
     function step(direction){seek(actions[clamp(currentIndex+direction,0,actions.length-1)].start);}
     function frame(stamp){
-      if(lastStamp!==null&&playing){time+=Math.min((stamp-lastStamp)/1000,.1)*params.speed;if(time>=total){if(params.loop){time%=total;currentIndex=-1;}else{time=total;playing=false;updatePlayback();}}render();}
+      if(lastStamp!==null&&playing){time+=Math.min((stamp-lastStamp)/1000,.1);if(time>=total){time%=total;currentIndex=-1;}render();}
       lastStamp=stamp;requestAnimationFrame(frame);
     }
     document.addEventListener('visibilitychange',()=>{lastStamp=null;});
     document.documentElement.style.setProperty('--scene-aspect-ratio',params.sceneAspectRatio);
-    buildActions();scope.setCycleDuration?.(total/params.speed);buildScene();render();requestAnimationFrame(frame);
+    buildActions();scope.setCycleDuration?.(total);buildScene();render();requestAnimationFrame(frame);
     scope.onAutoplayStart?.(event=>{
-      if(event.detail?.resumeCurrent)event.detail.remainingMs=Math.max(0,(total-time)/params.speed*1000);
+      if(event.detail?.resumeCurrent)event.detail.remainingMs=Math.max(0,(total-time)*1000);
       else{time=0;currentIndex=-1;}
       playing=true;lastStamp=null;render();
     });
