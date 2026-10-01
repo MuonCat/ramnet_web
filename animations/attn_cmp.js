@@ -235,7 +235,11 @@ const diagram=window.ramnetDiagramTheme;
     document.addEventListener('visibilitychange',()=>{lastStamp=null;});
     document.documentElement.style.setProperty('--scene-aspect-ratio',params.sceneAspectRatio);
     buildActions();scope.setCycleDuration?.(total/params.speed);buildScene();render();requestAnimationFrame(frame);
-    scope.onAutoplayStart?.(()=>{time=0;playing=true;lastStamp=null;currentIndex=-1;render();});
+    scope.onAutoplayStart?.(event=>{
+      if(event.detail?.resumeCurrent)event.detail.remainingMs=Math.max(0,(total-time)/params.speed*1000);
+      else{time=0;currentIndex=-1;}
+      playing=true;lastStamp=null;render();
+    });
   
 $('scene').addEventListener('click',togglePlay);
 $('scene').setAttribute('tabindex','0');

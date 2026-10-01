@@ -122,7 +122,7 @@ for(const [index,tab] of probeTabs.entries()){
   tab.onclick=()=>{activeKind=tab.dataset.kind;syncProbeTabs();const active=scenes.find(scene=>scene.kind===activeKind);if(!active.playing&&active.elapsed>=active.playbackEnd-1e-6)active.setPlaying(true)};
   tab.onkeydown=event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();const next=event.key==='Home'?0:event.key==='End'?probeTabs.length-1:(index+(event.key==='ArrowRight'?1:-1)+probeTabs.length)%probeTabs.length;probeTabs[next].focus();probeTabs[next].click()};
 }
-mobileTabs.addEventListener('change',syncProbeTabs);syncProbeTabs();scope.onAutoplayStart?.(()=>scenes.forEach(scene=>scene.el.restart.click()));requestAnimationFrame(frame);document.addEventListener('visibilitychange',()=>lastFrame=0);
+mobileTabs.addEventListener('change',syncProbeTabs);syncProbeTabs();scope.onAutoplayStart?.(event=>{if(!event.detail?.resumeCurrent){scenes.forEach(scene=>scene.el.restart.click());return;}event.detail.remainingMs=Math.max(...scenes.map(scene=>Math.max(0,scene.playbackEnd-scene.elapsed)/cfg.speed))*1000;scenes.forEach(scene=>scene.setPlaying(scene.elapsed<scene.playbackEnd-1e-6));lastFrame=0;});requestAnimationFrame(frame);document.addEventListener('visibilitychange',()=>lastFrame=0);
 window.explainSnapshot=()=>({version:2,traceCount:DATA.traces.length,exampleCount:DATA.examples.length,parameters:{...cfg},scenes:scenes.map(s=>s.snapshot())});
 document.querySelector('.probe-loading')?.remove();
 probeTabs.forEach(tab=>tab.disabled=false);

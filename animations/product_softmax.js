@@ -1342,7 +1342,16 @@ window.ramnetCompactInteractions.addEventListener('change',()=>{
   pageHovered=false;interactionRegion=null;cancelParameterPause();
   setViewState('animation',{restart:true});layoutPages();buildScene();
 });
-arrangePages();applyConfig(config);scope.onAutoplayStart?.(()=>{pageOrder=[...SECTIONS];switchSection('distribution');});requestAnimationFrame(frame);
+arrangePages();applyConfig(config);scope.onAutoplayStart?.(event=>{
+  if(!event.detail?.resumeCurrent){pageOrder=[...SECTIONS];switchSection('distribution');return;}
+  cancelParameterPause();pageHovered=false;interactionRegion=null;
+  if(viewState!=='animation')resumeAnimation();
+  previousTimestamp=null;
+  const remaining=progress<1?(1-progress)*sectionDuration()/sectionSpeed()+config.sectionDelay:Math.max(0,(sectionSwitchAt-performance.now())/1000);
+  const later=SECTIONS.slice(SECTIONS.indexOf(activeSection)+1).reduce((seconds,section)=>seconds+sectionDuration(section)/config[section==='distribution'?'speed':section+'Speed']+config.sectionDelay,0);
+  event.detail.remainingMs=(remaining+later+(repeatSection?sectionDuration()/sectionSpeed()+config.sectionDelay:0))*1000;
+  render();
+});requestAnimationFrame(frame);
 const cardScroll=document.querySelector('.card-scroll');
 let cardScrollWidth=cardScroll.clientWidth;
 new ResizeObserver(()=>{

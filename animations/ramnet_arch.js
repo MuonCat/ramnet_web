@@ -338,6 +338,6 @@ canvas.addEventListener('pointerdown',event=>{if(viewport().width<=AW+.01)return
 canvas.addEventListener('pointermove',event=>{if(!dragPan||event.pointerId!==dragPan.id)return;const rightScale=1-(params.archWidth-330)/(W-400),pixelsPerUnit=canvas.getBoundingClientRect().width/W*rightScale;pan=clamp(dragPan.pan-(event.clientX-dragPan.x)/((viewport().width-AW)*pixelsPerUnit));render();});
 canvas.addEventListener('lostpointercapture',()=>{dragPan=null;canvas.classList.remove('dragging');});
 
-resetSimulation();scope.setCycleDuration?.(total()/params.speed);applyStyle();buildActions();updatePlayback();resize();new ResizeObserver(resize).observe(canvas);document.body.getRootNode().host?.addEventListener('ramnet:fit',resize);scope.onAutoplayStart?.(()=>$('restart').click());requestAnimationFrame(frame);
+resetSimulation();scope.setCycleDuration?.(total()/params.speed);applyStyle();buildActions();updatePlayback();resize();new ResizeObserver(resize).observe(canvas);document.body.getRootNode().host?.addEventListener('ramnet:fit',resize);scope.onAutoplayStart?.(event=>{if(!event.detail?.resumeCurrent){$('restart').click();return;}event.detail.remainingMs=Math.max(0,(total()-elapsed)/params.speed*1000);playing=true;lastTime=null;updatePlayback();render();});requestAnimationFrame(frame);
 };
 if (document.body.classList.contains('exhibit-ramnet_arch')) window.RamnetRuntime.mountStandalone('ramnet_arch');

@@ -228,7 +228,7 @@
     window.dispatchEvent(new Event('ramnet:autoplay-change'));
     scheduleSnap();
   }
-  function playSection(index) {
+  function playSection(index, resumeCurrent = false) {
     if (!autoplay) return;
     const visit = ++autoplayVisit, section = sections[index];
     const destination = () => sectionY(section);
@@ -240,10 +240,11 @@
         autoplayFrame = 0;
         setChapterHash(section);
         document.documentElement.dataset.autoplaySection = section.id;
-        section.querySelector('.embedded-exhibit')?.dispatchEvent(new Event('ramnet:autoplay-start'));
-        window.dispatchEvent(new CustomEvent('ramnet:autoplay-section', {detail: {id: section.id}}));
+        const detail = {id: section.id, resumeCurrent};
+        section.querySelector('.embedded-exhibit')?.dispatchEvent(new CustomEvent('ramnet:autoplay-start', {detail}));
+        window.dispatchEvent(new CustomEvent('ramnet:autoplay-section', {detail}));
         const exhibit = section.querySelector('.embedded-exhibit');
-        const duration = Number(exhibit?.dataset.cycleMs || section.dataset.cycleMs) || 6000;
+        const duration = resumeCurrent && Number.isFinite(detail.remainingMs) ? Math.max(250, detail.remainingMs) : Number(exhibit?.dataset.cycleMs || section.dataset.cycleMs) || 6000;
         autoplayTimer = setTimeout(() => playSection((index + 1) % sections.length), duration);
       } else autoplayFrame = requestAnimationFrame(waitForArrival);
     }
@@ -261,7 +262,7 @@
     autoplayIcon.innerHTML = window.RamnetRuntime.playbackIcon(true);
     window.dispatchEvent(new Event('ramnet:autoplay-change'));
     const current = sections.findLast(section => section.getBoundingClientRect().top <= chapterNav.getBoundingClientRect().bottom + 80);
-    playSection(Math.max(0, sections.indexOf(current)));
+    playSection(Math.max(0, sections.indexOf(current)), Boolean(current));
   });
   window.addEventListener('wheel', stopAutoplay, {passive: true});
   window.addEventListener('touchstart', stopAutoplay, {passive: true});

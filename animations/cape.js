@@ -411,6 +411,6 @@ document.addEventListener('keydown',event=>{
  if(event.code==='Space'){event.preventDefault();togglePlay()}
  else if(event.code==='ArrowLeft'||event.code==='ArrowRight'){event.preventDefault();seek(progress+(event.code==='ArrowRight'?1:-1)/params.duration/10)}
 });
-beginRound();render();scope.onAutoplayStart?.(()=>{progress=0;playing=true;hoverPaused=false;previous=0;beginRound();render();});requestAnimationFrame(frame);
+beginRound();render();scope.onAutoplayStart?.(event=>{if(event.detail?.resumeCurrent)event.detail.remainingMs=Math.max(0,(1-progress)*params.duration/params.speed*1000);else{progress=0;beginRound();}playing=true;hoverPaused=false;previous=0;render();});requestAnimationFrame(frame);
 };
 if (document.body.classList.contains('exhibit-cape')) window.RamnetRuntime.mountStandalone('cape');

@@ -60,7 +60,12 @@
   window.addEventListener('ramnet:autoplay-change', schedule);
   window.addEventListener('ramnet:autoplay-section', event => {
     autoplayResults = event.detail.id === 'results';
-    if (autoplayResults) select(0);
+    if (autoplayResults) {
+      if (event.detail.resumeCurrent) {
+        event.detail.remainingMs = (tabs.length - current) * 2000;
+        schedule();
+      } else select(0);
+    }
     else schedule();
   });
   mobileResults.addEventListener('change', schedule);

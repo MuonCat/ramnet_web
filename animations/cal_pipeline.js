@@ -249,6 +249,6 @@ document.addEventListener('keydown',e=>{if(e.target.closest('input,select,textar
 new ResizeObserver(resize).observe($('viewport'));document.body.getRootNode().host?.addEventListener('ramnet:fit',resize);
 document.addEventListener('visibilitychange',()=>lastFrame=0);
 function tick(now){const dt=lastFrame?Math.min((now-lastFrame)/1000,.1):0;lastFrame=now;if(playing&&!document.hidden){playhead+=dt*cfg.speed;if(playhead>=cfg.duration){if(cfg.loop){playhead%=cfg.duration;randomizeData();}else{playhead=cfg.duration;setPlaying(false);}}draw();}requestAnimationFrame(tick);}
-buildData();scope.setCycleDuration?.(cfg.duration/cfg.speed);applyStyle();setPlaying(true);resize();scope.onAutoplayStart?.(()=>$('restart').click());requestAnimationFrame(tick);
+buildData();scope.setCycleDuration?.(cfg.duration/cfg.speed);applyStyle();setPlaying(true);resize();scope.onAutoplayStart?.(event=>{if(!event.detail?.resumeCurrent){$('restart').click();return;}event.detail.remainingMs=Math.max(0,(cfg.duration-playhead)/cfg.speed*1000);setPlaying(true);hideTooltip();draw();});requestAnimationFrame(tick);
 };
 if (document.body.classList.contains('exhibit-cal_pipeline')) window.RamnetRuntime.mountStandalone('cal_pipeline');
