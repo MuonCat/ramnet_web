@@ -121,10 +121,11 @@ html:not([data-probe-ready]) .probe-heads .board, .probe-heads:not([data-probe-r
   .selectors { flex: 1; min-width: 0; margin-top: 0; grid-template-columns: 88px minmax(0, 1fr); gap: 10px; }
 }
 .compact-interactions .viewport canvas { pointer-events: none; touch-action: auto; cursor: default; }
+.compact-interactions .field-scroll, .compact-interactions .token-row { pointer-events: none; }
 .compact-interactions .pan, .compact-interactions .tooltip, .compact-interactions .slot-tip { display: none; }
 .compact-interactions button, .compact-interactions select { min-height: 44px; }
 .compact-interactions .icon-button, .compact-interactions .icon-btn { min-width: 44px; }
-@media (max-width: 760px) {
+.compact-interactions {
   .board { grid-template-columns: minmax(0, 1fr); gap: 34px; }
   .probe-tabs { display: flex; gap: 6px; }
   .probe-tabs button { flex: 1; min-width: 0; min-height: 44px; font-size: 12px; }

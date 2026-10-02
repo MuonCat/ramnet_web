@@ -9,27 +9,72 @@
   let compactScales = new WeakMap();
   let addressingLayout = null;
   let addressingMetrics = null;
+  let desktopAddressingMetrics = null;
   let fitPending = false;
-  function fitFigures() {
-    fitPending = false;
-    if (window.innerWidth !== compactWidth) { compactWidth = window.innerWidth; compactScales = new WeakMap(); }
-    const navHeight = document.querySelector('.chapter-nav').getBoundingClientRect().height;
-    if (addressingMetrics && !compactLayout.matches) {
-      const section = addressingExhibit.closest('.paper-section');
-      const stage = section.querySelector('.figure-stage');
+  const firstScreenPadding = 36;
+  function firstScreenRatio(articleWidth, navHeight, compactSpacing, desktopBudget) {
+    let largest = 0;
+    for (const exhibit of exhibits) {
+      const wrapper = exhibit.shadowRoot?.firstElementChild;
+      if (!wrapper) continue;
+      const section = exhibit.closest('.paper-section');
+      const stage = exhibit.closest('.figure-stage');
       const offset = stage.getBoundingClientRect().top - section.getBoundingClientRect().top;
-      const textInset = section.querySelector('.prose').getBoundingClientRect().left - article.getBoundingClientRect().left;
-      const {tabWidth, aspect, chromeHeight} = addressingMetrics;
-      const gutter = tabWidth + 16;
-      const horizontalLimit = Math.min(1160, document.documentElement.clientWidth - 2 * (gutter + 24));
-      const heightWidth = (window.innerHeight - navHeight - offset - 14 - chromeHeight) * aspect - gutter;
-      const widthLimit = Math.min(horizontalLimit, Math.max(560, heightWidth) + textInset);
-      article.style.setProperty('--addressing-width-limit', `${Math.floor(widthLimit)}px`);
-      article.style.setProperty('--addressing-tab-gutter', `${gutter}px`);
-    } else {
-      article.style.removeProperty('--addressing-width-limit');
-      article.style.removeProperty('--addressing-tab-gutter');
+      let height = wrapper.offsetHeight;
+      if (exhibit === addressingExhibit && desktopAddressingMetrics && desktopBudget) {
+        const {tabWidth, aspect, chromeHeight, controlsHeight, topKHeight} = desktopAddressingMetrics;
+        const contentWidth = section.querySelector('.prose').getBoundingClientRect().width;
+        height = (contentWidth + tabWidth + 16) / aspect + chromeHeight -
+          (compactSpacing ? controlsHeight - topKHeight : 0);
+      }
+      largest = Math.max(largest, (navHeight + offset + height + firstScreenPadding) / articleWidth);
     }
+    const results = document.getElementById('results');
+    const firstRamnet = results.querySelector('.experiment-panel:not([hidden]) .experiment-table tbody:first-of-type .ramnet-row');
+    if (firstRamnet) {
+      const height = firstRamnet.getBoundingClientRect().bottom - results.getBoundingClientRect().top;
+      largest = Math.max(largest, (navHeight + height + firstScreenPadding) / articleWidth);
+    }
+    return largest;
+  }
+  function fitFigures() {
+    if (window.innerWidth !== compactWidth) { compactWidth = window.innerWidth; compactScales = new WeakMap(); }
+    document.documentElement.classList.remove('compact-layout', 'compact-interactions');
+    article.classList.remove('compact-interactions');
+    const navHeight = document.querySelector('.chapter-nav').getBoundingClientRect().height;
+    const compactSpacing = window.innerHeight <= 850;
+    const gutter = desktopAddressingMetrics ? desktopAddressingMetrics.tabWidth + 16 : 0;
+    const reservedGutter = window.innerWidth <= 1024 ? 0 : gutter;
+    const pageMargin = Math.max(40, Math.min(88, window.innerWidth * .07));
+    exhibits.forEach(exhibit => {
+      exhibit.style.zoom = '';
+      exhibit.style.transform = '';
+      exhibit.closest('.figure-stage').style.height = '';
+    });
+    function fittedWidth(tabGutter, desktopBudget, reflow = false) {
+      const baseWidth = Math.min(1160, document.documentElement.clientWidth - Math.max(pageMargin, 2 * (tabGutter + 24)));
+      article.style.setProperty('--article-width-limit', `${Math.max(1, baseWidth)}px`);
+      article.style.setProperty('--addressing-tab-gutter', `${tabGutter}px`);
+      const articleWidth = article.getBoundingClientRect().width;
+      const ratio = firstScreenRatio(articleWidth, navHeight, compactSpacing || reflow, desktopBudget);
+      const minimumWidth = reflow ? articleWidth * .88 : Math.min(560, articleWidth);
+      return Math.min(articleWidth, Math.max(minimumWidth, ratio ? window.innerHeight / ratio : articleWidth));
+    }
+    const desktopWidth = fittedWidth(reservedGutter, Boolean(gutter));
+    article.style.setProperty('--article-width-limit', `${Math.floor(desktopWidth)}px`);
+    const desktopInset = document.querySelector('#addressing .prose').getBoundingClientRect().left - article.getBoundingClientRect().left;
+    const aspect = window.innerWidth / window.innerHeight;
+    const contentWidth = desktopWidth - 2 * desktopInset;
+    const tabFootprint = Math.min(gutter, window.innerWidth <= 1024 ? 124 : Infinity);
+    const sceneWidth = Math.min(contentWidth, addressingExhibit.clientWidth - tabFootprint);
+    const useCompactLayout = aspect < 1 || sceneWidth < 560 || (aspect >= 9 / 5 && sceneWidth < 680);
+    document.documentElement.classList.toggle('compact-layout', useCompactLayout);
+    article.classList.toggle('compact-interactions', useCompactLayout);
+    document.documentElement.classList.toggle('compact-interactions', useCompactLayout);
+    compactLayout.set(useCompactLayout);
+    const width = useCompactLayout ? fittedWidth(0, false, true) : desktopWidth;
+    article.style.setProperty('--addressing-tab-gutter', `${useCompactLayout ? 0 : gutter}px`);
+    article.style.setProperty('--article-width-limit', `${Math.floor(width)}px`);
     sections.forEach(section => {
       const stage = section.querySelector('.figure-stage');
       const exhibit = stage?.querySelector('.embedded-exhibit');
@@ -38,7 +83,7 @@
       const available = window.innerHeight - navHeight - offset - 14;
       const height = exhibit.offsetHeight;
       let scale = Math.min(1, Math.max(compactLayout.matches ? .68 : .55, available / height));
-      // Desktop section 3 determines the shared width; never scale it a second time.
+      // The full desktop view determines the shared width; compact controls may still need height fitting.
       if (exhibit === addressingExhibit && !compactLayout.matches) {
         const changed = exhibit.style.zoom || exhibit.style.transform;
         exhibit.style.zoom = '';
@@ -66,6 +111,7 @@
       }
     });
     syncAddressingLayout();
+    fitPending = false;
   }
   function scheduleFit() {
     if (fitPending) return;
@@ -84,7 +130,6 @@
     // Refit after a browser fullscreen transition settles.
     resizeTimer = setTimeout(scheduleFit, 500);
   });
-  compactLayout.addEventListener('change', scheduleFit);
   document.fonts.ready.then(() => {
     addressingExhibit.dispatchEvent(new Event('ramnet:fit'));
     scheduleFit();
@@ -93,14 +138,17 @@
     const next = event.detail;
     if (addressingMetrics && next.aspect === addressingMetrics.aspect &&
         Math.abs(next.tabWidth - addressingMetrics.tabWidth) < .5 &&
-        Math.abs(next.chromeHeight - addressingMetrics.chromeHeight) < .5) return;
+        Math.abs(next.chromeHeight - addressingMetrics.chromeHeight) < .5 &&
+        Math.abs(next.controlsHeight - addressingMetrics.controlsHeight) < .5 &&
+        Math.abs(next.topKHeight - addressingMetrics.topKHeight) < .5) return;
     addressingMetrics = next;
+    if (next.tabWidth) desktopAddressingMetrics = next;
     scheduleFit();
   });
   function syncAddressingLayout() {
     const text = document.querySelector('#addressing .prose').getBoundingClientRect();
     const exhibit = addressingExhibit.getBoundingClientRect();
-    const scale = compactLayout.matches ? exhibit.width / addressingExhibit.offsetWidth : 1;
+    const scale = exhibit.width / addressingExhibit.offsetWidth;
     const width = Math.min(text.width / scale, addressingExhibit.clientWidth);
     const center = (text.left + text.width / 2 - exhibit.left) / scale;
     const left = Math.max(0, Math.min(addressingExhibit.clientWidth - width, center - width / 2));
@@ -121,6 +169,7 @@
       else scheduleFit();
     });
   });
+  window.addEventListener('ramnet:results-layout', scheduleFit);
   const links = [...document.querySelectorAll('.chapter-links a')];
   const progress = document.querySelector('.reading-progress');
   let scrollPending = false;

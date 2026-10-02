@@ -65,12 +65,12 @@ a.resource-link:hover { background: color-mix(in srgb, var(--neutral-16) 65%, va
 .autoplay-icon { width: 14px; display: grid; place-items: center; }
 .autoplay-icon svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .reading-progress { position: absolute; left: 0; top: -1px; height: 4px; width: 100%; transform: scaleX(0); transform-origin: left; background: var(--color-pageAccent); }
-main.article { --text-inset: clamp(72px, 9vw, 120px); --content-width: calc(100% - var(--text-inset)); width: calc(100% - clamp(40px, 7vw, 88px)); max-width: min(1160px, var(--addressing-width-limit, 1160px)); margin: auto; }
-.paper-section { padding: clamp(36px, 6vh, 82px) 0 76px; border-bottom: 1px solid var(--line); }
+main.article { --text-inset: clamp(36px, 4.5vw, 60px); --content-width: calc(100% - 2 * var(--text-inset)); --section-top-gap: clamp(24px, calc(12vh - 72px), 82px); --section-heading-gap: clamp(10px, calc(5vh - 30px), 32px); width: calc(100% - clamp(40px, 7vw, 88px)); max-width: min(1160px, var(--article-width-limit, 1160px)); margin: auto; }
+.paper-section { padding: var(--section-top-gap) 0 76px; border-bottom: 1px solid var(--line); }
 .section-opening { margin-bottom: 48px; display: flow-root; }
-.section-heading { display: grid; grid-template-columns: 88px minmax(0,1fr); align-items: center; gap: 32px; margin-bottom: clamp(18px, 2.5vh, 32px); }
+.section-heading { display: grid; grid-template-columns: 88px minmax(0,1fr); align-items: center; gap: 32px; margin-bottom: var(--section-heading-gap); }
 .section-kicker { color: color-mix(in srgb, var(--color-paper) 10%, var(--tone-indigo-ink) 90%); line-height: 1.8; }
-.section-kicker span { display: block; font-family: var(--serif); font-size: 64px; font-weight: 400; letter-spacing: -3px; line-height: 1; color: var(--color-sectionNumber); margin-bottom: 10px; }
+.section-kicker span { display: block; font-family: var(--serif); font-size: clamp(44px, calc(5vh + 4px), 64px); font-weight: 400; letter-spacing: -3px; line-height: 1; color: var(--color-sectionNumber); margin-bottom: clamp(2px, calc(2vh - 14px), 10px); }
 h2 { font-family: var(--serif); font-size: clamp(30px,3.3vw,43px); line-height: 1.2; font-weight: 400; letter-spacing: -1.1px; margin: 0; text-wrap: balance; }
 .prose { width: var(--content-width); margin-left: var(--text-inset); font-size: 16px; line-height: 1.9; color: var(--body); }
 .prose p { margin: 0 0 20px; }
@@ -80,14 +80,15 @@ h2 { font-family: var(--serif); font-size: clamp(30px,3.3vw,43px); line-height: 
 .prose h3 { margin: 32px 0 12px; color: var(--ink); font-family: var(--serif); font-size: 24px; font-weight: 400; letter-spacing: -.4px; }
 .exhibit-figure { width: var(--content-width); margin: 0 0 0 var(--text-inset); }
 /* The extra width contains section 3's outside tabs; its main area still follows --content-width. */
-#figure-3 { width: calc(100% + var(--addressing-tab-gutter, 0px)); margin-left: 0; }
+#figure-3 { width: min(calc(100% + var(--addressing-tab-gutter, 0px)), calc(50vw + 50% - clamp(20px, 3.5vw, 44px))); margin-left: 0; }
+.compact-interactions #figure-3 { width: var(--content-width); margin-left: var(--text-inset); }
 .figure-stage { overflow: hidden; }
 #figure-3 .figure-stage { overflow: visible; }
 .figure-interaction-hint { margin-top: 10px; color: var(--neutral-4); font-size: 11px; line-height: 1.5; text-align: center; }
-#figure-3 .figure-interaction-hint { width: calc(100% - var(--addressing-tab-gutter, 0px) - var(--text-inset)); margin-left: var(--text-inset); }
+#figure-3 .figure-interaction-hint { width: var(--content-width); margin-left: var(--text-inset); }
 .embedded-exhibit { display: block; width: 100%; min-height: 160px; transform-origin: top center; }
 .is-autoplaying .embedded-exhibit { pointer-events: none; }
-.comparison-table { margin: 28px 0 28px var(--text-inset); overflow-x: auto; }
+.comparison-table { width: var(--content-width); margin: 28px 0 28px var(--text-inset); overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; line-height: 1.65; }
 th { color: var(--neutral-5); font-size: 9px; letter-spacing: 1px; text-transform: uppercase; padding: 13px 17px; border-bottom: 1px solid var(--color-paperEdge); }
 td { color: var(--body); padding: 16px 17px; border-bottom: 1px solid var(--line); vertical-align: top; }
@@ -103,7 +104,7 @@ tr:last-child td:first-child { color: var(--accent-ink); }
 .equation-notes li { padding-left: .25em; }
 .equation-notes li + li { margin-top: 10px; }
 .equation-notes li::marker { color: var(--tone-sky-ink); font-weight: 700; }
-.metric-grid { margin: 34px 0 34px var(--text-inset); display: grid; grid-template-columns: repeat(3,1fr); border-block: 1px solid var(--line); }
+.metric-grid { width: var(--content-width); margin: 34px 0 34px var(--text-inset); display: grid; grid-template-columns: repeat(3,1fr); border-block: 1px solid var(--line); }
 .metric { padding: 27px 22px; border-right: 1px solid var(--line); }
 .metric:first-child { padding-left: 0; }
 .metric:last-child { border-right: 0; }
@@ -111,16 +112,20 @@ tr:last-child td:first-child { color: var(--accent-ink); }
 .metric span { display: block; font-size: 11px; color: var(--body); }
 .metric small { display: block; font-size: 10px; color: var(--muted); margin-top: 6px; }
 .metric .metric-unit { display: inline; font-size: .56em; color: inherit; }
-.experiment-tabs { margin: 32px 0 0 var(--text-inset); border-bottom: 1px solid var(--line); }
+.results-intro p { font-size: 14px; line-height: 1.6; }
+.experiment-tabs { width: var(--content-width); margin: 32px 0 0 var(--text-inset); border-bottom: 1px solid var(--line); }
 .experiment-tabs:not([hidden]) { display: flex; gap: 8px; }
 .experiment-tabs button { min-height: 46px; padding: 12px 16px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--body); font-size: 12px; }
 .experiment-tabs button[aria-selected="true"] { color: var(--accent-ink); border-bottom-color: var(--accent); background: color-mix(in srgb, var(--neutral-16) 75%, var(--tone-sky) 25%); }
 .experiment-tabs button:hover { color: var(--accent-ink); background: color-mix(in srgb, var(--color-paperEdge) 15%, var(--color-paper) 85%); }
-.experiment-panel { margin: 28px 0 0 var(--text-inset); }
+.experiment-panel { width: var(--content-width); margin: 28px 0 0 var(--text-inset); }
+.experiment-panel:not([hidden]) { animation: experiment-reveal 260ms ease-out backwards; }
+@keyframes experiment-reveal { from { opacity: 0; transform: translateX(var(--panel-enter-x, 0px)); } to { opacity: 1; transform: none; } }
 .experiment-panel h3 { margin: 0 0 14px; font: 400 27px/1.25 var(--serif); color: var(--ink); }
 .experiment-panel p { margin: 0 0 18px; color: var(--body); font-size: 15px; line-height: 1.85; }
 .experiment-panel .experiment-key { margin: 12px 0; font-size: 12px; line-height: 1.6; color: var(--muted); }
-.experiment-scroll { margin: 18px 0; container-type: inline-size; }
+.experiment-scroll { margin: 18px 0; }
+.experiment-scroll.is-wide { width: calc(100% + 2 * var(--text-inset)); margin-left: calc(0px - var(--text-inset)); }
 .experiment-table { min-width: 0; table-layout: fixed; font-size: 13px; line-height: 1.5; font-variant-numeric: tabular-nums; }
 .experiment-table caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .experiment-table th, .experiment-table td { padding: 11px 3px; text-align: right; white-space: nowrap; }
@@ -137,13 +142,14 @@ tr:last-child td:first-child { color: var(--accent-ink); }
 .experiment-table th[scope="row"], .experiment-table thead tr:first-child th:first-child { width: 16%; text-align: left; white-space: normal; background: var(--paper); }
 .experiment-table th[scope="row"] { font-size: 13px; font-weight: 400; color: var(--ink); border-bottom: 1px solid var(--line); }
 .experiment-table tbody tr td { background: transparent; border-bottom: 1px solid var(--line); }
-.experiment-table .experiment-scale th { padding: 24px 6px 12px; border-bottom: 0; text-align: left; color: var(--ink); }
-.experiment-table tbody:first-of-type .experiment-scale th { padding-top: 16px; }
+.experiment-table .experiment-scale th { padding: 16px 6px 8px; border-bottom: 0; text-align: left; color: var(--ink); }
+.experiment-table tbody:first-of-type .experiment-scale th { padding-top: 12px; }
 .experiment-scale-label { display: flex; align-items: center; gap: 10px; }
 .experiment-scale-text { display: inline-flex; align-items: center; gap: 10px; }
-.experiment-scale-label b { font-size: 20px; font-weight: 600; letter-spacing: -.6px; }
-.experiment-scale-text > span { color: var(--muted); font-size: 11px; font-weight: 400; letter-spacing: .6px; }
-.experiment-scale-label::after { content: ''; flex: 1; margin-left: 7px; border-top: 1px solid var(--line); }
+.experiment-scale-text::before { content: '✦'; color: var(--tone-gold); font-size: 12px; }
+.experiment-scale-label b { font: italic 500 24px/1 "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif; font-variant-numeric: oldstyle-nums; letter-spacing: -.7px; color: var(--color-resultGoldInk); }
+.experiment-scale-text > span { color: var(--color-resultGoldInk); font: italic 500 14px/1 "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif; letter-spacing: .1px; opacity: .82; }
+.experiment-scale-label::after { content: ''; flex: 1; margin-left: 7px; border-top: 1px solid color-mix(in srgb, var(--tone-gold) 30%, var(--color-paperEdge) 70%); }
 .experiment-table .ramnet-row > * { background: color-mix(in srgb, var(--neutral-16) 70%, var(--tone-sky) 30%); }
 .experiment-table .ramnet-row th { color: var(--accent-ink); font-weight: 550; }
 .experiment-table strong { color: var(--ink); font-weight: 750; }
@@ -162,49 +168,30 @@ tr:last-child td:first-child { color: var(--accent-ink); }
 .experiment-table tbody .is-cell { box-shadow: inset 0 0 0 1.5px var(--color-resultGoldBorder); }
 .experiment-table .is-cell .experiment-value { transform: scale(1.08); }
 @media (min-width: 761px) {
-  #results { padding-top: clamp(22px, 3vh, 38px); }
-  #results .section-heading { margin-bottom: 12px; }
-  #results .metric-grid { margin-block: 16px 14px; }
-  #results .metric { padding-block: 14px; }
-  #results .metric strong { font-size: 40px; margin-bottom: 2px; }
+  #results .metric-grid { margin-block: clamp(8px, calc(2vh - 8px), 16px) clamp(8px, calc(1.5vh - 4px), 14px); }
+  #results .metric { padding-block: clamp(8px, calc(1.5vh - 4px), 14px); }
+  #results .metric strong { font-size: clamp(36px, calc(1vh + 28px), 40px); margin-bottom: clamp(0px, calc(.5vh - 4px), 2px); }
   #results .metric small { margin-top: 2px; }
-  #results .experiment-tabs { margin-top: 14px; }
-  #results .experiment-tabs button { min-height: 40px; padding-block: 9px; }
-  #results .experiment-panel { margin-top: 14px; }
+  #results .experiment-tabs { margin-top: clamp(8px, calc(1.5vh - 4px), 14px); }
+  #results .experiment-tabs button { min-height: clamp(36px, calc(1vh + 28px), 40px); padding-block: clamp(7px, calc(.5vh + 3px), 9px); }
+  #results .experiment-panel { margin-top: clamp(10px, calc(1vh + 2px), 14px); }
   #results .experiment-panel h3 { font-size: 24px; margin-bottom: 4px; }
-  #results .experiment-scroll { margin-top: 8px; }
-  #results .experiment-table th, #results .experiment-table td { padding-block: 7px; }
-  #results .experiment-table .experiment-scale th { padding-top: 10px; padding-bottom: 6px; }
+  #results .experiment-scroll { margin-top: clamp(4px, calc(1vh - 4px), 8px); }
+  #results .experiment-table th, #results .experiment-table td { padding-block: clamp(4px, calc(.75vh - 2px), 7px); }
+  #results .experiment-table .experiment-scale th { padding-top: clamp(6px, calc(1vh - 2px), 10px); padding-bottom: clamp(4px, .5vh, 6px); }
   #results .experiment-table tbody:first-of-type .experiment-scale th { padding-top: 8px; }
 }
-@media (min-width: 761px) and (max-height: 800px) {
-  #results { padding-top: 18px; }
-  #results .section-kicker span { font-size: 44px; margin-bottom: 2px; }
-  #results .metric-grid { margin-block: 8px; }
-  #results .metric { padding-block: 8px; }
-  #results .metric strong { font-size: 36px; margin-bottom: 0; }
-  #results .experiment-tabs { margin-top: 8px; }
-  #results .experiment-tabs button { min-height: 36px; padding-block: 7px; }
-  #results .experiment-panel { margin-top: 10px; }
-  #results .experiment-scroll { margin-top: 4px; }
-  #results .experiment-table th, #results .experiment-table td { padding-block: 4px; }
-  #results .experiment-table .experiment-scale th { padding-top: 6px; padding-bottom: 4px; }
-}
-@media (min-width: 1025px), (min-width: 761px) and (min-aspect-ratio: 81/100) and (max-aspect-ratio: 149/100) { @container (max-width: 800px) {
-  .experiment-table, .experiment-table tbody { display: block; }
-  .experiment-table thead { display: none; }
-  .experiment-table tbody tr { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .experiment-table tbody th[scope="row"] { grid-column: 1 / -1; width: auto; padding: 12px 8px 8px; font-weight: 600; }
-  .experiment-table td { padding: 9px 8px; text-align: left; }
-  .experiment-table td::before { content: attr(data-label); position: relative; z-index: 1; display: block; margin-bottom: 4px; white-space: normal; font-size: 11px; line-height: 1.35; color: var(--muted); }
-  .experiment-table .experiment-scale { display: block; }
-  .experiment-table .experiment-scale th { display: block; width: 100%; }
-} }
-@media (min-width: 1025px), (min-width: 761px) and (min-aspect-ratio: 81/100) and (max-aspect-ratio: 149/100) { @container (max-width: 440px) {
-  .experiment-table tbody tr { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-} }
+.experiment-scroll.is-scrollable { overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; }
+.experiment-scroll.is-scrollable .experiment-table { width: max-content; min-width: 100%; table-layout: auto; font-size: 12px; }
+.experiment-scroll.is-scrollable .experiment-table th, .experiment-scroll.is-scrollable .experiment-table td { padding: 8px; }
+.experiment-scroll.is-scrollable .experiment-scale-text { position: sticky; left: 0; z-index: 2; padding-right: 10px; background: var(--paper); }
+.experiment-scroll.is-scrollable .experiment-table thead th { position: sticky; top: 0; z-index: 3; height: 42px; padding: 7px 8px; white-space: nowrap; overflow-wrap: normal; background: color-mix(in srgb, var(--color-paperEdge) 15%, var(--color-paper) 85%); }
+.experiment-scroll.is-scrollable .experiment-heading { max-width: none; }
+.experiment-scroll.is-scrollable .experiment-heading-label { white-space: nowrap; }
+.experiment-scroll.is-scrollable .experiment-table thead tr:nth-child(2) th { top: 42px; }
+.experiment-scroll.is-scrollable .experiment-table thead tr:first-child th:first-child { background: color-mix(in srgb, var(--color-paperEdge) 15%, var(--color-paper) 85%); }
 .results-discussion { margin-top: 34px; }
-.results-note { margin: 24px 0 0 var(--text-inset); padding: 17px 20px; background: color-mix(in srgb, var(--color-paperEdge) 15%, var(--color-paper) 85%); border: 1px solid var(--line); font-size: 12px; line-height: 1.8; color: var(--body); }
+.results-note { width: var(--content-width); margin: 24px 0 0 var(--text-inset); padding: 17px 20px; background: color-mix(in srgb, var(--color-paperEdge) 15%, var(--color-paper) 85%); border: 1px solid var(--line); font-size: 12px; line-height: 1.8; color: var(--body); }
 .closing { --closing-nav-height: 58px; --closing-footer-height: 68px; --closing-heading-height: 180px; --closing-padding: max(0px, calc((100dvh - var(--closing-nav-height) - var(--closing-footer-height) - var(--closing-heading-height)) / 2)); min-height: calc(100dvh - var(--closing-nav-height) - var(--closing-footer-height)); padding: var(--closing-padding) 0; display: flex; align-items: center; border-bottom: 0; }
 .closing .section-heading { display: block; margin: 0 0 0 var(--text-inset); }
 .closing .micro { color: var(--accent-ink); font-size: clamp(21px, 2.73vw, 35.5px); font-weight: 650; letter-spacing: .06em; text-transform: none; }
@@ -217,7 +204,7 @@ noscript p { padding: 16px; background: color-mix(in srgb, var(--neutral-16) 75%
   .chapter-links { gap: 19px; }
 }
 @media (max-width: 1050px) {
-  main.article { --text-inset: clamp(72px, 9vw, 96px); }
+  main.article { --text-inset: clamp(36px, 4.5vw, 48px); }
   .hero-grid { gap: 20px; }
   .hero h1 span { font-size: 30px; }
   .section-heading { grid-template-columns: 72px minmax(0,1fr); gap: 24px; }
@@ -226,7 +213,7 @@ noscript p { padding: 16px; background: color-mix(in srgb, var(--neutral-16) 75%
   .chapter-links { gap: 18px; }
   .chapter-links a span { display: none; }
 }
-@media (max-width: 760px), (max-width: 1024px) and (max-aspect-ratio: 4/5), (max-width: 1024px) and (min-aspect-ratio: 3/2) {
+html.compact-layout {
   .site-header { height: 64px; padding-inline: clamp(16px, 3vw, 22px); }
   .header-meta { gap: 12px; }
   .header-meta > span { display: none; }
@@ -243,12 +230,12 @@ noscript p { padding: 16px; background: color-mix(in srgb, var(--neutral-16) 75%
   .chapter-links { gap: 20px; }
   .chapter-links a { padding-block: 18px 15px; }
   .autoplay-toggle { display: none; }
-  .paper-section { padding: clamp(28px, 5vh, 48px) 0 42px; }
-  main.article { --text-inset: 0px; width: calc(100% - clamp(32px, 6vw, 44px)); max-width: 1160px; }
+  .paper-section { padding: var(--section-top-gap) 0 42px; }
+  main.article { --text-inset: 0px; --section-top-gap: clamp(28px, 5vh, 48px); --section-heading-gap: 22px; width: calc(100% - clamp(32px, 6vw, 44px)); max-width: 1160px; }
   .embedded-exhibit { min-height: 0; }
   #figure-3 { width: var(--content-width); margin-left: var(--text-inset); }
   .section-opening { margin-bottom: 30px; }
-  .section-heading { display: block; margin-bottom: 22px; }
+  .section-heading { display: block; margin-bottom: var(--section-heading-gap); }
   .section-kicker { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; font-size: 9px; }
   .section-kicker span { margin: 0; font-size: 32px; letter-spacing: -1px; }
   h2 { font-size: 31px; letter-spacing: -.8px; }
@@ -263,15 +250,6 @@ noscript p { padding: 16px; background: color-mix(in srgb, var(--neutral-16) 75%
   .experiment-tabs button { flex: 1; min-width: 0; padding: 10px 7px; font-size: 11px; }
   .experiment-panel h3 { font-size: 24px; }
   .experiment-panel p { font-size: 14px; }
-  .experiment-scroll { overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; }
-  .experiment-table { width: max-content; min-width: 100%; table-layout: auto; font-size: 12px; }
-  .experiment-table th, .experiment-table td { padding: 8px 10px; }
-  .experiment-scale-text { position: sticky; left: 0; z-index: 2; padding-right: 10px; background: var(--paper); }
-  .experiment-table thead th { position: sticky; top: 0; z-index: 3; height: 42px; padding: 7px 10px; white-space: nowrap; overflow-wrap: normal; background: color-mix(in srgb, var(--color-paperEdge) 15%, var(--color-paper) 85%); }
-  .experiment-heading { max-width: none; }
-  .experiment-heading-label { white-space: nowrap; }
-  .experiment-table thead tr:nth-child(2) th { top: 42px; }
-  .experiment-table thead tr:first-child th:first-child { background: color-mix(in srgb, var(--color-paperEdge) 15%, var(--color-paper) 85%); }
   .equation { padding: 18px 15px; font-size: 19px; }
   .closing { padding-block: var(--closing-padding); }
   .closing .micro { font-size: clamp(18px, 4.55vw, 25.5px); }
@@ -279,8 +257,11 @@ noscript p { padding: 16px; background: color-mix(in srgb, var(--neutral-16) 75%
   .site-footer { font-size: 11px; gap: 24px; line-height: 1.7; }
 }
 @media (pointer: coarse) { .autoplay-toggle { display: none; } }
-@media (max-width: 760px), (max-width: 1024px) and (pointer: coarse) { .fine-interaction-hint { display: none; } }
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+@media (max-height: 850px) {
+  main.article { --section-top-gap: clamp(16px, 2.5vh, 26px); --section-heading-gap: clamp(8px, 1.5vh, 14px); }
+}
+.compact-interactions .fine-interaction-hint { display: none; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .experiment-panel:not([hidden]) { animation: none; } }
 @media print {
   .chapter-nav, .hero-actions, .closing { display: none; }
   body { background: var(--neutral-16); }

@@ -10,10 +10,10 @@ const actions=['输入 w','门控映射','调节 γ','衰减 m','写入 w','计�
 const contentHeight=800,inputRowY=76,etaMoveSeconds=1.2,etaHoldSeconds=1;
 let sceneOffset=0,sceneHeight=contentHeight;
 const slotPrepareSpan=.38*(.5-Math.sin(Math.asin(1-2*.22)/3)),slotPrepareDelay=slotPrepareSpan*.5;
-const minimumDurations=config=>[1,2.95,0,3,4,0,1+2.5*(1+slotPrepareDelay),4.2,2.5].map((factor,i)=>Math.max(1,Math.ceil((i===5?2*config.fadeDuration+etaMoveSeconds+etaHoldSeconds:factor*config.fadeDuration)*10-1e-9)/10));
+const minimumDurations=config=>[1,2.95,0,3,3,0,1+2.5*(1+slotPrepareDelay),4.2,2.5].map((factor,i)=>Math.max(1,Math.ceil((i===5?config.fadeDuration+etaMoveSeconds+etaHoldSeconds:factor*config.fadeDuration)*10-1e-9)/10));
 function fitDurations(config){const minimum=minimumDurations(config);config.durations=config.durations.map((value,i)=>Math.max(value,minimum[i]));}
-const progressGroups=[{name:'calculate α',color:'alpha',start:0,end:3},{name:'update mass',color:'mass',start:3,end:5,stop:.5},{name:'calculate η',color:'eta',start:5,end:6},{name:'update slot',color:'state',start:6,end:9,stopAction:7}];
-const params={colors:{...colors},n:8,initialMass:0.8,epsilon:0.0001,concentration:0.5,gammaRange:3.5,aspectRatio:1.95,retainedGap:200,columnSpacing:0.55,slotGap:7,cellRadius:6,panelRadius:22,spacing:20,lineWidth:2.2,vectorScale:0.94,fadeDuration:1.2,interactionExitDelay:3,canvasExitDelay:1,durations:[1.5,3.6,4,3.6,4.8,4.6,4.4,5.1,3]};
+const progressGroups=[{name:'calculate α',color:'alpha',start:0,end:3},{name:'update mass',color:'mass',start:3,end:5},{name:'calculate η',color:'eta',start:5,end:6},{name:'update slot',color:'state',start:6,end:9,stopAction:7}];
+const params={colors:{...colors},n:8,initialMass:0.8,epsilon:0.0001,concentration:0.5,gammaRange:3.5,aspectRatio:1.95,retainedGap:200,columnSpacing:0.55,slotGap:7,cellRadius:6,panelRadius:22,spacing:20,lineWidth:2.2,vectorScale:0.94,fadeDuration:1.2,interactionExitDelay:3,canvasExitDelay:1,durations:[1.5,3.6,4,3.6,3.6,3.4,4.4,5.1,3]};
 let elapsed=0,playing=true,lastFrame=0,activeAction=-1,roundData,gammaOverride=null;
 let sceneWidth=sceneHeight*params.aspectRatio;
 let checkpoint=null,hitRegions=[],hoverVector=null,drag=null,pointerPosition=null,resumeAfterHover=false,hoverTarget=null,hoverExitTimer,hoverExitZone=null,gammaDragging=false;
@@ -25,7 +25,7 @@ const afterFadeProgress=(i,p)=>{const progress=clamp((p*params.durations[i]-para
  // Stretch only the preparation interval; rotation and vector copying keep their own time.
  const time=progress*(1+slotPrepareDelay);return time<=.24?time:time<.24+slotPrepareSpan*1.5?.24+(time-.24)/1.5:clamp(time-slotPrepareDelay);
 };
-const etaMoveProgress=p=>phase(p*params.durations[5],params.fadeDuration,params.fadeDuration+etaMoveSeconds);
+const etaMoveProgress=p=>phase(p*params.durations[5],0,etaMoveSeconds);
 const total=()=>params.durations.reduce((a,b)=>a+b,0);
 const startOf=i=>params.durations.slice(0,i).reduce((a,b)=>a+b,0);
 function stageStop(group){return {i:progressGroups[group].stopAction??progressGroups[group].end-1,p:progressGroups[group].stop??1};}
@@ -91,8 +91,8 @@ function gatePlot(gamma,alpha,p,opacity){fade(opacity,()=>{const {x,y,size:w}=ga
 function drawMass(i,p,result,wg,layout=massColumns(wg)){const {home,large,gateAlpha,alpha,newM,etaM,eta}=layout;const maxM=roundData.massScale;
  if(i<3){const reveal=gateReveal(i,p);gateLinks(wg,gateAlpha,reveal.input,reveal.output);gatePlot(gammaAt(i,p),result.alpha,reveal.output,reveal.frame);column(gateAlpha,result.alpha,'α',colors.alpha,reveal.alpha);return;}
  if(i===3){const delay=params.fadeDuration,span=params.durations[i]-delay,progress=clamp((p*params.durations[i]-delay)/span),move=phase(progress,0,.3),flow=phase(progress,.3,.9),decay=phase(flow,.8,1),gateOut=fadeOut(i,p);gateLinks(layout.gateW,gateAlpha,1,1,gateOut);gatePlot(gammaAt(i,p),result.alpha,1,gateOut);column(blendGeometry(home,large,move),roundData.m,'m',colors.mass,1,maxM,'m');column(blendGeometry(gateAlpha,alpha,move),result.alpha,'α',colors.alpha);fade(fadeIn(i,p,delay+span*.3),()=>columnLinks(large,newM,colors.mass,flow));column(newM,roundData.m.map((m,j)=>mix(m,result.decayed[j],decay)),'',colors.mass,fadeIn(i,p,delay+span*.2),maxM,'');return;}
- if(i===4){const away=fadeOut(i,p,params.durations[i]*.5),flow=phase(p,.08,.48),addition=phase(flow,.8,1);column(large,roundData.m,'m',colors.mass,away,maxM,'m');column(alpha,result.alpha,'α',colors.alpha,away);fade(away,()=>columnLinks(large,newM,colors.mass));fade(fadeIn(i,p)*away,()=>rightLinks(wg,newM,colors.weight,flow));column(newM,result.decayed.map((m,j)=>mix(m,result.mass[j],addition)),'',colors.mass,1,maxM,'');fade(1-away,()=>label('m',newM.x+newM.w/2,newM.y-27,colors.mass,25));return;}
- if(i===5){const move=etaMoveProgress(p),flow=fadeIn(i,p,params.fadeDuration+etaMoveSeconds),mg=blendGeometry(newM,etaM,move);column(mg,result.mass,'m',colors.mass,1,maxM,'m');fade(flow,()=>{columnLinks(etaM,eta,colors.mass,flow);rightLinks(wg,eta,colors.weight,flow);rateFraction(eta.x+eta.w/2);});column(eta,result.eta,'η',colors.eta,flow);return;}
+ if(i===4){const away=fadeOut(i,p,params.durations[i]-params.fadeDuration),flow=phase(p,.08,2/3),addition=phase(flow,.8,1);column(large,roundData.m,'m',colors.mass,away,maxM,'m');column(alpha,result.alpha,'α',colors.alpha,away);fade(away,()=>columnLinks(large,newM,colors.mass));fade(fadeIn(i,p)*away,()=>rightLinks(wg,newM,colors.weight,flow));column(newM,result.decayed.map((m,j)=>mix(m,result.mass[j],addition)),'',colors.mass,1,maxM,'');fade(1-away,()=>label('m',newM.x+newM.w/2,newM.y-27,colors.mass,25));return;}
+ if(i===5){const move=etaMoveProgress(p),flow=fadeIn(i,p,etaMoveSeconds),mg=blendGeometry(newM,etaM,move);column(mg,result.mass,'m',colors.mass,1,maxM,'m');fade(flow,()=>{columnLinks(etaM,eta,colors.mass,flow);rightLinks(wg,eta,colors.weight,flow);rateFraction(eta.x+eta.w/2);});column(eta,result.eta,'η',colors.eta,flow);return;}
  const move=i===6?phase(afterFadeProgress(i,p),0,.22):1,mg=blendGeometry(etaM,home,move);if(i===6)fade(fadeOut(i,p),()=>{columnLinks(etaM,eta,colors.mass);rightLinks(wg,eta,colors.weight);rateFraction(eta.x+eta.w/2);});if(move<1)column(mg,result.mass,'m',colors.mass,1,maxM,'m');
 }
 function vectorCell(g,j,result,{v=0,triangle=0,eta=0,etaOpacity=eta,update=0,ghost=0,fit=0,returning=0,context=1}={}){box(g.x,g.y,g.w,g.h,rgba(colors.state,.025),rgba(colors.state,.34));if(!g.moving)hitRegions.push({...g,kind:'s',j,source:'input'});
@@ -128,7 +128,7 @@ function draw(){const {i,p}=locationAt(),gamma=gammaAt(i,p),result=compute(gamma
  const retained=retainedValues(result);if(i<3||i>6||i===6&&afterFadeProgress(i,p)>=.22){column(layout.home,retained.m,'m',colors.mass,1,roundData.massScale,'');registerColumn(layout.home,'m','retained');}if(i<6||i===8&&afterFadeProgress(i,p)>=.9)stateHome(retained.s);
  drawStrengthHandles();drawVectorEditor(result);ctx.restore();
  const pill=$('gamma-pill'),scale=canvas.clientWidth/sceneWidth,gammaScale=Math.min(1,scale/.65),position=clamp((gamma+9.9)/19.8)*100,centerX=(gateFrame.x+gateFrame.size/2)*scale;
-  const topY=(inputRowY+sceneOffset)*scale,nearY=Math.max(topY+16*scale,(gateFrame.y+sceneOffset)*scale-65*gammaScale),lift=i<3?0:i===3?phase(p,0,.4):1,opacity=i>=5?0:i===4?fadeOut(i,p,params.durations[i]*.5):i<3?gateReveal(i,p).frame:1;
+  const topY=(inputRowY+sceneOffset)*scale,nearY=Math.max(topY+16*scale,(gateFrame.y+sceneOffset)*scale-65*gammaScale),lift=i<3?0:i===3?phase(p,0,.4):1,opacity=i>=5?0:i===4?fadeOut(i,p,params.durations[i]-params.fadeDuration):i<3?gateReveal(i,p).frame:1;
  const controlY=mix(nearY,topY,lift),editor=hoverVector?.g,editorRight=editor&&editor.y*scale<controlY-sceneOffset*scale+35&&(editor.y+editor.h)*scale>controlY-sceneOffset*scale-37?(editor.x+editor.w)*scale:0;
  const availableWidth=editorRight?2*(centerX-editorRight-30):gateFrame.size*scale;
  const gammaEditable=!window.ramnetCompactInteractions.matches&&i<5&&opacity===1&&!gammaInMotion();

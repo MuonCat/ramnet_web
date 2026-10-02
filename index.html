@@ -6,18 +6,18 @@
   <title>RAM-Net — Linear-Time Sequence Modeling with Sparsely Addressable State</title>
   <meta name="description" content="Explore RAM-Net: a larger recurrent memory with sparse read and write access. An interactive explanation of Product Softmax, CAPE, Gated Sparse Update and the CUDA execution pipeline.">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/site.css?v=semantic-palette-20261002">
+  <link rel="stylesheet" href="assets/site.css?v=sec7-three-stage-20261002">
   <script>
     history.scrollRestoration = 'manual';
     window.ramnetInitialHash = location.hash === '#top' ? '' : location.hash;
     if (location.hash) history.replaceState(history.state, '', location.pathname + location.search);
   </script>
   <script src="assets/palette.js?v=perceptual-20261002" data-palette="data/palette.json?v=sec3-cyan-20261002"></script>
-  <script defer src="assets/animation-runtime.js?v=perceptual-20261002"></script><script defer src="assets/exhibit-markup.js?v=probe-scan-cyan-20261002"></script>
+  <script defer src="assets/animation-runtime.js?v=geometry-compact-20261002"></script><script defer src="assets/exhibit-markup.js?v=sec8-compact-hover-20261002"></script>
   <script defer src="data/probes/niah_traces.js"></script><script defer src="data/probes/niah_slot_maps.js"></script><script defer src="data/probes/head_traces.js"></script>
   <script defer src="assets/stage-timeline.js"></script>
-  <script defer src="animations/attn_cmp.js?v=sec1-compression-cyan-20261002"></script><script defer src="animations/ramnet_arch.js?v=perceptual-20261002"></script><script defer src="animations/product_softmax.js?v=tree-hover-20261002"></script><script defer src="animations/cape.js?v=perceptual-20261002"></script><script defer src="animations/gsu.js?v=perceptual-20261002"></script><script defer src="animations/cal_pipeline.js?v=perceptual-20261002"></script><script defer src="animations/niah_probe.js?v=perceptual-20261002"></script><script defer src="animations/head_probe.js?v=perceptual-20261002"></script>
-  <script defer src="assets/exhibit-host.js?v=semantic-palette-20261002"></script><script defer src="assets/site.js?v=flip-overflow-20261001"></script><script defer src="assets/hero.js"></script><script defer src="assets/section-scroll.js?v=cleanup-20261001"></script><script defer src="data/experiments.js"></script><script defer src="assets/experiments.js?v=autoplay-resume-20261001"></script><script defer src="assets/reading-position.js?v=section-alignment-20260930"></script>
+  <script defer src="animations/attn_cmp.js?v=sec1-compression-cyan-20261002"></script><script defer src="animations/ramnet_arch.js?v=perceptual-20261002"></script><script defer src="animations/product_softmax.js?v=unified-compact-20261002"></script><script defer src="animations/cape.js?v=perceptual-20261002"></script><script defer src="animations/gsu.js?v=mass-eta-timing-20261002"></script><script defer src="animations/cal_pipeline.js?v=perceptual-20261002"></script><script defer src="animations/niah_probe.js?v=sec8-compact-hover-20261002"></script><script defer src="animations/head_probe.js?v=perceptual-20261002"></script>
+  <script defer src="assets/exhibit-host.js?v=semantic-palette-20261002"></script><script defer src="assets/site.js?v=geometry-compact-20261002"></script><script defer src="assets/hero.js"></script><script defer src="assets/section-scroll.js?v=resize-chapter-20261002"></script><script defer src="data/experiments.js"></script><script defer src="assets/experiments.js?v=sec7-three-stage-20261002"></script><script defer src="assets/reading-position.js?v=section-alignment-20260930"></script>
 </head>
 <body id="top">
 <a class="skip-link" href="#memory">Skip to the paper</a>
@@ -167,12 +167,13 @@
 <p>Different slots and their channels can run in parallel, while events within each slot preserve the <strong class="text-highlight">causal order</strong> required by the recurrence. Slots with no events require no work.</p>
 <p>During autoregressive decoding, the model directly accesses the slots selected by the current token. It does not scan the full recurrent state.</p>
 </div></section>
-<section class="paper-section" id="results" data-cycle-ms="6000" aria-labelledby="heading-results"><div class="section-heading"><div class="section-kicker"><span>07</span>Evidence &amp; trade-offs</div><h2 id="heading-results">Results: Quality and State Access</h2></div>
+<section class="paper-section" id="results" data-cycle-ms="12000" aria-labelledby="heading-results"><div class="section-heading"><div class="section-kicker"><span>07</span>Evidence &amp; trade-offs</div><h2 id="heading-results">Results: Quality and State Access</h2></div>
 <div class="metric-grid" aria-label="Selected experimental results">
 <div class="metric"><strong>0.4<span class="metric-unit">M</span></strong><span>Active state · 340M Top-8</span><small>26.2M total state elements</small></div>
 <div class="metric"><strong>72.9</strong><span>S-NIAH average · 340M Top-32</span><small>Three tasks · 1K–16K contexts</small></div>
 <div class="metric"><strong>15.90</strong><span>Wiki. perplexity · 1.3B Top-16</span><small>Lower is better</small></div>
 </div>
+<div class="prose results-intro"><p>These tables compare language quality, retrieval, task scores, and active state across model sizes and Top-K settings.</p></div>
 <div class="experiment-tabs" role="tablist" aria-label="Experiment results" hidden>
 <button type="button" role="tab" id="tab-language" aria-controls="experiment-language" aria-selected="true">Language &amp; reasoning</button>
 <button type="button" role="tab" id="tab-sniah" aria-controls="experiment-sniah" aria-selected="false" tabindex="-1">S-NIAH retrieval</button>

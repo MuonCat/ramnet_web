@@ -40,4 +40,5 @@
 .factor-controls-label{margin:0 0 12px;color:var(--neutral-5);font:600 11px/1.4 "Segoe UI",Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase}
 .compact-interactions .factor-controls-label{display:none}
 @media(min-width:541px) and (max-width:850px){.settings-scope+.settings-scope{margin-top:0}.settings-scope{align-self:start}}
+@media(max-width:1024px){.animation-shell .section-tab{white-space:normal;font-size:10px}}
 @media(max-width:540px){.animation-shell .section-tab{padding:0 4px;font-size:calc(9px * var(--ui-font-scale,.9))}}

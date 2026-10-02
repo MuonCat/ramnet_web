@@ -855,10 +855,10 @@ function renderRegroup() {
   const {tall,wide}=regroupPanels;
   const tallRow=Math.floor(index/tall.cols),tallCol=index%tall.cols;
   const wideRow=Math.floor(index/wide.cols),wideCol=index%wide.cols;
-  set(regroupAddressLabels.tallRow,{y:tall.y+(tallRow+.5)*tall.cellSize-5});
+  set(regroupAddressLabels.tallRow,{y:tall.y+(tallRow+.5)*tall.cellSize+18});
   set(regroupAddressLabels.tallCol,{x:tall.x+(tallCol+.5)*tall.cellSize});
   set(regroupAddressLabels.wideCol,{x:wide.x+(wideCol+.5)*wide.cellSize});
-  set(regroupAddressLabels.wideRow,{y:wide.y+(wideRow+.5)*wide.cellSize-5});
+  set(regroupAddressLabels.wideRow,{y:wide.y+(wideRow+.5)*wide.cellSize+18});
   regroupAddressLabels.tallRow.textContent=tallRow.toString(2).padStart(6,'0');
   regroupAddressLabels.tallCol.textContent=tallCol.toString(2).padStart(2,'0');
   regroupAddressLabels.wideCol.textContent=wideCol.toString(2).padStart(6,'0');
@@ -984,10 +984,12 @@ function layoutPages() {
   const mobile=window.matchMedia('(max-width:540px)').matches,style=getComputedStyle($('distribution-tab'));
   const measure=document.createElement('canvas').getContext('2d');
   measure.font=`700 ${style.fontSize} ${style.fontFamily}`;
-  const tabWidth=compact?0:Math.ceil(Math.max(...SECTIONS.map(name=>measure.measureText(SECTION_NAMES[name]).width)))+parseFloat(style.paddingLeft)+parseFloat(style.paddingRight)+2;
+  const tabWidth=compact?0:Math.min(Math.ceil(Math.max(...SECTIONS.map(name=>measure.measureText(SECTION_NAMES[name]).width)))+parseFloat(style.paddingLeft)+parseFloat(style.paddingRight)+2,
+    window.innerWidth<=1024?108:Infinity);
   if(articleLayout&&!compact) {
-    // The article reserves the tab gutter; the page body uses the prose width exactly.
-    const bodyWidth=articleLayout.width;
+    // Keep the tabs inside the exhibit when the article cannot reserve their gutter.
+    const hostWidth=document.body.getRootNode().host?.clientWidth;
+    const bodyWidth=Math.min(articleLayout.width,hostWidth?hostWidth-articleLayout.left-tabWidth-16:articleLayout.width);
     shell.style.marginLeft=articleLayout.left+'px';
     shell.style.marginRight='0px';
     shell.style.width=(bodyWidth+tabWidth+16)+'px';
@@ -1027,13 +1029,16 @@ function layoutPages() {
   });
   const shellStyle=getComputedStyle(shell),tabsStyle=getComputedStyle(compactTabs);
   const controls=document.querySelector('.interaction-panel'),controlsHeight=controls.offsetHeight;
+  const topKHeight=controls.querySelector('.interaction-head').getBoundingClientRect().bottom-controls.getBoundingClientRect().top;
   // Exclude scrollbars and the scene height so width fitting cannot feed back into itself.
   const chromeHeight=parseFloat(shellStyle.marginTop)+parseFloat(shellStyle.marginBottom)+controlsHeight+
     (compact?compactTabs.offsetHeight+parseFloat(tabsStyle.marginTop)+parseFloat(tabsStyle.marginBottom):0);
   document.body.getRootNode().host?.dispatchEvent(new CustomEvent('ramnet:layout-metrics',{detail:{
     tabWidth,
     aspect:config.interactionAspect,
-    chromeHeight
+    chromeHeight,
+    controlsHeight,
+    topKHeight
   }}));
 }
 function arrangePages() {

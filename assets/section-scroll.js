@@ -10,6 +10,7 @@
   let touching = false, draggingScrollbar = false, autoplay = false, snapArmed = false;
   let touchStartX = 0, touchStartY = 0, touchScrollIntent = false;
   let alignedSection = null, historyFrame = 0;
+  let readingSection = null, resizeSection, resizeTimer = 0;
 
   function sectionY(section) {
     if (!section) return 0;
@@ -22,6 +23,17 @@
       if (y < target.start || y > target.end) return best;
       return !best || Math.abs(target.y - y) < Math.abs(best.y - y) ? target : best;
     }, null);
+  }
+  function visibleSection() {
+    const nav = chapterNav.getBoundingClientRect();
+    const edge = nav.top > 1 ? 0 : nav.bottom + 8;
+    return sections.findLast(item => item.getBoundingClientRect().top <= edge) || null;
+  }
+  function releaseResizeSection() {
+    if (resizeSection === undefined) return;
+    clearTimeout(resizeTimer);
+    resizeSection = undefined;
+    readingSection = visibleSection();
   }
   function refreshTargets() {
     const inset = chapterNav.getBoundingClientRect().height;
@@ -83,6 +95,8 @@
     expectedY = lastScrollY = scrollY;
   }
   function alignSection(section) {
+    releaseResizeSection();
+    readingSection = section;
     stopSnap();
     clearCooldown();
     alignedSection = section;
@@ -113,7 +127,7 @@
   }
   function scheduleSnap() {
     clearTimeout(snapTimer);
-    if (!snapArmed || autoplay || touching || draggingScrollbar || snapping) return;
+    if (!snapArmed || autoplay || touching || draggingScrollbar || snapping || resizeSection !== undefined) return;
     const remaining = cooldownUntil - performance.now();
     snapTimer = setTimeout(snap, Math.max(120, remaining + 1));
   }
@@ -122,13 +136,9 @@
     if (location.hash !== hash) history.replaceState(history.state, '', location.pathname + location.search + hash);
   }
   function scheduleHashUpdate() {
-    if (autoplay) return;
+    if (autoplay || resizeSection !== undefined) return;
     clearTimeout(hashTimer);
-    hashTimer = setTimeout(() => {
-      const nav = chapterNav.getBoundingClientRect();
-      const visibleTop = nav.top > 1 ? 0 : nav.bottom + 8;
-      setChapterHash(sections.findLast(item => item.getBoundingClientRect().top <= visibleTop));
-    }, 650);
+    hashTimer = setTimeout(() => setChapterHash(visibleSection()), 650);
   }
   function interactive(event) {
     const target = event.composedPath()[0];
@@ -136,6 +146,7 @@
   }
   window.addEventListener('wheel', event => {
     if (event.ctrlKey || event.defaultPrevented || Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return;
+    releaseResizeSection();
     snapArmed = true;
     stopSnap();
     if (interactive(event)) return;
@@ -143,6 +154,7 @@
     scheduleSnap();
   }, {passive: true});
   window.addEventListener('touchstart', event => {
+    releaseResizeSection();
     touching = true;
     touchScrollIntent = false;
     touchStartX = event.touches[0]?.clientX ?? 0;
@@ -163,6 +175,11 @@
   window.addEventListener('touchcancel', endTouch, {passive: true});
   window.addEventListener('scroll', () => {
     if (autoplay) { lastScrollY = scrollY; return; }
+    if (resizeSection !== undefined || innerWidth !== viewportWidth || devicePixelRatio !== viewportScale) {
+      lastScrollY = scrollY;
+      expectedY = null;
+      return;
+    }
     const delta = scrollY - lastScrollY;
     const ownScroll = snapping || expectedY !== null && scrollY === expectedY;
     lastScrollY = scrollY;
@@ -170,18 +187,21 @@
     if ((touching || touchScrollIntent) && delta) snapArmed = true;
     if (delta) scheduleHashUpdate();
     if (ownScroll || !delta) return;
+    readingSection = visibleSection();
     alignedSection = null;
     updateCooldown(delta, performance.now());
     scheduleSnap();
   }, {passive: true});
   document.addEventListener('keydown', event => {
     if (!interactive(event) && ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) {
+      releaseResizeSection();
       snapArmed = true;
       stopSnap();
     }
   });
   document.addEventListener('pointerdown', event => {
     if (event.pointerType === 'mouse' && event.clientX >= document.documentElement.clientWidth) {
+      releaseResizeSection();
       draggingScrollbar = true;
       snapArmed = true;
       stopSnap();
@@ -288,7 +308,7 @@
   }
   window.addEventListener('popstate', historyNavigation);
   window.addEventListener('hashchange', historyNavigation);
-  window.addEventListener('pageshow', () => { clearTimeout(hashTimer); snapArmed = touchScrollIntent = touching = false; stopSnap(); clearCooldown(); refreshTargets(); });
+  window.addEventListener('pageshow', () => { clearTimeout(hashTimer); snapArmed = touchScrollIntent = touching = false; stopSnap(); clearCooldown(); refreshTargets(); readingSection = visibleSection(); });
   reducedMotion.addEventListener('change', () => { if (reducedMotion.matches) { stopSnap(); scheduleSnap(); } });
   const closing = document.querySelector('.closing');
   const closingHeading = closing.querySelector('.section-heading');
@@ -309,13 +329,36 @@
   observer.observe(chapterNav);
   observer.observe(footer);
   observer.observe(closingHeading);
-  let viewportWidth = innerWidth;
+  let viewportWidth = innerWidth, viewportScale = devicePixelRatio;
   window.addEventListener('resize', () => {
-    if (innerWidth !== viewportWidth) { viewportWidth = innerWidth; stopAutoplay(); }
+    if (innerWidth !== viewportWidth || devicePixelRatio !== viewportScale) {
+      if (resizeSection === undefined) resizeSection = readingSection;
+      viewportWidth = innerWidth;
+      viewportScale = devicePixelRatio;
+      stopAutoplay();
+      stopSnap();
+      snapArmed = false;
+      touchScrollIntent = false;
+      clearCooldown();
+      clearTimeout(hashTimer);
+    }
     sizeClosing();
     refreshTargets();
+    if (resizeSection !== undefined) {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (resizeSection === undefined) return;
+        const section = resizeSection;
+        resizeSection = undefined;
+        alignedSection = section;
+        moveTo(sectionY(section));
+        readingSection = section;
+        setChapterHash(section);
+      }, 650);
+    }
   });
   sizeClosing();
   refreshTargets();
+  readingSection = visibleSection();
   window.RamnetSectionScroll = {navigateHash};
 })();

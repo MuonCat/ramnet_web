@@ -12,16 +12,17 @@
   const results = document.getElementById('results');
   const tabs = [...list.querySelectorAll('[role="tab"]')];
   const panels = tabs.map(tab => document.getElementById(tab.getAttribute('aria-controls')));
-  let current = 0, timer, hovering = false, visible = false;
+  let current = 0, timer, hovering = false, visible = false, manuallySelected = false;
   let autoplayResults = document.documentElement.dataset.autoplaySection === 'results';
   const mobileResults = window.RamnetRuntime.narrowLayout;
   function schedule() {
     clearTimeout(timer);
     const autoplaying = document.documentElement.classList.contains('is-autoplaying');
     const focused = results.contains(document.activeElement) && document.activeElement.matches(':focus-visible');
-    if ((autoplaying ? autoplayResults : visible) && !mobileResults.matches && (autoplaying || !hovering && !focused) && !document.hidden) timer = setTimeout(() => select((current + 1) % tabs.length), autoplaying ? 2000 : 10000);
+    if (!manuallySelected && (autoplaying ? autoplayResults : visible) && !mobileResults.matches && (autoplaying || !hovering && !focused) && !document.hidden) timer = setTimeout(() => select((current + 1) % tabs.length), autoplaying ? 4000 : 10000);
   }
   function select(index) {
+    panels[index].style.setProperty('--panel-enter-x', index > current ? '12px' : index < current ? '-12px' : '0px');
     current = index;
     tabs.forEach((tab, i) => {
       const active = i === index;
@@ -35,12 +36,13 @@
     panels[index].setAttribute('role', 'tabpanel');
     panels[index].setAttribute('aria-labelledby', tab.id);
     panels[index].tabIndex = 0;
-    tab.addEventListener('click', () => select(index));
+    tab.addEventListener('click', () => { manuallySelected = true; select(index); });
     tab.addEventListener('keydown', event => {
       if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
       event.preventDefault();
       const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 :
         (index + (event.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length;
+      manuallySelected = true;
       select(next);
       tabs[next].focus();
     });
@@ -61,8 +63,9 @@
   window.addEventListener('ramnet:autoplay-section', event => {
     autoplayResults = event.detail.id === 'results';
     if (autoplayResults) {
+      manuallySelected = false;
       if (event.detail.resumeCurrent) {
-        event.detail.remainingMs = (tabs.length - current) * 2000;
+        event.detail.remainingMs = (tabs.length - current) * 4000;
         schedule();
       } else select(0);
     }
@@ -156,14 +159,11 @@
       const groupRows = [...group.rows].filter(row => !row.classList.contains('experiment-scale'));
       rows.push(...groupRows);
       for (let column = 1; column < headers.length; column++) {
-        const heading = headers[column].textContent;
-        const groupHeading = headerGrid[0][column];
         const direction = columns[column - 1].better === 'lower' ? -1 : 1;
         const values = groupRows.map(row => Number.parseFloat(row.cells[column].textContent));
         const ranked = [...new Set(values.filter(Number.isFinite))].sort((a, b) => direction * (b - a));
         groupRows.forEach((row, index) => {
           const cell = row.cells[column], value = document.createElement('span');
-          cell.dataset.label = [groupHeading.colSpan > 1 ? groupHeading.textContent : '', heading].filter(Boolean).join(' · ');
           value.className = 'experiment-value';
           value.append(...cell.childNodes);
           if (values[index] === ranked[0]) { const best = document.createElement('strong'); best.append(...value.childNodes); value.append(best); }
@@ -209,9 +209,29 @@
       highlighted = [];
       activeCell = null;
     }
+    const scroll = table.closest('.experiment-scroll');
+    scroll.classList.add('is-scrollable');
+    let fullTableWidth = 0;
+    function updateTableMode() {
+      if (!scroll.clientWidth) return;
+      if (!fullTableWidth) {
+        table.style.minWidth = '0';
+        fullTableWidth = table.getBoundingClientRect().width;
+        table.style.removeProperty('min-width');
+      }
+      scroll.classList.toggle('is-wide', scroll.parentElement.clientWidth + 1 < fullTableWidth);
+      const scrolling = scroll.clientWidth + 1 < fullTableWidth;
+      if (scroll.classList.contains('is-scrollable') === scrolling) return;
+      scroll.classList.toggle('is-scrollable', scrolling);
+      if (scrolling) clear();
+    }
+    const tableObserver = new ResizeObserver(updateTableMode);
+    tableObserver.observe(scroll);
+    tableObserver.observe(scroll.parentElement);
+    updateTableMode();
     function mark(node, name) { node.classList.add(name); highlighted.push(node); }
     table.addEventListener('pointerover', event => {
-      if (mobileResults.matches || event.pointerType === 'touch') return;
+      if (scroll.classList.contains('is-scrollable') || event.pointerType === 'touch') return;
       const cell = event.target.closest('td, th');
       if (cell === activeCell) return;
       clear();
@@ -227,8 +247,8 @@
       mark(cell, 'is-cell');
     });
     table.addEventListener('pointerleave', clear);
-    mobileResults.addEventListener('change', () => { if (mobileResults.matches) clear(); });
   });
   select(0);
   list.hidden = false;
+  window.dispatchEvent(new Event('ramnet:results-layout'));
 })();

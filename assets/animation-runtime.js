@@ -3,9 +3,20 @@
 
   let tonePairs, toneColors, textColors;
   const tones = () => tonePairs ??= window.RamnetPalette.tones;
-  const compactInteractions = matchMedia('(max-width: 760px), (max-width: 1024px) and (pointer: coarse)');
-  const compactLayout = matchMedia('(max-width: 760px), (max-width: 1024px) and (max-aspect-ratio: 4/5), (max-width: 1024px) and (min-aspect-ratio: 3/2)');
-  const narrowLayout = matchMedia('(max-width: 760px)');
+  const compactInteractionMedia = matchMedia('(max-aspect-ratio: 1/1), (max-width: 560px), (max-width: 1024px) and (min-aspect-ratio: 9/5)');
+  const compactInteractions = new EventTarget();
+  compactInteractions.matches = compactInteractionMedia.matches;
+  compactInteractions.set = matches => {
+    if (compactInteractions.matches === matches) return;
+    compactInteractions.matches = matches;
+    compactInteractions.dispatchEvent(new Event('change'));
+  };
+  const articlePage = Boolean(document.querySelector('main.article'));
+  if (!articlePage) {
+    compactInteractionMedia.addEventListener('change', () => compactInteractions.set(compactInteractionMedia.matches));
+  }
+  const compactLayout = articlePage ? compactInteractions : compactInteractionMedia;
+  const narrowLayout = compactLayout;
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const nativeFrame = requestAnimationFrame.bind(window);
 
