@@ -63,7 +63,7 @@ svg { width: 17px; height: 17px; display: block; fill: none; stroke: currentColo
 .timeline-marker-label { position: absolute; top: -24px; transform: translateX(-50%); font: 600 10px var(--font); letter-spacing: .5px; }
 .timeline-marker-label.needle { color: var(--tone-sky-ink); }
 .timeline-marker-label.read { color: var(--tone-green-ink); }
-.timeline-caret { position: absolute; top: -7.5px; width: 2px; height: 21px; background: var(--color-controlInk); transform: translateX(-50%); }
+.timeline-caret { position: absolute; top: -7.5px; width: 2px; height: 21px; background: var(--tone-cyan); transform: translateX(-50%); }
 .controls { display: flex; align-items: flex-end; gap: 12px; margin-top: 18px; }
 .control-field { min-width: 0; }
 .control-field.head { flex: 0 0 100px; }
@@ -109,7 +109,7 @@ html:not([data-probe-ready]) .probe-heads .board, .probe-heads:not([data-probe-r
 .sentence-fragment.key { color: var(--diagram-indigo-ink, var(--tone-indigo-ink)); font-weight: 600; background: color-mix(in srgb, var(--key) 12%, transparent); }
 .sentence-fragment.active { color: var(--color-controlInk); background: color-mix(in srgb, var(--tone-sky) 12.94%, transparent); }
 .sentence-fragment.key.active { color: var(--diagram-indigo-ink, var(--tone-indigo-ink)); background: color-mix(in srgb, var(--key) 24%, transparent); }
-.sentence-caret { position: absolute; width: 2px; height: 25px; background: var(--tone-sky); pointer-events: none; }
+.sentence-caret { position: absolute; width: 2px; height: 25px; background: var(--tone-cyan); pointer-events: none; }
 .sentence-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; left: 0; top: 0; }
 .sentence-picker { position: relative; display: grid; place-items: center; border-left: 1px solid var(--line); color: var(--color-controlInk); }
 .sentence-picker select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; padding: 0; }
