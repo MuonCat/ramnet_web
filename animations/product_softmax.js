@@ -8,7 +8,7 @@ const $ = id => document.getElementById(id);
 const NS = 'http://www.w3.org/2000/svg';
 const SECTION_NAMES={distribution:'Soft Radix Address',tree:'Multilevel Decision Tree',heatmap:'Joint Distribution',regroup:'Regroupable Address',waveform:'Waveform Modulation'};
 const SECTIONS=Object.keys(SECTION_NAMES).filter(name=>$(name+'-page')&&$(name+'-card')&&$(name+'-tab'));
-let config = {U:4,dp:4,factors:null,temperature:0.85,duration:15,sectionDelay:0.5,heatmapScanDuration:15,regroupDuration:15,waveformRevealDuration:3.5,waveformScanDuration:12,waveformHeight:96,waveformGap:48,waveformAddressGap:8,treeExpandDuration:1,treePruneDuration:1.5,treeHoldDuration:1.5,topK:8,cardWidth:138,cardGap:25,upperGap:100,lowerGap:108,barGap:30,factorAspect:1.4,outputAspect:1,interactionAspect:1.8,factorPadding:10,factorPlotHeight:73,barRadiusRatio:6,frameRadiusRatio:4.5,barRadius:1.2,frameRadius:6,radius:6,animationRadius:20,lineRadius:6,spacing:25,height:130,treeNodeWidth:16,treeNodeHeight:16,treeNodeRadius:8,treeParentGapRatio:1.5,outputScale:'auto',uiFontScale:100,diagramFontScale:100,colors:[diagram.colors.indigo,diagram.colors.purple,diagram.colors.green,diagram.colors.gold],outputColor:diagram.colors.sky};
+let config = {U:4,dp:4,factors:null,temperature:0.85,duration:15,sectionDelay:0.5,heatmapScanDuration:15,regroupDuration:15,waveformRevealDuration:3.5,waveformScanDuration:12,waveformHeight:96,waveformGap:48,waveformAddressGap:8,treeExpandDuration:1,treePruneDuration:1.5,treeHoldDuration:1.5,topK:8,cardWidth:138,cardGap:25,upperGap:100,lowerGap:108,barGap:30,factorAspect:1.4,outputAspect:1,interactionAspect:1.8,factorPadding:10,factorPlotHeight:73,barRadiusRatio:6,frameRadiusRatio:4.5,barRadius:1.2,frameRadius:6,radius:6,animationRadius:20,lineRadius:6,spacing:25,height:130,treeNodeWidth:16,treeNodeHeight:16,treeNodeRadius:8,treeParentGapRatio:1.5,outputScale:'auto',uiFontScale:100,diagramFontScale:100,colors:[diagram.colors.green,diagram.colors.purple,diagram.colors.cyan,diagram.colors.gold],outputColor:diagram.colors.sky};
 let distributions = [], probabilities = [], groups = [], sourceNodes = [], routeNodes = [], addressNodes = [];
 let bars = [], binSize = 1, maxGroup = 1, outputScaleMax = 1, total = 256, bits = 2;
 let topBars = new Set();
@@ -512,7 +512,7 @@ function buildTreeScene() {
     });
     svg('line',{x1:layout.left,y1:baseline,x2:layout.right,y2:baseline,strokeRole:'frame',stroke:c,'stroke-opacity':.2},factor);
     const factorArrow=svg('path',{d:`M${fx+fw+12} ${y}H${fx+fw+30}m-5-4 5 4-5 4`,fill:'none',strokeRole:'arrow',stroke:c,'stroke-width':1.2,opacity:0},factor);
-    treeLayers.push({nodes,layer,revealClip,revealHeight,factor,factorBars,factorArrow,factorHalfHeight:fh/2,u});
+    treeLayers.push({nodes,layer,revealClip,revealHeight,factor,factorBars,factorArrow,u});
     beam=nodes.filter(node=>node.keep);
   }
   const max=Math.max(...beam.map(node=>node.p)),output=svg('g',{},scene);
@@ -528,20 +528,13 @@ function buildTreeScene() {
     treeOutputs.push(node);
   });
   treeOutputGroup=output;
-  const resultTop=rootY+config.U*rowGap+config.treeNodeHeight/2+4;
+  const scanStart=rootY+rowGap/2,scanEnd=scanStart+config.U*rowGap;
   const hit=svg('rect',{x:32,y:rootY-20,width:sceneWidth-64,height:height-rootY+20,fill:'transparent',style:'cursor:ns-resize',role:'presentation'},scene);
   const follow=event=>{
-    const local=scenePoint(scene,event),y=local.y;
-    const depth=Math.max(0,Math.min(config.U-1,Math.round((y-rootY)/rowGap)-1));
-    const nearFactor=local.x>=fx-20&&local.x<=fx+fw+20&&Math.abs(y-(rootY+(depth+1)*rowGap))<=treeLayers[depth].factorHalfHeight;
+    const y=scenePoint(scene,event).y;
     const outputAction=actions[config.U*2];
-    if(nearFactor) {
-      const start=actions[depth*2].start,end=actions[depth*2+1].end;
-      const position=(y-(rootY+(depth+1)*rowGap-treeLayers[depth].factorHalfHeight))/(treeLayers[depth].factorHalfHeight*2);
-      progress=start+(end-start)*Math.max(0,Math.min(1,position));
-    } else {
-      progress=y>=resultTop?(outputAction.start+outputAction.end)/2:Math.max(0,(y-rootY)/(resultTop-rootY))*outputAction.start;
-    }
+    progress=y>=scanEnd?(outputAction.start+outputAction.end)/2:
+      Math.max(0,Math.min(1,(y-scanStart)/(scanEnd-scanStart)))*outputAction.start;
     render();
   };
   bindInteractionRegion(hit,follow);
