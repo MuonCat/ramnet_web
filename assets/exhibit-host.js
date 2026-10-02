@@ -55,8 +55,10 @@
     host.dispatchEvent(new Event('ramnet:mounted'));
   }
 
-  hosts.forEach(host => mount(host).catch(error => {
-    console.error(error);
-    host.textContent = 'Unable to load this figure.';
-  }));
+  window.RamnetPaletteReady.then(() => {
+    hosts.forEach(host => mount(host).catch(error => {
+      console.error(error);
+      host.textContent = 'Unable to load this figure.';
+    }));
+  });
 })();

@@ -1,11 +1,12 @@
 window.RamnetAnimations ??= {};
 window.RamnetAnimations.ramnet_arch = function mount(scope) {
 const {document, requestAnimationFrame, cancelAnimationFrame} = scope;
+const palette=window.RamnetPalette;
 'use strict';
 const diagram=window.ramnetDiagramTheme;
 const $=id=>document.getElementById(id), canvas=$('scene'), ctx=canvas.getContext('2d');
 const W=1400,H=790,AX=435,AW=907;
-const C={ink:'#30383f',muted:'#797f75',line:'#bebdaf',paper:'transparent',purple:diagram.colors.purple,gold:diagram.colors.gold,v:diagram.colors.gold,gsu:diagram.colors.green,slot:diagram.colors.sky,mass:diagram.colors.blue,token:'#acb3b9',tokenDone:'#818c96',tokenSpent:'#d3cfc4',red:diagram.colors.red,link:'#879482',archPaper:'#f7f8f3',frame:'#dce4d5',bg:'#f3f4ef',accent:'#547963',highlight:'#f6f0e3'};
+const C={ink:palette.neutral(0),muted:palette.neutral(6),line:palette.neutral(11),paper:'transparent',purple:diagram.colors.purple,gold:diagram.colors.gold,v:diagram.colors.orange,gsu:diagram.colors.green,slot:diagram.colors.sky,mass:diagram.colors.indigo,token:palette.neutral(10),tokenDone:palette.neutral(7),tokenSpent:palette.neutral(12),red:diagram.colors.red,link:palette.neutral(7),archPaper:palette.mix(palette.neutral(16),palette.tone('green'),1/20),frame:palette.neutral(14),bg:palette.mix(palette.neutral(16),palette.tone('green'),2/20),accent:palette.mix(palette.color('paper'),palette.tone('green','ink'),17/20),highlight:palette.mix(palette.color('paper'),palette.neutral(16),9/20)};
 const actions=[
  ['linear projection','token 向上投影为 gate、γ、v、q、k。',1.5],
  ['k · Product Softmax','k 拆成 U 个列向量；各因子概率相乘，快速扫描全部地址，输出完整 w。',3],
@@ -99,11 +100,11 @@ function verticalLink(x,fromEdge,toEdge,color=C.link){const distance=Math.abs(to
 function circleAspect(){const t=ctx.getTransform();return Math.hypot(t.c,t.d)/Math.hypot(t.a,t.b);}
 function roundSymbol(x,y,draw){ctx.save();ctx.translate(x,y);ctx.scale(circleAspect(),1);draw();ctx.restore();}
 function circle(x,y,r,fill,stroke){ctx.beginPath();ctx.ellipse(x,y,r*circleAspect(),r,0,0,Math.PI*2);if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=params.lineWidth;ctx.stroke();}}
-function sigmoidSymbol(x,y,r=10,lit=0){roundSymbol(x,y,()=>{alpha(lit,()=>circle(0,0,r+5,C.purple+'40',C.purple));circle(0,0,r,C.paper,C.purple);alpha(lit,()=>circle(0,0,r,C.purple+'70',C.purple));curve([[-.7*r,.4*r],[.4*r,.4*r],[-.4*r,-.4*r],[.7*r,-.4*r]],C.purple);});}
+function sigmoidSymbol(x,y,r=10,lit=0,color=C.gold){roundSymbol(x,y,()=>{alpha(lit,()=>circle(0,0,r+5,color+'40',color));circle(0,0,r,C.paper,color);alpha(lit,()=>circle(0,0,r,color+'70',color));curve([[-.7*r,.4*r],[.4*r,.4*r],[-.4*r,-.4*r],[.7*r,-.4*r]],color);});}
 function dot(x,y,color,size=4){const r=size*params.trail;circle(x,y,r*3,color+'12');circle(x,y,r*1.7,color+'26');circle(x,y,r,color);circle(x-1,y-1,r*.3,C.highlight);}
 function along(points,t,color,size=4,glowTrim=16){let lengths=[],sum=0;for(let j=1;j<points.length;j++){const n=Math.hypot(points[j][0]-points[j-1][0],points[j][1]-points[j-1][1]);lengths.push(n);sum+=n;}const glowLength=sum-glowTrim;if(t>0&&t<1&&glowLength>1){const glow=[points[0]];let covered=0;for(let j=0;j<lengths.length;j++){if(covered+lengths[j]>=glowLength){const q=(glowLength-covered)/lengths[j];glow.push([mix(points[j][0],points[j+1][0],q),mix(points[j][1],points[j+1][1],q)]);break;}covered+=lengths[j];glow.push(points[j+1]);}ctx.save();ctx.globalAlpha*=.58;ctx.shadowColor=color;ctx.shadowBlur=10;path(glow,color,params.lineWidth+1);ctx.restore();}let d=clamp(t)*sum;for(let j=0;j<lengths.length;j++){if(d<=lengths[j]||j===lengths.length-1){const q=lengths[j]?d/lengths[j]:0;dot(mix(points[j][0],points[j+1][0],q),mix(points[j][1],points[j+1][1],q),color,size);break;}d-=lengths[j];}}
-const slotShade=value=>diagram.strength((value-.08)/.84),massShade=value=>diagram.strength(value/(1.6*params.initialMass));
-function vector(x,y,values,color,scale=1,vertical=true,opacity=1,shade=null){alpha(opacity,()=>{const width=9*scale,length=64*scale,strength=values.reduce((sum,v)=>sum+Math.abs(v),0)/values.length;alpha(shade??(diagram.strength(strength)),()=>box(x-(vertical?width:length)/2,y-(vertical?length:width)/2,vertical?width:length,vertical?length:width,color,null,params.cellRadius));});}
+const slotShade=value=>diagram.strength((value-.08)/.84,C.slot),massShade=value=>diagram.strength(value/(1.6*params.initialMass),C.mass);
+function vector(x,y,values,color,scale=1,vertical=true,opacity=1,shade=null){alpha(opacity,()=>{const width=9*scale,length=64*scale,strength=values.reduce((sum,v)=>sum+Math.abs(v),0)/values.length;alpha(shade??(diagram.strength(strength,color)),()=>box(x-(vertical?width:length)/2,y-(vertical?length:width)/2,vertical?width:length,vertical?length:width,color,null,params.cellRadius));});}
 function moduleBox(x,y,w,h,name,color,lit=false,radius=Math.min(params.panelRadius,12)){box(x,y,w,h,C.paper,null,radius);box(x,y,w,h,color+(lit?'18':'08'),lit?color:C.line,radius);label(name,x+w/2,y+h/2,lit?color:C.ink,16);}
 function moduleOpacity(start,end){const fade=params.moduleFade;return ease((elapsed-stageStart(start))/fade)*(1-ease((elapsed-stageStart(end))/fade));}
 function outsideShapes(shapes,draw){ctx.save();for(const shape of shapes){const mask=new Path2D();mask.rect(0,0,W,H);mask.addPath(shape);ctx.clip(mask,'evenodd');}draw();ctx.restore();}
@@ -168,13 +169,13 @@ function architecture(i,p){
  const linearArrival=(multiplyY-outputLinearY-36)/(multiplyY-30),linearGlow=i===13?phase(a,linearArrival,linearArrival+.1)*(1-phase(p,.9,1)):0;
  linear(linearShapes[5],210,outputLinearY,'Linear',linearGlow,36);
  panel(116,304,217,40,C.gsu,gsuGlow,6);label('Gated Sparse Update',224.5,324,C.gsu,16);
- outsideModules([[kX-45.5,454,91,70,params.panelRadius]],()=>panel(qX-45.5,readDecoderY,91,70,C.gold,decoderGlow(7)));panel(kX-45.5,454,91,70,C.gold,decoderGlow(1));label('Address',kX,478,C.gold,15);label('Decoder',kX,500,C.gold,15);
+ outsideModules([[kX-45.5,454,91,70,params.panelRadius]],()=>panel(qX-45.5,readDecoderY,91,70,params.readColor,decoderGlow(7)));panel(kX-45.5,454,91,70,params.writeColor,decoderGlow(1));label('Address',kX,478,params.writeColor,15);label('Decoder',kX,500,params.writeColor,15);
  const normArrival=(304-gap-normY-35)/(304-gap-multiplyY-15),normGlow=i===11?phase(phase(p,.05,.7),normArrival,normArrival+.1)*(1-phase(p,.9,1)):0;
  panel(174,normY,72,35,C.gold,normGlow);label('Norm',210,normY+17.5,C.gold,16);
  const multiplyGlow=arrivalGlow(12,.7);
- roundSymbol(210,multiplyY,()=>{alpha(multiplyGlow,()=>circle(0,0,15,C.purple+'40',C.purple));circle(0,0,8,C.paper,C.link);alpha(multiplyGlow,()=>circle(0,0,8,C.purple+'78',C.purple));path([[-4,-4],[4,4]],C.purple,1.5);path([[-4,4],[4,-4]],C.purple,1.5);});
- sigmoidSymbol(69,421,10,arrivalGlow(11,.69));
- for(const [cx,cy,stage] of [[qX,readCapeY,9],[kX,399,3]])roundSymbol(cx,cy,()=>{const lit=arrivalGlow(stage,.29);alpha(lit,()=>circle(0,0,16,C.gold+'40',C.gold));circle(0,0,10,C.paper,C.gold);alpha(lit,()=>circle(0,0,10,C.gold+'85',C.gold));curve([[-7,0],[-4,-8],[-1,-8],[1,0]],C.gold);curve([[1,0],[3,8],[5,8],[7,0]],C.gold);});
+ roundSymbol(210,multiplyY,()=>{alpha(multiplyGlow,()=>circle(0,0,15,C.purple+'40',C.purple));circle(0,0,8,C.paper,C.purple);alpha(multiplyGlow,()=>circle(0,0,8,C.purple+'78',C.purple));path([[-4,-4],[4,4]],C.purple,1.5);path([[-4,4],[4,-4]],C.purple,1.5);});
+ sigmoidSymbol(69,421,10,arrivalGlow(11,.69),C.purple);
+ for(const [cx,cy,stage,color] of [[qX,readCapeY,9,params.readColor],[kX,399,3,params.writeColor]])roundSymbol(cx,cy,()=>{const lit=arrivalGlow(stage,.29);alpha(lit,()=>circle(0,0,16,color+'40',color));circle(0,0,10,C.paper,color);alpha(lit,()=>circle(0,0,10,color+'85',color));curve([[-7,0],[-4,-8],[-1,-8],[1,0]],color);curve([[1,0],[3,8],[5,8],[7,0]],color);});
 }
 function memoryRow(i,p,view){
  const writeProgress=i<6?0:i===6?phase(p,.7,.96):1,readSelection=i===10?1-phase(p,.84,.9):0;
@@ -193,7 +194,7 @@ function gsuModules(i,p,view,connectors=false){
  const top=194+params.memoryGap,wProgress=i===4?phase(p,.65,.94):i>4?1:0,etaProgress=i===5?phase(p,.62,.92):i>5?1:0;
  const weights=data.wk.map(j=>data.w[j]),rates=data.wk.map(j=>data.eta[j]),wMin=Math.min(...weights),wMax=Math.max(...weights),etaMin=Math.min(...rates),etaMax=Math.max(...rates);
  const relative=(value,min,max)=>max-min>1e-9?(value-min)/(max-min):.5;
- alpha(fade,()=>clipAddresses(()=>{for(const j of data.wk){const x=view.x(data.dest(j)),width=Math.min(28,view.cell,view.step-2*params.lineWidth-4);if(x<AX-width||x>AX+AW+width)continue;if(connectors){const gap=Math.min(params.connectorGap,(top-197-5)/2),start=top-gap,end=197+gap;arrow([[x,start],[x,end]],C.slot,Math.min(6,(start-end)*.6));}else {const weighted=data.w[j]*data.N,weightDepth=.28+.6*(.5*Math.sqrt(weighted/(weighted+3))+.5*relative(data.w[j],wMin,wMax)),rate=data.eta[j],etaDepth=.28+.6*(.5*Math.sqrt(rate/(rate+.22))+.5*relative(rate,etaMin,etaMax)),depth=mix(.18,mix(weightDepth,etaDepth,etaProgress),wProgress);verticalModule(x,top,width,78,'GSU',C.gsu,depth,4);}}}));
+ alpha(fade,()=>clipAddresses(()=>{for(const j of data.wk){const x=view.x(data.dest(j)),width=Math.min(28,view.cell,view.step-2*params.lineWidth-4);if(x<AX-width||x>AX+AW+width)continue;if(connectors){const gap=Math.min(params.connectorGap,(top-197-5)/2),start=top-gap,end=197+gap;arrow([[x,start],[x,end]],C.slot,Math.min(6,(start-end)*.6));}else {const weighted=data.w[j]*data.N,weightDepth=.28+.6*(.5*palette.weight(weighted/(weighted+3),C.gsu)+.5*relative(data.w[j],wMin,wMax)),rate=data.eta[j],etaDepth=.28+.6*(.5*palette.weight(rate/(rate+.22),C.gsu)+.5*relative(rate,etaMin,etaMax)),depth=mix(.18,mix(weightDepth,etaDepth,etaProgress),wProgress);verticalModule(x,top,width,78,'GSU',C.gsu,depth,4);}}}));
 }
 const sources=[{x:490,c:()=>C.purple,label:'gate'},{x:656,c:()=>C.purple,label:'γ'},{x:820,c:()=>C.v,label:'v'},{x:1035,c:()=>params.readColor,label:'q'},{x:1200,c:()=>params.writeColor,label:'k'}];
 function inputs(i,p){
@@ -222,7 +223,7 @@ function product(i,p,view){
   const partHeight=73.6/params.U,strength=values.reduce((sum,v)=>sum+Math.abs(v),0)/values.length;
   factors.forEach((_,u)=>{
    const offset=u-(params.U-1)/2,x=963-offset*params.subvecSpacing*spread,y=mix(centerY+offset*partHeight*.72,centerY,subvecRise),height=mix(partHeight-2*cut,46,subvecGrow),width=params.U===1?mix(10.35,8,spread):Math.min(mix(10.35,8,spread),Math.max(0,params.subvecSpacing*spread-2)),fc=color;
-   alpha(cut*(diagram.strength(strength)),()=>box(x-width/2,y-height/2,width,height,fc,null,Math.min(params.cellRadius,3)));
+   alpha(cut*(diagram.strength(strength,color)),()=>box(x-width/2,y-height/2,width,height,fc,null,Math.min(params.cellRadius,3)));
    const digit=Math.floor(scanIndex/params.dp**u)%params.dp,nextDigit=Math.floor(Math.min(scanIndex+1,data.N-1)/params.dp**u)%params.dp,position=mix(digit,nextDigit,ease(scan*data.N%1)),scanY=centerY-23+(position+.5)*46/params.dp;
    alpha(inProduct?phase(p,.65,.68):1,()=>box(x-11,scanY-1.25,22,2.5,fc,null,1));
   });
@@ -236,7 +237,7 @@ function product(i,p,view){
    const dest=mod(j-shift,data.N),x=view.x(dest);if(x<AX-view.step||x>AX+AW+view.step)continue;
    const s=Math.min(view.cell,35);
    if(!selected&&(pruning||cape||lifting))alpha(remove*.6*(lifting?1-phase(p,0,.75):1),()=>{ctx.setLineDash([4,4]);box(x-s/2,rowY-s/2,s,s,null,color,params.cellRadius);ctx.setLineDash([]);});
-   alpha(a,()=>{alpha(.13+.87*Math.sqrt(dist[j]/max),()=>box(x-s/2,rowY-s/2,s,s,color,null,params.cellRadius));
+   alpha(a,()=>{alpha(diagram.strength(dist[j]/max,color),()=>box(x-s/2,rowY-s/2,s,s,color,null,params.cellRadius));
     if(pruning&&!selected){const cross=phase(p,.06,.32)*(1-remove);alpha(cross,()=>{const h=Math.min(9,s*.31);path([[x-h,rowY-h],[x+h,rowY+h]],C.red,2);path([[x-h,rowY+h],[x+h,rowY-h]],C.red,2);});}
     if(inProduct&&j===scanIndex)box(x-s/2-3,rowY-s/2-3,s+6,s+6,null,color,params.cellRadius);
     if(lifting&&selected){const cellTop=rowY-s/2,gap=Math.min(params.connectorGap,Math.max(2,(cellTop-gsuBottom-5)/2)),startY=cellTop-gap,endY=gsuBottom+gap;if(startY>endY+3){ctx.save();ctx.shadowColor=color;ctx.shadowBlur=10;arrow([[x,startY],[x,endY]],color+'99',Math.min(6,(startY-endY)*.6));ctx.restore();}}
@@ -283,12 +284,12 @@ function readout(i,p,view){
   clipAddresses(()=>{
    alpha(.6*(1-phase(p,0,.22)),()=>{ctx.setLineDash([4,4]);for(let j=0;j<data.N;j++){if(data.rk.includes(j))continue;const px=view.x(data.dest(j));if(px<AX-size||px>AX+AW+size)continue;box(px-size/2,rowY-size/2,size,size,null,params.readColor,params.cellRadius);}ctx.setLineDash([]);});
    for(const j of data.rk){
-    const id=data.dest(j),sx=view.x(id),weight=data.r[j],lineStart=rowY+size/2+params.connectorGap+params.lineWidth/2,bend=Math.min(55,(lineEnd-lineStart)*.38),route=[[sx,lineStart],[sx,lineStart+bend],[oX,lineEnd-bend],[oX,lineEnd]],point=merge>0?curveToVertical(route,merge,oY):{x:sx,y:mix(157,lineStart,drop)},attenuate=phase(p,.43,.55),strength=Math.sqrt(weight/max);
+    const id=data.dest(j),sx=view.x(id),weight=data.r[j],lineStart=rowY+size/2+params.connectorGap+params.lineWidth/2,bend=Math.min(55,(lineEnd-lineStart)*.38),route=[[sx,lineStart],[sx,lineStart+bend],[oX,lineEnd-bend],[oX,lineEnd]],point=merge>0?curveToVertical(route,merge,oY):{x:sx,y:mix(157,lineStart,drop)},attenuate=phase(p,.43,.55),strength=palette.weight(weight/max,params.readColor);
     alpha(fade*phase(p,.42,.5),()=>{ctx.save();ctx.shadowColor=color;ctx.shadowBlur=11;curve(route,color+'55');ctx.restore();});
     const visible=phase(p,.2,.26)*fade,values=data.updated[id].map(v=>v*mix(1,weight,attenuate));
     vector(point.x,point.y,values,color,mix(.65,1.15,merge),true,visible*mix(1,.25+.75*strength,attenuate));
    }
-   alpha(fade,()=>{for(const j of data.rk){const x=view.x(data.dest(j));box(x-size/2,rowY-size/2,size,size,C.paper,null,params.cellRadius);alpha(.2+.8*Math.sqrt(data.r[j]/max),()=>box(x-size/2,rowY-size/2,size,size,params.readColor,null,params.cellRadius));}});
+   alpha(fade,()=>{for(const j of data.rk){const x=view.x(data.dest(j));box(x-size/2,rowY-size/2,size,size,C.paper,null,params.cellRadius);alpha(diagram.strength(data.r[j]/max,params.readColor),()=>box(x-size/2,rowY-size/2,size,size,params.readColor,null,params.cellRadius));}});
   });
  }
  const visible=i===10?phase(p,.84,.9):1-ease((elapsed-(stageStart(14)-.3))/.3),normalized=phase(x,normX-17,normX+17),outputBlend=i===13?p:0;

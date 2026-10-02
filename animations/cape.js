@@ -1,6 +1,7 @@
 window.RamnetAnimations ??= {};
 window.RamnetAnimations.cape = function mount(scope) {
 const {document, requestAnimationFrame, cancelAnimationFrame} = scope;
+const palette=window.RamnetPalette;
 'use strict';
 const diagram=window.ramnetDiagramTheme;
 // This diagram isolates address overlap; it does not simulate PDMA or memory normalization.
@@ -8,6 +9,8 @@ const diagram=window.ramnetDiagramTheme;
 const $ = id => document.getElementById(id);
 const editorHeight=294,minimumSegment=8,minimumProbability=minimumSegment/editorHeight;
 const params = {N:8,T:24,writeConcentration:.65,readConcentration:.65,writeBase:null,readBase:null,writeOverride:null,readOverrideCape:0,duration:22,writeDuration:6,readDuration:2,capeDuration:2,readAdjustDuration:6,writeAdjustDuration:6,aspectRatio:1.8,fontScale:1.25,gap:6,cellRadius:4,panelRadius:18,intensity:1};
+const grayRange=palette.ranges.capeTokenGray;
+const tokenGray={pending:`hsl(0 0% ${palette.scale(grayRange,0)}%)`,done:`hsl(0 0% ${palette.scale(grayRange,.5)}%)`,active:`hsl(0 0% ${palette.scale(grayRange,1)}%)`};
 let progress=0, playing=true, previous=0, hovered=-1, roundMotion;
 let hoverPaused=false, capeOverride=null, capeTransition=null;
 let distributionDrag=null;
@@ -96,7 +99,7 @@ function model(p){
  const response=columns.map(column=>column.reduce((sum,x,i)=>sum+x*read[i],0));
  return {write,read,columns,response,cape,writeProgress:clamp(stageProgress(p,0)/.9375)*params.T,readAlpha:ramp(stageProgress(p,1),1/24,3/8),responseAlpha:ramp(stageProgress(p,1),7/24,5/8)};
 }
-const colors={red:diagram.colors.red,green:diagram.colors.green,gray:'#7e897a'};
+const colors={red:diagram.colors.red,green:diagram.colors.green,gray:palette.neutral(6)};
 function color(name,value){const c=colors[name],f=clamp(value*params.intensity);return diagram.rgba(c,f*diagram.alpha.strong)}
 const svgNS='http://www.w3.org/2000/svg';
 let nodes,geometry;
@@ -114,7 +117,7 @@ function createDistributionEditor(parent,side,x,y,height){
  const group=element('g',{class:'dist-editor','aria-label':side==='write'?'Write distribution editor':'Read distribution editor'},parent);
  const tone=side==='write'?'red':'green',editor={x,y,height,segments:[],dividers:[]},gripScale=height/editorHeight;
  const clip=element('clipPath',{id:side+'-dist-clip'},group);
- rect(clip,x,y,22,height,'#fff');
+ rect(clip,x,y,22,height,palette.neutral(16));
  const fills=element('g',{'clip-path':`url(#${side}-dist-clip)`},group);
  for(let i=0;i<params.N;i++){
   const segment=element('rect',{x,y,width:22,height:0,fill:color(tone,.35+.6*i/(params.N-1)),class:'dist-segment',tabindex:window.ramnetCompactInteractions.matches?-1:0,role:'slider','aria-label':`${side==='write'?'Write':'Read'} address ${i} weight`,'aria-orientation':'horizontal','aria-valuemin':minimumProbability*100,'aria-valuemax':(1-(params.N-1)*minimumProbability)*100},fills);
@@ -126,7 +129,7 @@ function createDistributionEditor(parent,side,x,y,height){
  for(let i=0;i<params.N-1;i++){
   const divider=element('g',{class:'dist-divider',tabindex:window.ramnetCompactInteractions.matches?-1:0,role:'slider','aria-label':`${side==='write'?'Write':'Read'} boundary between addresses ${i} and ${i+1}`,'aria-orientation':'vertical'},group);
   element('rect',{x:-7,y:-3*gripScale,width:36,height:6*gripScale,fill:'transparent'},divider);
-  element('rect',{x:-3,y:-2*gripScale,width:28,height:4*gripScale,rx:2*gripScale,fill:'#e8e2d3',stroke:color(tone,.9),class:'dist-grip'},divider);
+  element('rect',{x:-3,y:-2*gripScale,width:28,height:4*gripScale,rx:2*gripScale,fill:palette.color('paper'),stroke:color(tone,.9),class:'dist-grip'},divider);
   path(divider,'M 7 0 H 15',color(tone,.9),1.2,{'pointer-events':'none'});
   element('title',{},divider).textContent='Drag vertically to adjust adjacent address weights';
   bindDistributionDrag(divider,side,'divider',i);
@@ -234,15 +237,15 @@ function layoutScene(){
  geometry={cell,row,pitch,rowPitch,x,y,left,right,tokenY,responseY,gridWidth,gridHeight,distHeight};
  const svg=$('scene');svg.setAttribute('viewBox',`0 0 1000 ${sceneHeight}`);svg.replaceChildren();
  const defs=element('defs',{},svg),arrow=element('marker',{id:'axis-arrow',viewBox:'0 0 6 6',refX:5,refY:3,markerWidth:5,markerHeight:5,orient:'auto'},defs);
- element('path',{d:'M 0 0 L 6 3 L 0 6 Z',fill:'#899780'},arrow);
+ element('path',{d:'M 0 0 L 6 3 L 0 6 Z',fill:palette.neutral(7)},arrow);
  const guide=element('g',{},svg);
  label(guide,x+gridWidth/2,tokenY-labelGap,'tokens','annotation','middle','bottom');
  label(guide,left+(cell-53)/2,distY-labelGap,'write dist','annotation','middle','bottom');
  label(guide,x+gridWidth/2,y-labelGap,'write trace','annotation','middle','bottom');
- path(guide,`M ${x-12} ${y} V ${y+gridHeight}`,'#98a38f',1.2,{'marker-end':'url(#axis-arrow)'});
+ path(guide,`M ${x-12} ${y} V ${y+gridHeight}`,palette.neutral(8),1.2,{'marker-end':'url(#axis-arrow)'});
  const slotLabel=label(guide,x-20,y+gridHeight/2,'slot','axis-label','middle','bottom');
  slotLabel.setAttribute('transform',`rotate(-90 ${x-20} ${y+gridHeight/2})`);
- path(guide,`M ${x} ${y+gridHeight+18} H ${x+gridWidth}`,'#98a38f',1.2,{'marker-end':'url(#axis-arrow)'});
+ path(guide,`M ${x} ${y+gridHeight+18} H ${x+gridWidth}`,palette.neutral(8),1.2,{'marker-end':'url(#axis-arrow)'});
  label(guide,x+gridWidth+labelGap,y+gridHeight+18,'time','axis-label','start','center');
  const matrix=element('g',{},svg),tokens=element('g',{},svg),writeGroup=element('g',{},svg);
  const readGroup=element('g',{},svg),responseGroup=element('g',{},svg),overlay=element('g',{'pointer-events':'none'},svg);
@@ -257,10 +260,10 @@ function layoutScene(){
  nodes.readEditor=createDistributionEditor(readGroup,'read',right+64,distY,distHeight);
  for(let t=0;t<T;t++){
   const cx=x+t*pitch;
-  nodes.tokens.push(rect(tokens,cx,tokenY,cell,cell,'#d3cfc4','#bdbdad'));
+  nodes.tokens.push(rect(tokens,cx,tokenY,cell,cell,tokenGray.pending,`hsl(0 0% ${grayRange.border}%)`));
   const tokenIndex=label(tokens,cx+cell/2,tokenY+cell/2,String(t),'token-index');
   tokenIndex.setAttribute('dominant-baseline','central');tokenIndex.style.fontSize=Math.min(15*params.fontScale,cell*.7)+'px';
-  const column=[];for(let i=0;i<N;i++)column.push(rect(matrix,cx,y+i*rowPitch,cell,row,'none','#bdbdad'));nodes.cells.push(column);
+  const column=[];for(let i=0;i<N;i++)column.push(rect(matrix,cx,y+i*rowPitch,cell,row,'none',palette.neutral(11)));nodes.cells.push(column);
   const slot=rect(responseGroup,cx,responseY,cell,cell,diagram.rgba(diagram.colors.green,diagram.alpha.surface),diagram.rgba(diagram.colors.green,diagram.alpha.border));nodes.responses.push(slot);
   nodes.bars.push(rect(responseGroup,cx,responseY-5,cell,0,diagram.colors.green));
   const hit=rect(svg,cx,tokenY-8,cell,responseY+cell-tokenY+16,'transparent');hit.style.cursor='crosshair';hit.setAttribute('class','column-hit');
@@ -284,8 +287,8 @@ function layoutScene(){
  capeLabel.setAttribute('x',capeLeft-capeLabelBox.x);
  const capeHitHeight=window.ramnetCompactInteractions.matches?120:40;
  nodes.capeHit=rect(capeControl,capeLeft-10,capeY-capeHitHeight/2,capeLabelBox.width+capeGap+capeWidth+20,capeHitHeight,'transparent');nodes.capeHit.setAttribute('class','cape-hit');
- nodes.capeTrack=element('rect',{x:capeX,y:capeY-capeHeight/2,width:capeWidth,height:capeHeight,rx:capeHeight/2,fill:'#b0b7a7',class:'cape-track'},capeControl);
- nodes.capeThumb=element('circle',{cx:capeX+capeHeight/2,cy:capeY,r:6,fill:'#e8e2d3'},capeControl);
+ nodes.capeTrack=element('rect',{x:capeX,y:capeY-capeHeight/2,width:capeWidth,height:capeHeight,rx:capeHeight/2,fill:palette.neutral(10),class:'cape-track'},capeControl);
+ nodes.capeThumb=element('circle',{cx:capeX+capeHeight/2,cy:capeY,r:6,fill:palette.color('paper')},capeControl);
  geometry.capeStart=capeX+capeHeight/2;geometry.capeTravel=capeWidth-capeHeight;
  capeControl.addEventListener('click',toggleCape);
  capeControl.addEventListener('keydown',event=>{if(event.code==='Space'||event.code==='Enter'){event.preventDefault();toggleCape()}});
@@ -296,19 +299,19 @@ function render(){
  if(key!==layoutKey){layoutKey=key;hovered=-1;layoutScene()}
  const m=model(progress),g=geometry,{N,T}=params;
  renderDistributionEditor(nodes.writeEditor,m.write);renderDistributionEditor(nodes.readEditor,m.read);
- const peak=Math.max(...m.write,...m.read,.001),strength=v=>Math.pow(clamp(v/peak),.72);
+ const peak=Math.max(...m.write,...m.read,.001),strength=(v,tone)=>palette.weight(v/peak,tone);
  const complete=Math.floor(m.writeProgress),fraction=m.writeProgress-complete;
  for(let i=0;i<N;i++){
-  nodes.left[i].setAttribute('fill',color('red',.08+.92*strength(m.write[i])));
-  nodes.right[i].setAttribute('fill',color('green',.08+.92*strength(m.read[i])));
+  nodes.left[i].setAttribute('fill',color('red',.08+.92*strength(m.write[i],colors.red)));
+  nodes.right[i].setAttribute('fill',color('green',.08+.92*strength(m.read[i],colors.green)));
  }
  const responseScale=Math.max(...m.response,.00001);
  for(let t=0;t<T;t++){
   const reveal=t<complete?1:0;
-  nodes.tokens[t].setAttribute('fill',t===complete&&complete<T?'#a4af99':t<complete?'#c2c8b8':'#d3cfc4');
-  for(let i=0;i<N;i++)nodes.cells[t][i].setAttribute('fill',color('red',reveal*(.04+.96*strength(m.columns[t][i]))));
+  nodes.tokens[t].setAttribute('fill',t===complete&&complete<T?tokenGray.active:t<complete?tokenGray.done:tokenGray.pending);
+  for(let i=0;i<N;i++)nodes.cells[t][i].setAttribute('fill',color('red',reveal*(.04+.96*strength(m.columns[t][i],colors.red))));
   const a=m.response[t]/responseScale;
-  nodes.responses[t].setAttribute('fill',color('green',.06+.94*a));
+  nodes.responses[t].setAttribute('fill',color('green',.06+.94*palette.weight(a,colors.green)));
   const barHeight=2+18*a;nodes.bars[t].setAttribute('height',barHeight);nodes.bars[t].setAttribute('y',g.responseY-8-barHeight);
  }
  nodes.readGroup.setAttribute('opacity',m.readAlpha);nodes.responseGroup.setAttribute('opacity',m.responseAlpha);
@@ -329,7 +332,7 @@ function render(){
   nodes.copyCells.forEach((cell,i)=>{
    cell.setAttribute('x',copyX);
    cell.setAttribute('fill',color('red',lerp(.08+.92*strength(copied[i]),.04+.96*strength(copied[i]),travel)));
-   cell.setAttribute('stroke',travel<1?diagram.rgba(diagram.colors.red,diagram.alpha.border):'#bdbdad');
+   cell.setAttribute('stroke',travel<1?diagram.rgba(diagram.colors.red,diagram.alpha.border):palette.neutral(11));
   });
  }
  nodes.inspect.replaceChildren();

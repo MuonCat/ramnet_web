@@ -1,10 +1,11 @@
 window.RamnetAnimations ??= {};
 window.RamnetAnimations.attn_cmp = function mount(scope) {
 const {document, requestAnimationFrame, cancelAnimationFrame} = scope;
+const palette=window.RamnetPalette;
 'use strict';
 const diagram=window.ramnetDiagramTheme;
     const $ = id => document.getElementById(id);
-    const params = {sceneAspectRatio:4,count:20,ratio:.2,height:88,outputHeightRatio:1,outputGap:6,gap:8,distance:320,cachePadding:17,endpointGap:8,radius:3,lineWidth:2.8,panelRadius:18,framePadding:6,selectionOpacity:24,compressionRatio:.25,comparisonGap:32,backgroundPadding:16,sparseGroupSize:4,sparseGroupGap:24,linearCacheCount:4,ramnetCacheCount:12,ramnetTopK:2,red:diagram.colors.red,green:diagram.colors.green,gray:'#d3cfc4',processedColor:'#939b94',fullColor:diagram.colors.pink,compressedColor:diagram.colors.purple,sparseColor:diagram.colors.gold,linearColor:diagram.colors.green,ramnetColor:diagram.colors.sky,packetOpacity:diagram.alpha.strong*100,overlapFade:128,writeTime:.3,scanTime:.1,readTime:.3,blankTime:.1};
+    const params = {sceneAspectRatio:4,count:20,ratio:.2,height:88,outputHeightRatio:1,outputGap:6,gap:8,distance:320,cachePadding:17,endpointGap:8,radius:3,lineWidth:2.8,panelRadius:18,framePadding:6,selectionOpacity:24,compressionRatio:.25,comparisonGap:32,backgroundPadding:16,sparseGroupSize:4,sparseGroupGap:24,linearCacheCount:4,ramnetCacheCount:12,ramnetTopK:2,red:diagram.colors.red,green:diagram.colors.green,gray:palette.neutral(12),processedColor:palette.neutral(8),fullColor:diagram.colors.pink,compressedColor:diagram.colors.gold,sparseColor:diagram.colors.orange,linearColor:diagram.colors.purple,ramnetColor:diagram.colors.sky,packetOpacity:diagram.alpha.strong*100,overlapFade:128,writeTime:.3,scanTime:.1,readTime:.3,blankTime:.1};
     let actions = [], total = 0, time = 0, playing = true, lastStamp = null, currentIndex = -1, geometries=[];
     let randomState=Date.now()>>>0||1;
     const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
@@ -100,9 +101,9 @@ const diagram=window.ramnetDiagramTheme;
         const fixedCount=panel.ramnet?params.ramnetCacheCount:params.linearCacheCount;
 
         const content=svgElement('g',{transform:`translate(0,${offsetY})`},root);
-        svgElement('rect',{x:0,y:0,width:viewW,height:viewH,rx:params.panelRadius,fill:mix('#e8e2d3',panel.base,diagram.alpha.surface),stroke:mix('#e8e2d3',panel.base,diagram.alpha.border),'stroke-width':2,class:'mechanism-card'},content);
+        svgElement('rect',{x:0,y:0,width:viewW,height:viewH,rx:params.panelRadius,fill:mix(palette.color('paper'),panel.base,diagram.alpha.surface),stroke:mix(palette.color('paper'),panel.base,diagram.alpha.border),'stroke-width':2,class:'mechanism-card'},content);
         svgElement('text',{x:viewW/2,y:outer+62,class:'panel-title',fill:diagram.text(panel.base),'text-anchor':'middle'},content).textContent=panel.label;
-        const description=svgElement('text',{class:'panel-description',fill:'#555e59','text-anchor':'middle'},content);
+        const description=svgElement('text',{class:'panel-description',fill:palette.neutral(3),'text-anchor':'middle'},content);
         panel.description.forEach((line,index)=>svgElement('tspan',{x:viewW/2,y:cacheY+h+cacheMargin+66+index*40},description).textContent=line);
         const layers={};for(const name of ['backdrop','links','tokens','module','packets'])layers[name]=svgElement('g',{},content);
         const g={w,h,outputH,outputY,cacheW,x,y,center:viewW/2,cacheX:viewW/2,cacheY,colors,root,sparse:!!panel.sparse,linear:!!panel.linear,ramnet:!!panel.ramnet,rects:[],outputs:[],caches:[],paths:[],packets:[],selections:[],tokenObstacles:[],obstacles:[]};

@@ -1,10 +1,11 @@
 window.RamnetAnimations ??= {};
 window.RamnetAnimations.gsu = function mount(scope) {
 const {document, requestAnimationFrame, cancelAnimationFrame} = scope;
+const palette=window.RamnetPalette;
 'use strict';
 const diagram=window.ramnetDiagramTheme;
 const $=id=>document.getElementById(id), canvas=$('scene'), ctx=canvas.getContext('2d');
-const colors={mass:diagram.colors.indigo,weight:diagram.colors.red,state:diagram.colors.sky,gold:diagram.colors.gold,alpha:diagram.colors.purple,eta:diagram.colors.green,gamma:diagram.colors.purple,bg:'#f3f2ee',paper:'#eee8db',plot:'#f6f0e3',ink:'#30383f',muted:'#85877f',line:'#c4bdaf',dots:'#e5e8df'};
+const colors={mass:diagram.colors.indigo,weight:diagram.colors.red,state:diagram.colors.sky,value:diagram.colors.orange,alpha:diagram.colors.purple,eta:diagram.colors.pink,gamma:diagram.colors.purple,bg:palette.mix(palette.color('paper'),palette.neutral(16),12/20),paper:palette.mix(palette.color('paper'),palette.neutral(16),4/20),plot:palette.mix(palette.color('paper'),palette.neutral(16),9/20),ink:palette.neutral(0),muted:palette.neutral(6),line:palette.neutral(11),dots:palette.neutral(14)};
 const actions=['输入 w','门控映射','调节 γ','衰减 m','写入 w','计算 η','输入 v','更新 s','回收状态'];
 const contentHeight=800,inputRowY=76,etaMoveSeconds=1.2,etaHoldSeconds=1;
 let sceneOffset=0,sceneHeight=contentHeight;
@@ -12,7 +13,7 @@ const slotPrepareSpan=.38*(.5-Math.sin(Math.asin(1-2*.22)/3)),slotPrepareDelay=s
 const minimumDurations=config=>[1,2.95,0,3,4,0,1+2.5*(1+slotPrepareDelay),4.2,2.5].map((factor,i)=>Math.max(1,Math.ceil((i===5?2*config.fadeDuration+etaMoveSeconds+etaHoldSeconds:factor*config.fadeDuration)*10-1e-9)/10));
 function fitDurations(config){const minimum=minimumDurations(config);config.durations=config.durations.map((value,i)=>Math.max(value,minimum[i]));}
 const progressGroups=[{name:'calculate α',color:'alpha',start:0,end:3},{name:'update mass',color:'mass',start:3,end:5,stop:.5},{name:'calculate η',color:'eta',start:5,end:6},{name:'update slot',color:'state',start:6,end:9,stopAction:7}];
-const params={colors:{...colors},n:8,initialMass:0.8,epsilon:0.0001,concentration:0.5,gammaRange:3.5,aspectRatio:1.95,retainedGap:200,columnSpacing:0.55,slotGap:7,cellRadius:6,panelRadius:22,spacing:20,lineWidth:2.2,vectorScale:0.94,massContrast:1.6,fadeDuration:1.2,interactionExitDelay:3,canvasExitDelay:1,durations:[1.5,3.6,4,3.6,4.8,4.6,4.4,5.1,3]};
+const params={colors:{...colors},n:8,initialMass:0.8,epsilon:0.0001,concentration:0.5,gammaRange:3.5,aspectRatio:1.95,retainedGap:200,columnSpacing:0.55,slotGap:7,cellRadius:6,panelRadius:22,spacing:20,lineWidth:2.2,vectorScale:0.94,fadeDuration:1.2,interactionExitDelay:3,canvasExitDelay:1,durations:[1.5,3.6,4,3.6,4.8,4.6,4.4,5.1,3]};
 let elapsed=0,playing=true,lastFrame=0,activeAction=-1,roundData,gammaOverride=null;
 let sceneWidth=sceneHeight*params.aspectRatio;
 let checkpoint=null,hitRegions=[],hoverVector=null,drag=null,pointerPosition=null,resumeAfterHover=false,hoverTarget=null,hoverExitTimer,hoverExitZone=null,gammaDragging=false;
@@ -59,7 +60,7 @@ function blendGeometry(a,b,t){return {x:mix(a.x,b.x,t),y:mix(a.y,b.y,t),w:mix(a.
 function rotatedSlotCells(source,row,t,layout,kind){const prepare=phase(t,0,.22),angle=phase(t,.22,.8)*Math.PI/2,expand=phase(t,.78,1),sin=Math.sin(angle),cos=Math.cos(angle),pitch=Math.min(68,400/Math.max(1,params.n-1)),compactCell=Math.min(layout.eta.cell,48,(pitch-4)/Math.SQRT2),cell=mix(mix(source.cell,compactCell,prepare),row.cell,expand),cx=layout.stateRow.x+layout.stateRow.width/2,cy=(layout.stateRow.y+layout.etaRow.y)/2,side=kind==='eta'?64:-64;
  // Rotate both compact columns together, then spread and enlarge the horizontal rows.
  return Array.from({length:params.n},(_,j)=>{const offset=(j-(params.n-1)/2)*pitch,rx=cx+cos*side+sin*offset,ry=cy-sin*side+cos*offset,x=mix(mix(source.x+source.w/2,rx,prepare),row.x+row.cell/2+j*row.pitch,expand),y=mix(mix(source.cy(j),ry,prepare),row.y,expand);return {x:x-cell/2,y:y-cell/2,w:cell,h:cell,moving:t<1};});}
-function column(g,values,name,color,opacity=1,scale=1,editable=name==='η'?'eta':name,mass=false){fade(opacity,()=>{if(name)label(name,g.x+g.w/2,g.y-27,color,25);values.forEach((v,j)=>{const strength=clamp(v/scale),fill=diagram.strength(mass?Math.pow(strength,params.massContrast):strength);box(g.x,g.cy(j)-g.cell/2,g.w,g.cell,rgba(color,fill),rgba(color,diagram.alpha.border));});});const i=locationAt().i;if(opacity===1&&((editable==='m'&&(values===roundData.m||i===5)||editable==='w')&&i<6||editable==='eta'&&(i===6||i===7)))registerColumn(g,editable,values===roundData.m?'input':'output');}
+function column(g,values,name,color,opacity=1,scale=1,editable=name==='η'?'eta':name){fade(opacity,()=>{if(name)label(name,g.x+g.w/2,g.y-27,color,25);values.forEach((v,j)=>{const fill=diagram.strength(clamp(v/scale),color);box(g.x,g.cy(j)-g.cell/2,g.w,g.cell,rgba(color,fill),rgba(color,diagram.alpha.border));});});const i=locationAt().i;if(opacity===1&&((editable==='m'&&(values===roundData.m||i===5)||editable==='w')&&i<6||editable==='eta'&&(i===6||i===7)))registerColumn(g,editable,values===roundData.m?'input':'output');}
 function columnLinks(a,b,color,p=1){for(let j=0;j<params.n;j++)arrow(a.x+a.w+8,a.cy(j),b.x-8,b.cy(j),rgba(color,diagram.alpha.link),p);}
 function rightLinks(a,b,color,p=1){for(let j=0;j<params.n;j++)arrow(a.x-8,a.cy(j),b.x+b.w+8,b.cy(j),rgba(color,diagram.alpha.link),p);}
 function vectorMap(g,points){const xs=[0,...points.map(s=>s.x)],ys=[0,...points.map(s=>s.y)],xmin=Math.min(...xs),xmax=Math.max(...xs),ymin=Math.min(...ys),ymax=Math.max(...ys),span=Math.max(xmax-xmin,ymax-ymin,1e-6),scale=g.w*.76*params.vectorScale/span;return s=>({x:g.x+g.w/2+(s.x-(xmin+xmax)/2)*scale,y:g.y+g.h/2-(s.y-(ymin+ymax)/2)*scale});}
@@ -83,40 +84,40 @@ function gatePlot(gamma,alpha,p,opacity){fade(opacity,()=>{const {x,y,size:w}=ga
  line(px,py,px+pw,py+ph,rgba(colors.muted,.7),1,[5,5]);
  ctx.beginPath();ctx.moveTo(px,py+ph);for(let k=0;k<=200;k++){const a=k/200,b=(1-a)/(1-a+a*Math.exp(gamma));ctx.lineTo(px+a*pw,py+(1-b)*ph);}ctx.lineTo(px+pw,py+ph);ctx.closePath();ctx.fillStyle=rgba(colors.alpha,.055);ctx.fill();
  ctx.beginPath();let previous;for(let k=0;k<=200;k++){const a=k/200,b=(1-a)/(1-a+a*Math.exp(gamma)),cx=px+a*pw,cy=py+(1-b)*ph;if(k===0)ctx.moveTo(cx,cy);else{ctx.lineTo(cx,cy);if(editable)registerPlotLine(previous.x,previous.y,cx,cy,'plot-gamma',k,'curve',px,pw);}previous={x:cx,y:cy};}ctx.strokeStyle=colors.alpha;ctx.lineWidth=3.2;ctx.stroke();
- fade(p,()=>{for(let j=0;j<params.n;j++){const vx=px+roundData.w[j]*pw,vy=py+(1-alpha[j])*ph,near=editable&&p===1?(drag?.kind==='w'&&drag.j===j?1:pointerPosition?smooth(clamp(1-Math.hypot(pointerPosition.x-vx,pointerPosition.y-py-ph)/28)):0):0,radius=mix(2.8,5.2,near);line(vx,py+ph,vx,vy,rgba(colors.weight,.45),.9,[2,4]);line(px,vy,vx,vy,rgba(colors.alpha,.5),.9,[2,4]);if(near>0)dot(vx,py+ph,rgba('#f6f0e3',near),radius+1.2);dot(vx,py+ph,colors.weight,radius);dot(px,vy,colors.alpha,2.8);dot(vx,vy,colors.alpha,3.1);
+ fade(p,()=>{for(let j=0;j<params.n;j++){const vx=px+roundData.w[j]*pw,vy=py+(1-alpha[j])*ph,near=editable&&p===1?(drag?.kind==='w'&&drag.j===j?1:pointerPosition?smooth(clamp(1-Math.hypot(pointerPosition.x-vx,pointerPosition.y-py-ph)/28)):0):0,radius=mix(2.8,5.2,near);line(vx,py+ph,vx,vy,rgba(colors.weight,.45),.9,[2,4]);line(px,vy,vx,vy,rgba(colors.alpha,.5),.9,[2,4]);if(near>0)dot(vx,py+ph,rgba(palette.mix(palette.color('paper'),palette.neutral(16),9/20),near),radius+1.2);dot(vx,py+ph,colors.weight,radius);dot(px,vy,colors.alpha,2.8);dot(vx,vy,colors.alpha,3.1);
   if(editable&&p===1){registerPlotLine(vx,py+ph,vx,vy,'plot-w',j,'input',px,pw);registerPlotLine(px,vy,vx,vy,'plot-w',j,'output',px,pw);registerPlotLine(vx,vy,vx,vy,'plot-w',j,'point',px,pw);registerPlotLine(vx,py+ph,vx,py+ph,'plot-w',j,'input-point',px,pw);registerPlotLine(px,vy,px,vy,'plot-w',j,'output-point',px,pw);}
  }});
  });}
 function drawMass(i,p,result,wg,layout=massColumns(wg)){const {home,large,gateAlpha,alpha,newM,etaM,eta}=layout;const maxM=roundData.massScale;
  if(i<3){const reveal=gateReveal(i,p);gateLinks(wg,gateAlpha,reveal.input,reveal.output);gatePlot(gammaAt(i,p),result.alpha,reveal.output,reveal.frame);column(gateAlpha,result.alpha,'α',colors.alpha,reveal.alpha);return;}
- if(i===3){const delay=params.fadeDuration,span=params.durations[i]-delay,progress=clamp((p*params.durations[i]-delay)/span),move=phase(progress,0,.3),flow=phase(progress,.3,.9),decay=phase(flow,.8,1),gateOut=fadeOut(i,p);gateLinks(layout.gateW,gateAlpha,1,1,gateOut);gatePlot(gammaAt(i,p),result.alpha,1,gateOut);column(blendGeometry(home,large,move),roundData.m,'m',colors.mass,1,maxM,'m',true);column(blendGeometry(gateAlpha,alpha,move),result.alpha,'α',colors.alpha);fade(fadeIn(i,p,delay+span*.3),()=>columnLinks(large,newM,colors.mass,flow));column(newM,roundData.m.map((m,j)=>mix(m,result.decayed[j],decay)),'',colors.mass,fadeIn(i,p,delay+span*.2),maxM,'',true);return;}
- if(i===4){const away=fadeOut(i,p,params.durations[i]*.5),flow=phase(p,.08,.48),addition=phase(flow,.8,1);column(large,roundData.m,'m',colors.mass,away,maxM,'m',true);column(alpha,result.alpha,'α',colors.alpha,away);fade(away,()=>columnLinks(large,newM,colors.mass));fade(fadeIn(i,p),()=>rightLinks(wg,newM,colors.weight,flow));column(newM,result.decayed.map((m,j)=>mix(m,result.mass[j],addition)),'',colors.mass,1,maxM,'',true);fade(1-away,()=>label('m',newM.x+newM.w/2,newM.y-27,colors.mass,25));return;}
- if(i===5){const move=etaMoveProgress(p),flow=fadeIn(i,p,params.fadeDuration+etaMoveSeconds),mg=blendGeometry(newM,etaM,move);fade(fadeOut(i,p),()=>rightLinks(layout.updateW,newM,colors.weight));column(mg,result.mass,'m',colors.mass,1,maxM,'m',true);fade(flow,()=>{columnLinks(etaM,eta,colors.mass,flow);rightLinks(wg,eta,colors.weight,flow);rateFraction(eta.x+eta.w/2);});column(eta,result.eta,'η',colors.eta,flow);return;}
- const move=i===6?phase(afterFadeProgress(i,p),0,.22):1,mg=blendGeometry(etaM,home,move);if(i===6)fade(fadeOut(i,p),()=>{columnLinks(etaM,eta,colors.mass);rightLinks(wg,eta,colors.weight);rateFraction(eta.x+eta.w/2);});if(move<1)column(mg,result.mass,'m',colors.mass,1,maxM,'m',true);
+ if(i===3){const delay=params.fadeDuration,span=params.durations[i]-delay,progress=clamp((p*params.durations[i]-delay)/span),move=phase(progress,0,.3),flow=phase(progress,.3,.9),decay=phase(flow,.8,1),gateOut=fadeOut(i,p);gateLinks(layout.gateW,gateAlpha,1,1,gateOut);gatePlot(gammaAt(i,p),result.alpha,1,gateOut);column(blendGeometry(home,large,move),roundData.m,'m',colors.mass,1,maxM,'m');column(blendGeometry(gateAlpha,alpha,move),result.alpha,'α',colors.alpha);fade(fadeIn(i,p,delay+span*.3),()=>columnLinks(large,newM,colors.mass,flow));column(newM,roundData.m.map((m,j)=>mix(m,result.decayed[j],decay)),'',colors.mass,fadeIn(i,p,delay+span*.2),maxM,'');return;}
+ if(i===4){const away=fadeOut(i,p,params.durations[i]*.5),flow=phase(p,.08,.48),addition=phase(flow,.8,1);column(large,roundData.m,'m',colors.mass,away,maxM,'m');column(alpha,result.alpha,'α',colors.alpha,away);fade(away,()=>columnLinks(large,newM,colors.mass));fade(fadeIn(i,p)*away,()=>rightLinks(wg,newM,colors.weight,flow));column(newM,result.decayed.map((m,j)=>mix(m,result.mass[j],addition)),'',colors.mass,1,maxM,'');fade(1-away,()=>label('m',newM.x+newM.w/2,newM.y-27,colors.mass,25));return;}
+ if(i===5){const move=etaMoveProgress(p),flow=fadeIn(i,p,params.fadeDuration+etaMoveSeconds),mg=blendGeometry(newM,etaM,move);column(mg,result.mass,'m',colors.mass,1,maxM,'m');fade(flow,()=>{columnLinks(etaM,eta,colors.mass,flow);rightLinks(wg,eta,colors.weight,flow);rateFraction(eta.x+eta.w/2);});column(eta,result.eta,'η',colors.eta,flow);return;}
+ const move=i===6?phase(afterFadeProgress(i,p),0,.22):1,mg=blendGeometry(etaM,home,move);if(i===6)fade(fadeOut(i,p),()=>{columnLinks(etaM,eta,colors.mass);rightLinks(wg,eta,colors.weight);rateFraction(eta.x+eta.w/2);});if(move<1)column(mg,result.mass,'m',colors.mass,1,maxM,'m');
 }
 function vectorCell(g,j,result,{v=0,triangle=0,eta=0,etaOpacity=eta,update=0,ghost=0,fit=0,returning=0,context=1}={}){box(g.x,g.y,g.w,g.h,rgba(colors.state,.025),rgba(colors.state,.34));if(!g.moving)hitRegions.push({...g,kind:'s',j,source:'input'});
  // All endpoints share one affine transform, held steady during the update.
  const solo=vectorMap(g,[roundData.s[j]]),joint=vectorMap(g,[roundData.s[j],roundData.v]),final=vectorMap(g,[result.state[j]]),map=s=>lerpPoint(lerpPoint(solo(s),joint(s),fit),final(s),returning),o=map({x:0,y:0}),s=map(roundData.s[j]),target=map(roundData.v),u=map(result.state[j]),width=Math.min(2.3,g.w*.05);
- vectorAxes(g,o);fade(v*context,()=>arrow(o.x,o.y,target.x,target.y,rgba(colors.gold,.85),1,width*.8));
- fade(triangle*context,()=>line(s.x,s.y,target.x,target.y,rgba(colors.gold,.65),1,[3,3]));
+ vectorAxes(g,o);fade(v*context,()=>arrow(o.x,o.y,target.x,target.y,rgba(colors.value,.85),1,width*.8));
+ fade(triangle*context,()=>line(s.x,s.y,target.x,target.y,rgba(colors.value,.65),1,[3,3]));
  fade(ghost,()=>arrow(o.x,o.y,s.x,s.y,rgba(colors.state,.28),1,width));
  fade(etaOpacity*context,()=>{const end=lerpPoint(target,u,eta);arrow(s.x,s.y,end.x,end.y,colors.eta,1,width);});
  const current=lerpPoint(s,u,update);arrow(o.x,o.y,current.x,current.y,colors.state,1,width);
 }
 function drawState(i,p,result,wg=columnGeometry(sceneWidth-110,210,76,410),layout=massColumns(wg)){if(i<6)return;const home=columnGeometry(76,432,72,308),entry=i===6||i===8?afterFadeProgress(i,p):0,move=i===6?phase(entry,.24,.62):i===8?1-phase(entry,0,.9):1,exit=i===8?fadeOut(i,p):1;if(i===8&&move===0)return;
  const cells=rotatedSlotCells(home,layout.stateRow,move,layout,'s'),etaMove=i===6?move:1,etaCells=rotatedSlotCells(layout.eta,layout.etaRow,etaMove,layout,'eta');
- const turn=phase(move,.22,.8),etaTurn=phase(etaMove,.22,.8);fade(exit,()=>{label('η',mix(etaCells[0].x+etaCells[0].w/2,etaCells[0].x-28,etaTurn),mix(etaCells[0].y-27,etaCells[0].y+etaCells[0].h/2,etaTurn),colors.eta,25);etaCells.forEach((g,j)=>box(g.x,g.y,g.w,g.h,rgba(colors.eta,diagram.strength(result.eta[j])),rgba(colors.eta,.2)));});
+ const turn=phase(move,.22,.8),etaTurn=phase(etaMove,.22,.8);fade(exit,()=>{label('η',mix(etaCells[0].x+etaCells[0].w/2,etaCells[0].x-28,etaTurn),mix(etaCells[0].y-27,etaCells[0].y+etaCells[0].h/2,etaTurn),colors.eta,25);etaCells.forEach((g,j)=>box(g.x,g.y,g.w,g.h,rgba(colors.eta,diagram.strength(result.eta[j],colors.eta)),rgba(colors.eta,.2)));});
  if(i<8&&etaMove===1&&exit===1)etaCells.forEach((g,j)=>hitRegions.push({...g,kind:'eta',j,source:'output'}));
  label('s',mix(cells[0].x+cells[0].w/2,cells[0].x-28,turn),mix(cells[0].y-27,cells[0].y+cells[0].h/2,turn),colors.state,25);
  const vIn=i===6?fadeIn(i,p):exit,vMove=i===6?vIn:1,vBox={...layout.vBox,x:mix(sceneWidth-layout.vBox.w-12,layout.vBox.x,vMove),y:mix(contentHeight+20,layout.vBox.y,vMove)};
- fade(vIn,()=>{ctx.save();ctx.beginPath();ctx.rect(0,0,sceneWidth,contentHeight);ctx.clip();box(vBox.x,vBox.y,vBox.w,vBox.h,rgba(colors.gold,.025),rgba(colors.gold,.3));miniVector(vBox.x,vBox.y,vBox.w,vBox.h,roundData.v,colors.gold);label('v',vBox.x+vBox.w/2,vBox.y-20,colors.gold,25);ctx.restore();});
+ fade(vIn,()=>{ctx.save();ctx.beginPath();ctx.rect(0,0,sceneWidth,contentHeight);ctx.clip();box(vBox.x,vBox.y,vBox.w,vBox.h,rgba(colors.value,.025),rgba(colors.value,.3));miniVector(vBox.x,vBox.y,vBox.w,vBox.h,roundData.v,colors.value);label('v',vBox.x+vBox.w/2,vBox.y-20,colors.value,25);ctx.restore();});
  if(i<8&&vIn===1&&vMove===1)hitRegions.push({...vBox,kind:'v',j:0});
  const links=i===7?fadeIn(i,p,params.durations[i]*.3):i===8?exit:0;fade(links,()=>etaCells.forEach((g,j)=>arrow(g.x+g.w/2,g.y+g.h+8,cells[j].x+cells[j].w/2,cells[j].y-8,rgba(colors.eta,diagram.alpha.link),i===7?phase(p,.3,.54):1)));
  const copyProgress=i===6?phase(entry,.66,.98):0;
  for(let j=0;j<params.n;j++){const g={...cells[j],moving:cells[j].moving||i===8||i===6&&copyProgress<1||i===7&&(p>=.1&&fadeIn(i,p,params.durations[i]*.1)<1||p>=.48&&p<.97)};if(i===6){vectorCell(g,j,result,{v:copyProgress===1?1:0,fit:copyProgress});}else if(i===7){vectorCell(g,j,result,{v:1,triangle:fadeIn(i,p,params.durations[i]*.1),eta:phase(p,.48,.72),etaOpacity:fadeIn(i,p,params.durations[i]*.48),update:phase(p,.73,.97),ghost:fadeIn(i,p,params.durations[i]*.73),fit:1});}else{vectorCell(g,j,result,{v:1,triangle:1,eta:1,update:1,ghost:fadeOut(i,p,params.fadeDuration),fit:1,returning:phase(entry,0,.9),context:exit});}}
  if(i===6){const source=vectorMap(vBox,[roundData.v]),sourceOrigin=source({x:0,y:0}),sourceTip=source(roundData.v);
   // Keep copied vectors above the cells while they travel from the input.
-  for(let j=0;j<params.n;j++){const travel=copyProgress;if(travel<=0||travel>=1)continue;const g=cells[j],target=vectorMap(g,[roundData.s[j],roundData.v]),origin=lerpPoint(sourceOrigin,target({x:0,y:0}),travel),tip=lerpPoint(sourceTip,target(roundData.v),travel),width=mix(2,Math.min(2.3,g.w*.05)*.8,travel);arrow(origin.x,origin.y,tip.x,tip.y,rgba(colors.gold,mix(1,.85,travel)),1,width);}
+  for(let j=0;j<params.n;j++){const travel=copyProgress;if(travel<=0||travel>=1)continue;const g=cells[j],target=vectorMap(g,[roundData.s[j],roundData.v]),origin=lerpPoint(sourceOrigin,target({x:0,y:0}),travel),tip=lerpPoint(sourceTip,target(roundData.v),travel),width=mix(2,Math.min(2.3,g.w*.05)*.8,travel);arrow(origin.x,origin.y,tip.x,tip.y,rgba(colors.value,mix(1,.85,travel)),1,width);}
  }
 }
 function drawProgress(){const active=checkpoint??progressGroups.findIndex(group=>locationAt().i<group.end);progressGroups.forEach((group,index)=>{const stop=stageStop(index),start=startOf(group.start),end=startOf(stop.i)+params.durations[stop.i]*stop.p,button=$('gsu-progress').children[index];button.style.setProperty('--stage-progress',`${clamp((elapsed-start)/(end-start))*100}%`);button.setAttribute('aria-current',index===active?'step':'false');});}
@@ -124,10 +125,10 @@ function draw(){const {i,p}=locationAt(),gamma=gammaAt(i,p),result=compute(gamma
  // The canvas remains one continuous scene; only time changes its geometry.
  const layout=massColumns(columnGeometry(sceneWidth-110,210,76,410)),wg=i<3?layout.gateW:i===3?blendGeometry(layout.gateW,layout.updateW,phase(afterFadeProgress(i,p),.15,.3)):i===4?layout.updateW:i===5?blendGeometry(layout.updateW,layout.etaW,etaMoveProgress(p)):layout.etaW,wOpacity=i===0?fadeIn(i,p):i===6?fadeOut(i,p):1;
  drawMass(i,p,result,wg,layout);drawState(i,p,result,wg,layout);if(i<6||i===6&&wOpacity>0)column(wg,roundData.w,'w',colors.weight,wOpacity,1);
- const retained=retainedValues(result);if(i<3||i>6||i===6&&afterFadeProgress(i,p)>=.22){column(layout.home,retained.m,'m',colors.mass,1,roundData.massScale,'',true);registerColumn(layout.home,'m','retained');}if(i<6||i===8&&afterFadeProgress(i,p)>=.9)stateHome(retained.s);
+ const retained=retainedValues(result);if(i<3||i>6||i===6&&afterFadeProgress(i,p)>=.22){column(layout.home,retained.m,'m',colors.mass,1,roundData.massScale,'');registerColumn(layout.home,'m','retained');}if(i<6||i===8&&afterFadeProgress(i,p)>=.9)stateHome(retained.s);
  drawStrengthHandles();drawVectorEditor(result);ctx.restore();
  const pill=$('gamma-pill'),scale=canvas.clientWidth/sceneWidth,gammaScale=Math.min(1,scale/.65),position=clamp((gamma+9.9)/19.8)*100,centerX=(gateFrame.x+gateFrame.size/2)*scale;
- const topY=(inputRowY+sceneOffset)*scale,nearY=Math.max(topY+16*scale,(gateFrame.y+sceneOffset)*scale-65*gammaScale),lift=i<3?0:i===3?phase(p,0,.4):1,opacity=i>5?0:i===5?fadeOut(i,p):i<3?gateReveal(i,p).frame:1;
+  const topY=(inputRowY+sceneOffset)*scale,nearY=Math.max(topY+16*scale,(gateFrame.y+sceneOffset)*scale-65*gammaScale),lift=i<3?0:i===3?phase(p,0,.4):1,opacity=i>=5?0:i===4?fadeOut(i,p,params.durations[i]*.5):i<3?gateReveal(i,p).frame:1;
  const controlY=mix(nearY,topY,lift),editor=hoverVector?.g,editorRight=editor&&editor.y*scale<controlY-sceneOffset*scale+35&&(editor.y+editor.h)*scale>controlY-sceneOffset*scale-37?(editor.x+editor.w)*scale:0;
  const availableWidth=editorRight?2*(centerX-editorRight-30):gateFrame.size*scale;
  const gammaEditable=!window.ramnetCompactInteractions.matches&&i<5&&opacity===1&&!gammaInMotion();
@@ -137,11 +138,11 @@ function draw(){const {i,p}=locationAt(),gamma=gammaAt(i,p),result=compute(gamma
 
 }
 function guideColor(base){const rgb=parseInt(base.slice(1),16);return '#'+[rgb>>16,(rgb>>8)&255,rgb&255].map(channel=>Math.round(channel*.85).toString(16).padStart(2,'0')).join('');}
-function guideLine(x,y,dx,dy,color,width,opacity=1){ctx.save();ctx.lineCap='round';for(const [tint,stroke] of [['#f6f0e3',width+2],[color,width]]){const gradient=ctx.createLinearGradient(x-dx,y-dy,x+dx,y+dy);for(const [stop,alpha] of [[0,0],[.35,opacity],[.65,opacity],[1,0]])gradient.addColorStop(stop,rgba(tint,alpha));line(x-dx,y-dy,x+dx,y+dy,gradient,stroke);}ctx.restore();}
+function guideLine(x,y,dx,dy,color,width,opacity=1){ctx.save();ctx.lineCap='round';for(const [tint,stroke] of [[palette.mix(palette.color('paper'),palette.neutral(16),9/20),width+2],[color,width]]){const gradient=ctx.createLinearGradient(x-dx,y-dy,x+dx,y+dy);for(const [stop,alpha] of [[0,0],[.35,opacity],[.65,opacity],[1,0]])gradient.addColorStop(stop,rgba(tint,alpha));line(x-dx,y-dy,x+dx,y+dy,gradient,stroke);}ctx.restore();}
 function drawStrengthHandles(){if(window.ramnetCompactInteractions.matches)return;for(const g of hitRegions){if(!['m','w','eta'].includes(g.kind))continue;
  const distance=pointerPosition?Math.hypot(Math.max(g.x-pointerPosition.x,0,pointerPosition.x-g.x-g.w),Math.max(g.y-pointerPosition.y,0,pointerPosition.y-g.y-g.h)):Infinity,active=drag&&drag.kind===g.kind&&drag.j===g.j&&drag.source===g.source,proximity=active?1:smooth(clamp(1-distance/28)),length=mix(Math.min(22,g.w*.5),g.w+30,proximity),x=g.x+g.w/2,y=g.y+g.h/2;
  const color=guideColor(colors[g.kind==='m'?'mass':g.kind==='w'?'weight':'eta']),radius=mix(1.8,g.kind==='w'?5.2:3.6,proximity);
- guideLine(x,y,length/2,0,color,mix(1,4,proximity),mix(.55,.72,proximity));dot(x,y,'#f6f0e3',radius+1.2);dot(x,y,color,radius);
+ guideLine(x,y,length/2,0,color,mix(1,4,proximity),mix(.55,.72,proximity));dot(x,y,palette.mix(palette.color('paper'),palette.neutral(16),9/20),radius+1.2);dot(x,y,color,radius);
 }}
 function registerColumn(g,kind,source){if(g.moving)return;for(let j=0;j<params.n;j++)hitRegions.push({x:g.x,y:g.cy(j)-g.cell/2,w:g.w,h:g.cell,kind,j,source});}
 function cancelInteractionExit(){clearTimeout(hoverExitTimer);hoverExitTimer=null;hoverExitZone=null;}
@@ -213,16 +214,16 @@ function vectorKindAt(point){
 }
 function vectorDragGuide(tip,color){if(!pointerPosition)return;const proximity=smooth(clamp((48-Math.hypot(pointerPosition.x-tip.x,pointerPosition.y-tip.y))/28));if(!proximity)return;const reach=mix(22,32,proximity),tint=guideColor(color);guideLine(tip.x,tip.y,reach,0,tint,4.2,proximity*.72);guideLine(tip.x,tip.y,0,reach,tint,4.2,proximity*.72);}
 function drawVectorEditor(result){if(!hoverVector)return;
- const h=hoverVector,g=h.g,color=h.kind==='s'?colors.state:colors.gold,value=editableVector(h.kind,h.j,h.source),retained=h.source==='retained',v=retained?value:roundData.v,{i,p}=locationAt(),update=retained||i<7?0:i===7?phase(p,.73,.97):1;
+ const h=hoverVector,g=h.g,color=h.kind==='s'?colors.state:colors.value,value=editableVector(h.kind,h.j,h.source),retained=h.source==='retained',v=retained?value:roundData.v,{i,p}=locationAt(),update=retained||i<7?0:i===7?phase(p,.73,.97):1;
  const extent=Math.max(1,Math.abs(value.x)*1.25,Math.abs(value.y)*1.25,Math.abs(v.x)*1.25,Math.abs(v.y)*1.25);
  const map=drag?.map??vectorMap(g,[{x:-extent,y:-extent},{x:extent,y:extent}]);h.map=map;
  ctx.save();ctx.shadowColor=rgba(colors.ink,.12);ctx.shadowBlur=20;ctx.shadowOffsetY=5;box(g.x,g.y,g.w,g.h,colors.paper,rgba(color,.65));ctx.restore();
  box(g.x,g.y,g.w,g.h,rgba(color,.035),null);const o=map({x:0,y:0}),tip=map(value),target=map(v);vectorAxes(g,o);
- if(!retained)arrow(o.x,o.y,target.x,target.y,colors.gold,1,2);if(h.kind==='s'){
+ if(!retained)arrow(o.x,o.y,target.x,target.y,colors.value,1,2);if(h.kind==='s'){
   arrow(o.x,o.y,tip.x,tip.y,rgba(colors.state,mix(1,.28,update)),1,2.5);
-  if(update>0){const updated=map(lerpPoint(value,result.state[h.j],update));line(tip.x,tip.y,target.x,target.y,rgba(colors.gold,.45),1,[3,3]);arrow(tip.x,tip.y,updated.x,updated.y,colors.eta,1,1.5);arrow(o.x,o.y,updated.x,updated.y,colors.state,1,2.5);}
+  if(update>0){const updated=map(lerpPoint(value,result.state[h.j],update));line(tip.x,tip.y,target.x,target.y,rgba(colors.value,.45),1,[3,3]);arrow(tip.x,tip.y,updated.x,updated.y,colors.eta,1,1.5);arrow(o.x,o.y,updated.x,updated.y,colors.state,1,2.5);}
  }
- if(!retained)vectorDragGuide(target,colors.gold);if(h.kind==='s')vectorDragGuide(tip,colors.state);
+ if(!retained)vectorDragGuide(target,colors.value);if(h.kind==='s')vectorDragGuide(tip,colors.state);
 }
 function beginDrag(event){if(window.ramnetCompactInteractions.matches||event.button!==0)return;const point=scenePoint(event),hit=hitAt(point);pointerPosition=point;if(!hit)return;event.preventDefault();
  const isVector=hit.kind==='s'||hit.kind==='v';if(isVector){showVectorEditor(hit);draw();}

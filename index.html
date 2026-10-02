@@ -6,22 +6,23 @@
   <title>RAM-Net — Linear-Time Sequence Modeling with Sparsely Addressable State</title>
   <meta name="description" content="Explore RAM-Net: a larger recurrent memory with sparse read and write access. An interactive explanation of Product Softmax, CAPE, Gated Sparse Update and the CUDA execution pipeline.">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/site.css?v=flip-overflow-20261001">
+  <link rel="stylesheet" href="assets/site.css?v=semantic-palette-20261002">
   <script>
     history.scrollRestoration = 'manual';
     window.ramnetInitialHash = location.hash === '#top' ? '' : location.hash;
     if (location.hash) history.replaceState(history.state, '', location.pathname + location.search);
   </script>
-  <script defer src="assets/animation-runtime.js"></script><script defer src="assets/exhibit-markup.js?v=mobile-topk-hint-20261001"></script>
+  <script src="assets/palette.js?v=perceptual-20261002" data-palette="data/palette.json?v=perceptual-20261002b"></script>
+  <script defer src="assets/animation-runtime.js?v=perceptual-20261002"></script><script defer src="assets/exhibit-markup.js?v=semantic-palette-20261002"></script>
   <script defer src="data/probes/niah_traces.js"></script><script defer src="data/probes/niah_slot_maps.js"></script><script defer src="data/probes/head_traces.js"></script>
   <script defer src="assets/stage-timeline.js"></script>
-  <script defer src="animations/attn_cmp.js?v=streamline-20261001"></script><script defer src="animations/ramnet_arch.js?v=streamline-20261001"></script><script defer src="animations/product_softmax.js?v=streamline-20261001"></script><script defer src="animations/cape.js?v=streamline-20261001"></script><script defer src="animations/gsu.js?v=streamline-20261001"></script><script defer src="animations/cal_pipeline.js?v=streamline-20261001"></script><script defer src="animations/niah_probe.js?v=streamline-20261001"></script><script defer src="animations/head_probe.js?v=streamline-20261001"></script>
-  <script defer src="assets/exhibit-host.js"></script><script defer src="assets/site.js?v=flip-overflow-20261001"></script><script defer src="assets/hero.js"></script><script defer src="assets/section-scroll.js?v=cleanup-20261001"></script><script defer src="data/experiments.js"></script><script defer src="assets/experiments.js?v=autoplay-resume-20261001"></script><script defer src="assets/reading-position.js?v=section-alignment-20260930"></script>
+  <script defer src="animations/attn_cmp.js?v=semantic-palette-20261002"></script><script defer src="animations/ramnet_arch.js?v=perceptual-20261002"></script><script defer src="animations/product_softmax.js?v=perceptual-20261002"></script><script defer src="animations/cape.js?v=perceptual-20261002"></script><script defer src="animations/gsu.js?v=perceptual-20261002"></script><script defer src="animations/cal_pipeline.js?v=perceptual-20261002"></script><script defer src="animations/niah_probe.js?v=perceptual-20261002"></script><script defer src="animations/head_probe.js?v=perceptual-20261002"></script>
+  <script defer src="assets/exhibit-host.js?v=semantic-palette-20261002"></script><script defer src="assets/site.js?v=flip-overflow-20261001"></script><script defer src="assets/hero.js"></script><script defer src="assets/section-scroll.js?v=cleanup-20261001"></script><script defer src="data/experiments.js"></script><script defer src="assets/experiments.js?v=autoplay-resume-20261001"></script><script defer src="assets/reading-position.js?v=section-alignment-20260930"></script>
 </head>
 <body id="top">
 <a class="skip-link" href="#memory">Skip to the paper</a>
 <header class="site-header">
-  <a href="#top" class="wordmark" aria-label="RAM-Net home"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="#9bbde8"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9.5" y="2" width="5" height="5" rx="1"/><rect x="17" y="2" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="17" y="9.5" width="5" height="5" rx="1"/><rect x="2" y="17" width="5" height="5" rx="1"/><rect x="9.5" y="17" width="5" height="5" rx="1"/><rect x="17" y="17" width="5" height="5" rx="1"/></g><rect x="9.5" y="9.5" width="5" height="5" rx="1" fill="#82afe6"/></svg>RAM-Net</a>
+  <a href="#top" class="wordmark" aria-label="RAM-Net home"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="color-mix(in srgb, var(--tone-sky) 70%, var(--neutral-16) 30%)"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9.5" y="2" width="5" height="5" rx="1"/><rect x="17" y="2" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="17" y="9.5" width="5" height="5" rx="1"/><rect x="2" y="17" width="5" height="5" rx="1"/><rect x="9.5" y="17" width="5" height="5" rx="1"/><rect x="17" y="17" width="5" height="5" rx="1"/></g><rect x="9.5" y="9.5" width="5" height="5" rx="1" fill="var(--color-pageAccent)"/></svg>RAM-Net</a>
   <div class="header-meta"><span>A visual research story</span></div>
 </header>
 <section class="hero" aria-labelledby="paper-title">
@@ -37,9 +38,9 @@
     </div>
   </div><div class="hero-visual"><svg viewBox="0 30 470 350" role="img" aria-labelledby="memory-title memory-description">
 <title id="memory-title">A large memory, a small access footprint</title><desc id="memory-description">A current token writes to four random slots, then reads them back. Eight groups of sixteen slots form the memory array. This is a conceptual illustration.</desc>
-<text x="36" y="50" fill="#587393" font-size="9" letter-spacing="1.8">SPARSELY ADDRESSABLE STATE</text>
-<text x="36" y="72" fill="#8d918f" font-size="10">Many slots. A few selected.</text>
-<path d="M 30 87 H 22 V 287 H 30 M 439 87 H 448 V 287 H 439" fill="none" stroke="#c8c0af"/>
+<text x="36" y="50" fill="var(--color-eyebrowInk)" font-size="9" letter-spacing="1.8">SPARSELY ADDRESSABLE STATE</text>
+<text x="36" y="72" fill="var(--neutral-7)" font-size="10">Many slots. A few selected.</text>
+<path d="M 30 87 H 22 V 287 H 30 M 439 87 H 448 V 287 H 439" fill="none" stroke="var(--color-paperEdge)"/>
 <g class="slot-group"><rect class="slot" x="42" y="95" width="17" height="17" rx="2"/><rect class="slot" x="64" y="95" width="17" height="17" rx="2"/><rect class="slot" x="86" y="95" width="17" height="17" rx="2"/><rect class="slot" x="108" y="95" width="17" height="17" rx="2"/><rect class="slot" x="42" y="117" width="17" height="17" rx="2"/><rect class="slot" x="64" y="117" width="17" height="17" rx="2"/><rect class="slot" x="86" y="117" width="17" height="17" rx="2"/><rect class="slot" x="108" y="117" width="17" height="17" rx="2"/><rect class="slot" x="42" y="139" width="17" height="17" rx="2"/><rect class="slot" x="64" y="139" width="17" height="17" rx="2"/><rect class="slot" x="86" y="139" width="17" height="17" rx="2"/><rect class="slot" x="108" y="139" width="17" height="17" rx="2"/><rect class="slot" x="42" y="161" width="17" height="17" rx="2"/><rect class="slot" x="64" y="161" width="17" height="17" rx="2"/><rect class="slot" x="86" y="161" width="17" height="17" rx="2"/><rect class="slot" x="108" y="161" width="17" height="17" rx="2"/></g>
 <g class="slot-group"><rect class="slot" x="143" y="95" width="17" height="17" rx="2"/><rect class="slot" x="165" y="95" width="17" height="17" rx="2"/><rect class="slot" x="187" y="95" width="17" height="17" rx="2"/><rect class="slot" x="209" y="95" width="17" height="17" rx="2"/><rect class="slot" x="143" y="117" width="17" height="17" rx="2"/><rect class="slot" x="165" y="117" width="17" height="17" rx="2"/><rect class="slot" x="187" y="117" width="17" height="17" rx="2"/><rect class="slot" x="209" y="117" width="17" height="17" rx="2"/><rect class="slot" x="143" y="139" width="17" height="17" rx="2"/><rect class="slot" x="165" y="139" width="17" height="17" rx="2"/><rect class="slot" x="187" y="139" width="17" height="17" rx="2"/><rect class="slot" x="209" y="139" width="17" height="17" rx="2"/><rect class="slot" x="143" y="161" width="17" height="17" rx="2"/><rect class="slot" x="165" y="161" width="17" height="17" rx="2"/><rect class="slot" x="187" y="161" width="17" height="17" rx="2"/><rect class="slot" x="209" y="161" width="17" height="17" rx="2"/></g>
 <g class="slot-group"><rect class="slot" x="244" y="95" width="17" height="17" rx="2"/><rect class="slot" x="266" y="95" width="17" height="17" rx="2"/><rect class="slot" x="288" y="95" width="17" height="17" rx="2"/><rect class="slot" x="310" y="95" width="17" height="17" rx="2"/><rect class="slot" x="244" y="117" width="17" height="17" rx="2"/><rect class="slot" x="266" y="117" width="17" height="17" rx="2"/><rect class="slot" x="288" y="117" width="17" height="17" rx="2"/><rect class="slot" x="310" y="117" width="17" height="17" rx="2"/><rect class="slot" x="244" y="139" width="17" height="17" rx="2"/><rect class="slot" x="266" y="139" width="17" height="17" rx="2"/><rect class="slot" x="288" y="139" width="17" height="17" rx="2"/><rect class="slot" x="310" y="139" width="17" height="17" rx="2"/><rect class="slot" x="244" y="161" width="17" height="17" rx="2"/><rect class="slot" x="266" y="161" width="17" height="17" rx="2"/><rect class="slot" x="288" y="161" width="17" height="17" rx="2"/><rect class="slot" x="310" y="161" width="17" height="17" rx="2"/></g>
@@ -49,9 +50,9 @@
 <g class="slot-group"><rect class="slot" x="244" y="196" width="17" height="17" rx="2"/><rect class="slot" x="266" y="196" width="17" height="17" rx="2"/><rect class="slot" x="288" y="196" width="17" height="17" rx="2"/><rect class="slot" x="310" y="196" width="17" height="17" rx="2"/><rect class="slot" x="244" y="218" width="17" height="17" rx="2"/><rect class="slot" x="266" y="218" width="17" height="17" rx="2"/><rect class="slot" x="288" y="218" width="17" height="17" rx="2"/><rect class="slot" x="310" y="218" width="17" height="17" rx="2"/><rect class="slot" x="244" y="240" width="17" height="17" rx="2"/><rect class="slot" x="266" y="240" width="17" height="17" rx="2"/><rect class="slot" x="288" y="240" width="17" height="17" rx="2"/><rect class="slot" x="310" y="240" width="17" height="17" rx="2"/><rect class="slot" x="244" y="262" width="17" height="17" rx="2"/><rect class="slot" x="266" y="262" width="17" height="17" rx="2"/><rect class="slot" x="288" y="262" width="17" height="17" rx="2"/><rect class="slot" x="310" y="262" width="17" height="17" rx="2"/></g>
 <g class="slot-group"><rect class="slot" x="345" y="196" width="17" height="17" rx="2"/><rect class="slot" x="367" y="196" width="17" height="17" rx="2"/><rect class="slot" x="389" y="196" width="17" height="17" rx="2"/><rect class="slot" x="411" y="196" width="17" height="17" rx="2"/><rect class="slot" x="345" y="218" width="17" height="17" rx="2"/><rect class="slot" x="367" y="218" width="17" height="17" rx="2"/><rect class="slot" x="389" y="218" width="17" height="17" rx="2"/><rect class="slot" x="411" y="218" width="17" height="17" rx="2"/><rect class="slot" x="345" y="240" width="17" height="17" rx="2"/><rect class="slot" x="367" y="240" width="17" height="17" rx="2"/><rect class="slot" x="389" y="240" width="17" height="17" rx="2"/><rect class="slot" x="411" y="240" width="17" height="17" rx="2"/><rect class="slot" x="345" y="262" width="17" height="17" rx="2"/><rect class="slot" x="367" y="262" width="17" height="17" rx="2"/><rect class="slot" x="389" y="262" width="17" height="17" rx="2"/><rect class="slot" x="411" y="262" width="17" height="17" rx="2"/></g>
 <g class="hero-routes" aria-hidden="true"><path class="route"/><path class="route"/><path class="route"/><path class="route"/></g>
-<rect x="213" y="327" width="44" height="33" rx="5" fill="#82afe633" stroke="#729ed5"/>
-<text x="235" y="340" fill="#3269a8" font-size="10" font-weight="600" text-anchor="middle">current</text>
-<text x="235" y="353" fill="#3269a8" font-size="10" font-weight="600" text-anchor="middle">token</text>
+<rect x="213" y="327" width="44" height="33" rx="5" fill="color-mix(in srgb, var(--color-pageAccent) 20%, transparent)" stroke="var(--tone-sky)"/>
+<text x="235" y="340" fill="var(--tone-sky-ink)" font-size="10" font-weight="600" text-anchor="middle">current</text>
+<text x="235" y="353" fill="var(--tone-sky-ink)" font-size="10" font-weight="600" text-anchor="middle">token</text>
 </svg></div></div>
   <div class="hero-summary"><span class="micro">The idea, in brief</span><p>RAM-Net separates <strong class="text-highlight">memory capacity from per-token access</strong>. It stores history in a fixed-size array of addressable slots, while each token reads and writes only a small subset. More slots provide room for more information without a full-state scan at every step. Sparse access keeps sequence processing linear in length and confines direct write interference to shared slots.</p></div>
 </section>
@@ -91,6 +92,7 @@
 <div class="section-heading"><div class="section-kicker"><span>03</span>Product Softmax</div><h2 id="heading-addressing">Product Softmax: Many Slots, Few Logits</h2></div>
 <figure class="exhibit-figure" id="figure-3">
   <div class="figure-stage"><div class="embedded-exhibit" data-exhibit="product_softmax" role="group" aria-label="One product structure. Five perspectives." style="min-height:950px"></div></div>
+  <figcaption class="figure-interaction-hint">Select a view or adjust Top-K<span class="fine-interaction-hint">; drag factor weights to reshape the addresses</span>.</figcaption>
 </figure>
 </div>
 <div class="prose">
@@ -116,6 +118,7 @@
 <div class="section-heading"><div class="section-kicker"><span>04</span>Position-aware addresses</div><h2 id="heading-position">CAPE: Position-Aware Memory Access</h2></div>
 <figure class="exhibit-figure" id="figure-4">
   <div class="figure-stage"><div class="embedded-exhibit" data-exhibit="cape" role="group" aria-label="Content meets relative position" style="min-height:690px"></div></div>
+  <figcaption class="figure-interaction-hint">Toggle CAPE in the diagram<span class="fine-interaction-hint">; drag read or write weights</span> to compare address overlap.</figcaption>
 </figure>
 </div>
 <div class="prose">
@@ -129,6 +132,7 @@
 <div class="section-heading"><div class="section-kicker"><span>05</span>Gated Sparse Update</div><h2 id="heading-update">GSU: Balancing Retention and New Information</h2></div>
 <figure class="exhibit-figure" id="figure-5">
   <div class="figure-stage"><div class="embedded-exhibit" data-exhibit="gsu" role="group" aria-label="How a selected slot changes" style="min-height:620px"></div></div>
+  <figcaption class="figure-interaction-hint">Select a stage<span class="fine-interaction-hint">, adjust γ, or drag a value</span> to follow the slot update.</figcaption>
 </figure>
 </div>
 <div class="prose">

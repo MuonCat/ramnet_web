@@ -1,6 +1,6 @@
 # RAM-Net 论文展示页
 
-直接打开 `index.html` 即可预览，也可部署到静态 HTTP 服务器或子目录。全站只有 HTML、CSS、JavaScript 与本地数据文件，无构建步骤、第三方依赖或在线字体；资源路径均为相对路径。
+请通过静态 HTTP 服务器访问 `index.html`（也支持部署到子目录）。页面会直接读取 `data/palette.json`；`file://` 打开方式不再支持。全站只有 HTML、CSS、JavaScript 与本地数据文件，无构建步骤、第三方依赖或在线字体；资源路径均为相对路径。
 
 ## 文件结构
 
@@ -8,6 +8,7 @@
 index.html                      英文论文正文、章节结构、公式和动画插入位置
 assets/
   site.css                      页面排版、配色、响应式布局
+  palette.js                    读取颜色 JSON，并为 CSS 与动画提供同一套色值和插值函数
   site.js                       章节导航、阅读进度与动画尺寸同步
   section-scroll.js             章节吸附、自动播放与尾页尺寸
   experiments.js                读取实验 JSON、生成三张表、计算列排名与切换页签
@@ -27,6 +28,7 @@ animations/
   niah_probe.{html,js}           第 8 章探针动画
   head_probe.{html,js}           第 9 章探针动画
 data/experiments.json           实验结果唯一的 JSON 数据源
+data/palette.json               固定色值、色系、透明度和渐变区间的配置
 data/experiments.js             本地直接打开时使用的数据快照
 data/probes/
   *.json                         原始 trace 数据
@@ -36,6 +38,8 @@ tools/check_site.py              Chrome 中检查嵌入页、独立页与结果�
 ```
 
 动画保留独立页面和共享的交互脚本，主页面使用 `assets/exhibit-markup.js` 中的静态 HTML 模板。`animations/*.html` 是模板源；修改结构或 JSON 数据后，运行 `python tools/sync_static.py` 更新生成文件，使用 `python tools/sync_static.py --check` 检查是否同步。部署时无需运行脚本。
+
+颜色从 `data/palette.json` 读取：`colors` 的键是稳定标识（初始色值），值是当前实际色值；同一个键在 CSS、SVG 和 Canvas 中共用。`tones` 将色系的主色和文字色关联到这些键；`ranges` 用 `start`、`end`、`scaling` 定义连续变化，其中 `linear`、`sqrt` 和 `sqrt-after` 分别表示线性、先对进度开方、插值后开方。修改 JSON 后直接刷新 HTTP 页面即可看到变化，颜色报告也读取同一份配置。
 
 主页面使用 Shadow DOM 将八个动画直接嵌入正文中的 div，隔离变量与样式；不使用 iframe。独立预览和正文嵌入共用 `assets/animation-runtime.js`，由它管理主题、窄屏交互和帧调度。第 8、9 章的 JSON 同时保存为生成的静态 JavaScript 数据文件，页面直接读取，无运行时数据请求。离开可视区的动画停止逐帧绘制，并尊重系统的减少动态效果设置。
 
@@ -49,10 +53,10 @@ sec5 的四阶段进度条位于画布下方，保留阶段颜色、进度填充
 
 正文已静态写入 `index.html`，直接在该文件中维护。首屏提供 [arXiv 论文链接](https://arxiv.org/abs/2602.11958)，GitHub 和 Hugging Face 暂以不可点击的 “Coming soon” 入口占位，待补充实际地址。作者和机构尚未添加。
 
-实验区三张结果表的数据和指标定义保存在 `data/experiments.json`，覆盖语言建模、S-NIAH 检索和多项任务。HTTP 页面直接读取该 JSON；直接打开文件时使用由同一 JSON 生成的 `data/experiments.js` 快照。列名、优劣方向与换行方式由指标定义驱动；各模型规模内按列自动计算最优和次优不同数值，含并列。天蓝底色标出 RAM-Net。
+实验区三张结果表的数据和指标定义保存在 `data/experiments.json`，覆盖语言建模、S-NIAH 检索和多项任务。页面通过 HTTP 读取 JSON。列名、优劣方向与换行方式由指标定义驱动；各模型规模内按列自动计算最优和次优不同数值，含并列。天蓝底色标出 RAM-Net。
 
 ## 验证
 
-已使用本机 Chrome 对静态 HTTP 与 `file://` 两种打开方式做动态检查：八个动画均挂载成功，无控制台错误；sec2、sec3、sec5、sec6 的基础控件可操作，sec9 的两个标签、Head 选择、播放控件和 Canvas 均正常显示。窄屏布局在 Chrome 的 500px 视口下检查，三张表的最优、次优标记和减少动态效果下的首次绘制也已核对；实际 iPhone Safari/Chrome 仍需设备复核。
+已使用本机 Chrome 对静态 HTTP 页面做动态检查：八个动画均挂载成功；sec3 的四组因子分布控件保持同一行。窄屏布局和实际 iPhone Safari/Chrome 仍需设备复核。
 
-所有站内资源均使用相对路径，主页面没有 iframe。第 8、9 章的探针数据通过静态脚本直接提供；实验表格在 HTTP 下读取 JSON，本地 `file://` 预览使用静态脚本副本。
+所有站内资源均使用相对路径，主页面没有 iframe。第 8、9 章的探针数据通过静态脚本直接提供；颜色配置与实验表格通过 HTTP 读取 JSON。

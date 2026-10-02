@@ -1,4 +1,4 @@
-"""Smoke-check static and file previews in local Chrome, with no extra packages."""
+"""Smoke-check static HTTP previews in local Chrome, with no extra packages."""
 
 import functools
 import html
@@ -118,7 +118,7 @@ def check_page(source, url, width, profile, reduced=False, restored=False, initi
         markup = markup.replace("}, 2500));</script>", "}, 4000));</script>", 1)
     path.write_text(markup, encoding="utf-8")
     try:
-        address = (path.as_uri() if url is None else url + path.relative_to(ROOT).as_posix()) + initial_hash
+        address = url + path.relative_to(ROOT).as_posix() + initial_hash
         browser_profile = tempfile.mkdtemp(prefix="browser-", dir=profile)
         command = [
             str(CHROME), "--headless=new", "--no-sandbox", "--disable-gpu",
@@ -159,7 +159,7 @@ def check_page(source, url, width, profile, reduced=False, restored=False, initi
         elif not state["scene"]:
             raise RuntimeError(f"Missing scene: {source.name}")
         mode = "restored position" if restored else "reduced motion" if reduced else f"{width}px"
-        print(f"OK {source.relative_to(ROOT)} ({'file' if url is None else 'HTTP'}, {mode})")
+        print(f"OK {source.relative_to(ROOT)} (HTTP, {mode})")
     finally:
         path.unlink(missing_ok=True)
 
@@ -174,17 +174,17 @@ def main():
         with tempfile.TemporaryDirectory(prefix="ramnet-smoke-") as profile:
             url = f"http://127.0.0.1:{server.server_port}/"
             check_page(ROOT / "index.html", url, 1366, profile)
-            check_page(ROOT / "index.html", None, 500, profile)
+            check_page(ROOT / "index.html", url, 500, profile)
             check_page(ROOT / "index.html", url, 1366, profile, reduced=True)
             check_page(ROOT / "index.html", url, 1366, profile, reduced=True, restored=True)
             check_page(ROOT / "index.html", url, 1366, profile, reduced=True, initial_hash="#position")
-            check_page(ROOT / "index.html", None, 500, profile, reduced=True, initial_hash="#position")
+            check_page(ROOT / "index.html", url, 500, profile, reduced=True, initial_hash="#position")
             check_page(ROOT / "index.html", url, 1366, profile, closing=True)
             check_page(ROOT / "index.html", url, 1366, profile, reduced=True, autoplay=True)
             check_page(ROOT / "index.html", url, 1366, profile, reduced=True, home=True)
             for name in ("attn_cmp", "ramnet_arch", "product_softmax", "cape",
                          "gsu", "cal_pipeline", "niah_probe", "head_probe"):
-                check_page(ROOT / "animations" / f"{name}.html", None, 900, profile)
+                check_page(ROOT / "animations" / f"{name}.html", url, 900, profile)
     finally:
         server.shutdown()
         thread.join()

@@ -28,10 +28,8 @@ def exhibit_markup(name):
     if not classes:
         raise ValueError(f"Missing body class: {name}")
     markup = re.sub(r'<(?:no)?script\b[^>]*>.*?</(?:no)?script>', '', body.group(2), flags=re.I | re.S).strip()
-    styles = ([f"animations/{name}.css", "assets/embed.css"]
-              if name not in ("niah_probe", "head_probe") else ["assets/probes.css"])
-    if name == "product_softmax":
-        styles = [f"{path}?v=mobile-topk-hint-20261001" for path in styles]
+    styles = ([f"animations/{name}.css?v=palette-config-20261002c", "assets/embed.css?v=palette-config-20261002c"]
+              if name not in ("niah_probe", "head_probe") else ["assets/probes.css?v=palette-config-20261002c"])
     return {"bodyClass": classes.group(1), "html": markup, "styles": styles}
 
 

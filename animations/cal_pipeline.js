@@ -1,14 +1,15 @@
 window.RamnetAnimations ??= {};
 window.RamnetAnimations.cal_pipeline = function mount(scope) {
 const {document, requestAnimationFrame, cancelAnimationFrame} = scope;
+const palette=window.RamnetPalette;
 'use strict';
 const diagram=window.ramnetDiagramTheme;
 // Reference: cuda_impl.py::gather_segment, ram_attn_topk_addr.cu,
 // ram_attn_segment_parallel.cu. Worker slots visualize CUDA scheduling;
 // the kernel itself assigns a segment to each warp, not a persistent queue.
 const $=id=>document.getElementById(id);
-const cfg={T:32,u:3,k:4,m:4,duration:38,projectionTime:1,mergeTime:2,splitTime:1,flattenTime:2,sortTime:6,segmentTime:1,lengthTime:3,valuesTime:1.5,executeTime:15,finishTime:0.5,gap:8,segmentGap:24,radius:6,panelRadius:18,space:20,trail:0.5,write:diagram.colors.red,read:diagram.colors.green,value:diagram.colors.orange,output:diagram.colors.sky,state:diagram.colors.sky,mass:diagram.colors.blue,segment:diagram.colors.purple};
-const colors={ink:'#30383f',muted:'#797f75',line:'#bebdaf',paper:'transparent'};
+const cfg={T:32,u:3,k:4,m:4,duration:38,projectionTime:1,mergeTime:2,splitTime:1,flattenTime:2,sortTime:6,segmentTime:1,lengthTime:3,valuesTime:1.5,executeTime:15,finishTime:0.5,gap:8,segmentGap:24,radius:6,panelRadius:18,space:20,trail:0.5,write:diagram.colors.red,read:diagram.colors.green,value:diagram.colors.orange,output:diagram.colors.sky,state:diagram.colors.sky,mass:diagram.colors.indigo,segment:diagram.colors.purple};
+const colors={ink:palette.neutral(0),muted:palette.neutral(6),line:palette.neutral(11),paper:'transparent',token:palette.neutral(7),tokenInk:palette.neutral(5)};
 const canvas=$('scene'),ctx=canvas.getContext('2d');
 let data,stages=[],actionGroups=[],totalWeight=0,playhead=0,lastFrame=0,hits=[],hover=null,pointer=null,playing=true;
 const stageTimeline=new StageTimeline($('stage-timeline'),time=>{playhead=time;setPlaying(false);hideTooltip();draw();});
@@ -84,9 +85,9 @@ function buildStages(){
 }
 function atTime(){const time=clamp(playhead/cfg.duration)*totalWeight;let i=stages.findIndex(s=>time<s.start+s.weight);if(i<0)i=stages.length-1;return {i,s:stages[i],p:clamp((time-stages[i].start)/stages[i].weight)};}
 function tokenX(t){return 65+(t+.5)*data.geo.pitch;}
-function tokens(){text('x',35,76,colors.ink,20,'center',true);for(let t=0;t<cfg.T;t++){const x=tokenX(t),w=Math.min(33,data.geo.cw);box(x-w/2,60,w,w,rgba(colors.ink,.055),rgba(colors.ink,.25));text(t,x,107,colors.muted,10);}}
+function tokens(){text('x',35,76,colors.tokenInk,20,'center',true);for(let t=0;t<cfg.T;t++){const x=tokenX(t),w=Math.min(33,data.geo.cw);box(x-w/2,60,w,w,rgba(colors.token,.08),rgba(colors.token,.5));text(t,x,107,colors.tokenInk,10);}}
 function eventCard(e,g,alpha=1,labelBits=cfg.u,highlight=0){
- if(alpha<=0)return;const c=e.type==='w'?cfg.write:cfg.read,intensity=diagram.strength(e.weight/data.maxWeight);
+ if(alpha<=0)return;const c=e.type==='w'?cfg.write:cfg.read,intensity=diagram.strength(e.weight/data.maxWeight,c);
  fade(alpha,()=>{const scale=Math.min(1,g.w/44);box(g.x,g.y,g.w,g.h,rgba(c,intensity),null,cfg.radius*scale);ctx.lineWidth=Math.max(.4,scale*(highlight?1.6:1.1));ctx.strokeStyle=rgba(c,.4+highlight*.5);ctx.stroke();const size=Math.min(11,g.w*.84/(labelBits*2*.61));text(bits(e.addr,labelBits),g.x+g.w/2,g.y+g.h/2,colors.ink,size);text(e.t,g.x+g.w-4*scale,g.y+g.h-5*scale,rgba(colors.ink,.65),8*scale,'right');});
  if(alpha>.7)hits.push({e,g});
 }

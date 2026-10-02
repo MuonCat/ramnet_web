@@ -1,13 +1,14 @@
 window.RamnetAnimations ??= {};
 window.RamnetAnimations.product_softmax = function mount(scope) {
 const {document, requestAnimationFrame, cancelAnimationFrame} = scope;
+const palette=window.RamnetPalette;
 'use strict';
 const diagram=window.ramnetDiagramTheme;
 const $ = id => document.getElementById(id);
 const NS = 'http://www.w3.org/2000/svg';
 const SECTION_NAMES={distribution:'Soft Radix Address',tree:'Multilevel Decision Tree',heatmap:'Joint Distribution',regroup:'Regroupable Address',waveform:'Waveform Modulation'};
 const SECTIONS=Object.keys(SECTION_NAMES).filter(name=>$(name+'-page')&&$(name+'-card')&&$(name+'-tab'));
-let config = {U:4,dp:4,factors:null,temperature:0.85,duration:15,sectionDelay:0.5,heatmapDuration:15,regroupDuration:15,waveformRevealDuration:3.5,waveformScanDuration:12,waveformHeight:96,waveformGap:48,waveformAddressGap:8,treeExpandDuration:1,treePruneDuration:1.5,treeHoldDuration:1.5,topK:8,cardWidth:138,cardGap:25,upperGap:100,lowerGap:108,barGap:30,factorAspect:1.4,outputAspect:1,interactionAspect:1.8,factorPadding:10,factorPlotHeight:73,barRadiusRatio:6,frameRadiusRatio:4.5,barRadius:1.2,frameRadius:6,radius:6,animationRadius:20,lineRadius:6,spacing:25,height:130,treeNodeWidth:16,treeNodeHeight:16,treeNodeRadius:8,treeParentGapRatio:1.5,outputScale:'auto',uiFontScale:100,diagramFontScale:100,colors:[diagram.colors.indigo,diagram.colors.purple,diagram.colors.green,diagram.colors.gold],outputColor:diagram.colors.sky};
+let config = {U:4,dp:4,factors:null,temperature:0.85,duration:15,sectionDelay:0.5,heatmapScanDuration:15,regroupDuration:15,waveformRevealDuration:3.5,waveformScanDuration:12,waveformHeight:96,waveformGap:48,waveformAddressGap:8,treeExpandDuration:1,treePruneDuration:1.5,treeHoldDuration:1.5,topK:8,cardWidth:138,cardGap:25,upperGap:100,lowerGap:108,barGap:30,factorAspect:1.4,outputAspect:1,interactionAspect:1.8,factorPadding:10,factorPlotHeight:73,barRadiusRatio:6,frameRadiusRatio:4.5,barRadius:1.2,frameRadius:6,radius:6,animationRadius:20,lineRadius:6,spacing:25,height:130,treeNodeWidth:16,treeNodeHeight:16,treeNodeRadius:8,treeParentGapRatio:1.5,outputScale:'auto',uiFontScale:100,diagramFontScale:100,colors:[diagram.colors.indigo,diagram.colors.purple,diagram.colors.green,diagram.colors.gold],outputColor:diagram.colors.sky};
 let distributions = [], probabilities = [], groups = [], sourceNodes = [], routeNodes = [], addressNodes = [];
 let bars = [], binSize = 1, maxGroup = 1, outputScaleMax = 1, total = 256, bits = 2;
 let topBars = new Set();
@@ -28,17 +29,19 @@ let heatmapLayout,heatmapPoints,heatmapHover=null,heatmapLastFrame=0,heatmapTime
 const heatmapScales=[.9,.97,1.03,1.1];
 const heatmapOrbit={radius:8,thetaRate:.075,phiRate:.09,phiMean:30*Math.PI/180,phiAmplitude:20*Math.PI/180};
 const heatmapProjectionSize=measureHeatmapOrbit();
-let regroupSources=[],regroupStrips,regroupPanels,regroupLinks=[];
+let regroupSources=[],regroupStrips,regroupPanels,regroupLinks=[],regroupAddressLabels;
 let waveformRows=[],waveformBars=[],waveformScan,waveformReadout,waveformLayout;
 let multiplyY = 285;
 const chart = {x:56,width:888,bottom:513,height:130};
 let actions = [];
 function sectionDuration(section=activeSection) {
-  if(section==='heatmap')return config.heatmapDuration;
+  if(section==='heatmap')return config.heatmapScanDuration*(config.U*config.dp+2)/(config.U*config.dp);
   if(section==='regroup')return config.regroupDuration;
   if(section==='waveform')return config.waveformRevealDuration+config.waveformScanDuration;
   return section==='tree'?config.U*(config.treeExpandDuration+config.treePruneDuration)+config.treeHoldDuration:config.duration;
 }
+function heatmapFrame() { return Math.min(config.U*config.dp,Math.floor(progress*(config.U*config.dp+2))-1); }
+function heatmapProgress(frame) { return (frame+1)/(config.U*config.dp+2); }
 function sectionCycleDuration(section) { return sectionDuration(section)+config.sectionDelay; }
 function nextSection() {return SECTIONS[(SECTIONS.indexOf(activeSection)+1)%SECTIONS.length];}
 function setViewState(next,{restart=false}={}) {
@@ -204,18 +207,20 @@ function outputColor() {
   return config.outputColor;
 }
 function probabilityAppearance(base,strength) {
+  const weight=palette.weight(strength,base);
   if(activeSection==='heatmap') {
-    const hue=colorHue(base),weight=Math.sqrt(strength);
-    return {fill:`hsl(${hue} ${8+84*weight}% ${70-22*weight}%)`,'fill-opacity':.6+.35*weight};
+    const hue=colorHue(base),range=palette.ranges.jointWeight;
+    return {fill:`hsl(${hue} ${palette.scale(range.saturation,weight)}% ${palette.scale(range.lightness,weight)}%)`,
+      'fill-opacity':palette.scale(range.opacity,weight)};
   }
   // Tint and alpha multiply: split the contrast equally between them.
-  const weight=Math.sqrt(.12+.88*strength),darken=.92;
+  const range=palette.ranges.slotWeight,opacity=palette.scale(range,weight),darken=range.darken;
   const paper=$(activeSection+'-page').style.getPropertyValue('--page-shade');
   const channels=[1,3,5].map(offset=>{
     const background=parseInt(paper.slice(offset,offset+2),16);
-    return Math.round(background+(parseInt(base.slice(offset,offset+2),16)*darken-background)*weight);
+    return Math.round(background+(parseInt(base.slice(offset,offset+2),16)*darken-background)*opacity);
   });
-  return {fill:`rgb(${channels.join(' ')})`,'fill-opacity':weight};
+  return {fill:`rgb(${channels.join(' ')})`,'fill-opacity':opacity};
 }
 function number(value) { return value===0?'0':value>=0.001 ? value.toFixed(4) : value.toExponential(2); }
 function probabilityCeiling(value) {
@@ -402,7 +407,7 @@ function buildDistributionScene() {
     const row=[];
     for(let d=0;d<config.dp;d++) {
       const bx=layout.left+d*step+step*config.barGap/200,bw=step*(1-config.barGap/100),bh=distributions[u][d]*plotHeight;
-      const tag=label(binary(d),compactLabels?cx:layout.left+(d+.5)*step,76,{'text-anchor':'middle','font-size':16,fill:'#7c8478'},card);
+      const tag=label(binary(d),compactLabels?cx:layout.left+(d+.5)*step,76,{'text-anchor':'middle','font-size':16,fill:palette.neutral(6)},card);
       const bar=svg('rect',{x:bx,y:sourceBaseline-bh,width:bw,height:bh,rx:shapeRadius(bw,bh,'bar'),fillRole:'bar',fill:c,'fill-opacity':0.4,class:'source-bar',tabindex:0,role:'button','aria-label':`Factor ${u}, ${binary(d)}, probability ${number(distributions[u][d])}`},card);
       const choose=()=>{const parts=digits(indexAt(progress));parts[u]=d;seekIndex(address(parts));};
       bar.addEventListener('click',choose);
@@ -416,8 +421,8 @@ function buildDistributionScene() {
   }
   scene.appendChild(paths);
   const multiplyX=sceneWidth/2;
-  svg('circle',{cx:multiplyX,cy:multiplyY,r:21,fill:'none',stroke:'#9aa697','stroke-width':1.2});
-  svg('path',{d:`M${multiplyX-7} ${multiplyY-7}l14 14m0-14-14 14`,fill:'none',stroke:'#506653','stroke-width':1.6,'stroke-linecap':'round'});
+  svg('circle',{cx:multiplyX,cy:multiplyY,r:21,fill:'none',stroke:palette.neutral(9),'stroke-width':1.2});
+  svg('path',{d:`M${multiplyX-7} ${multiplyY-7}l14 14m0-14-14 14`,fill:'none',stroke:palette.neutral(3),'stroke-width':1.6,'stroke-linecap':'round'});
   outputBox=svg('rect',{x:chart.x,y:chart.bottom-chart.height-chart.inset,width:chart.width,height:chart.height+chart.inset,rx:shapeRadius(chart.width,chart.height+chart.inset,'frame'),fillRole:'background',fill:outputColor(),'fill-opacity':0.045,strokeRole:'frame',stroke:outputColor(),'stroke-opacity':diagram.alpha.border});
   outputScaleMax=config.outputScale==='unit'?1:probabilityCeiling(maxGroup);
   for(const fraction of [.5,1]) {
@@ -459,7 +464,7 @@ function buildTreeScene() {
   const width=sceneWidth-48-left,rowGap=baseRowGap+extra/(config.U+1),outputY=baseOutputY+extra;
   const defs=svg('defs',{},scene);
   const root={slot:0,p:1,x:left+width/2,y:rootY,h:20};
-  svg('circle',{cx:root.x,cy:root.y,r:10,fillRole:'bar',fill:'#a5b2a5',strokeRole:'frame',stroke:'#637867','stroke-width':1.5},scene);
+  svg('circle',{cx:root.x,cy:root.y,r:10,fillRole:'bar',fill:palette.neutral(10),strokeRole:'frame',stroke:palette.neutral(5),'stroke-width':1.5},scene);
   let beam=[root];
   for(let depth=0;depth<config.U;depth++) {
     const u=config.U-1-depth,y=rootY+(depth+1)*rowGap,c=color(u);
@@ -489,11 +494,11 @@ function buildTreeScene() {
       node.candidateScale=candidateScale;node.w=config.treeNodeWidth;node.h=config.treeNodeHeight;
       node.edge=svg('path',{d:treeCurve(node.parent.x,node.parent.y+node.parent.h/2+3,node.candidateX,y-node.h*candidateScale/2-3),fill:'none',strokeRole:'arrow',stroke:c,'stroke-width':1.1},edges);
       node.group=svg('g',{transform:`translate(${node.candidateX} ${y})`},circles);
-      node.shape=svg('rect',{x:-node.w/2,y:-node.h/2,width:node.w,height:node.h,rx:Math.min(config.treeNodeRadius,node.w/2,node.h/2),fillRole:'bar',fill:c,'fill-opacity':.18+.82*node.strength,strokeRole:'frame',stroke:c,'stroke-width':1.1},node.group);
+      node.shape=svg('rect',{x:-node.w/2,y:-node.h/2,width:node.w,height:node.h,rx:Math.min(config.treeNodeRadius,node.w/2,node.h/2),fillRole:'bar',fill:c,'fill-opacity':diagram.strength(node.strength,c),strokeRole:'frame',stroke:c,'stroke-width':1.1},node.group);
       if(!node.keep) {
         const size=Math.max(3,Math.min(7,Math.min(node.w,node.h)*candidateScale*.35)),d=`M${-size} ${-size}L${size} ${size}M${size} ${-size}L${-size} ${size}`;
         node.cross=svg('g',{opacity:0},node.group);
-        svg('path',{d,fill:'none',stroke:'#e8e2d3','stroke-width':3.5,'stroke-linecap':'round'},node.cross);
+        svg('path',{d,fill:'none',stroke:palette.color('paper'),'stroke-width':3.5,'stroke-linecap':'round'},node.cross);
         svg('path',{d,fill:'none',stroke:diagram.colors.red,'stroke-width':1.8,'stroke-linecap':'round'},node.cross);
       }
     });
@@ -514,7 +519,7 @@ function buildTreeScene() {
   beam.forEach((node,i)=>{
     const x=left+(i+.5)*width/beam.length;
     svg('path',{d:treeCurve(node.x,node.y+node.h/2+3,x,outputY-node.h/2-3),fill:'none',strokeRole:'arrow',stroke:outputColor(),'stroke-width':1.5,'stroke-opacity':.55},output);
-    svg('rect',{x:x-node.w/2,y:outputY-node.h/2,width:node.w,height:node.h,rx:Math.min(config.treeNodeRadius,node.w/2,node.h/2),fillRole:'bar',fill:outputColor(),'fill-opacity':.25+.75*(max?node.p/max:0),strokeRole:'frame',stroke:outputColor(),'stroke-width':1.5},output);
+    svg('rect',{x:x-node.w/2,y:outputY-node.h/2,width:node.w,height:node.h,rx:Math.min(config.treeNodeRadius,node.w/2,node.h/2),fillRole:'bar',fill:outputColor(),'fill-opacity':diagram.strength(max?node.p/max:0,outputColor()),strokeRole:'frame',stroke:outputColor(),'stroke-width':1.5},output);
     if(width/beam.length>=bits*config.U*16*config.diagramFontScale/100*.6+6) {
       const text=label('',x,outputY+node.h/2+23,{'text-anchor':'middle','font-size':16},output);
       const parts=digits(node.slot);
@@ -563,7 +568,7 @@ function buildHeatmapFactor(scene,u,x,y,width,height) {
   svg('rect',{width,height,fill:'transparent',style:'cursor:pointer'},group);
   bindInteractionRegion(group,event=>{
     const local=scenePoint(scene,event),d=Math.max(0,Math.min(config.dp-1,Math.floor((local.x-x-layout.left)/layout.step)));
-    heatmapHover={u,d};progress=((config.U-1-u)*config.dp+d)/(config.U*config.dp);renderHeatmap();
+    heatmapHover={u,d};progress=heatmapProgress((config.U-1-u)*config.dp+d);renderHeatmap();
   });
 }
 function buildHeatmapScene() {
@@ -589,11 +594,11 @@ function buildHeatmapScene() {
   const min=Math.min(...probabilities),max=Math.max(...probabilities);
   for(let slot=0;slot<total;slot++) {
     const parts=digits(slot),strength=max===min?.5:(probabilities[slot]-min)/(max-min),top=topSlots.has(slot);
-    const node=svg('circle',{r:4.5,...probabilityAppearance(outputColor(),strength),stroke:top?'#202020':'#30383f','stroke-opacity':top?.95:.28+.3*strength,'stroke-width':top?1.4:.7,
+    const node=svg('circle',{r:4.5,...probabilityAppearance(outputColor(),strength),stroke:top?palette.neutral('dark'):palette.neutral(0),'stroke-opacity':top?.95:.28+.3*palette.weight(strength,outputColor()),'stroke-width':top?1.4:.7,
       'pointer-events':'all',style:'cursor:pointer','data-slot':slot,'data-top-k':top},heatmapPoints);
     bindInteractionRegion(node,()=>{
-      const factor=config.U-1-Math.min(config.U-1,Math.floor(progress*config.U));
-      heatmapHover={slot};progress=((config.U-1-factor)*config.dp+parts[factor])/(config.U*config.dp);
+      const factor=config.U-1-Math.floor(Math.max(0,Math.min(config.U*config.dp-1,heatmapFrame()))/config.dp);
+      heatmapHover={slot};progress=heatmapProgress((config.U-1-factor)*config.dp+parts[factor]);
       renderHeatmap();
     });
     heatmapNodes.push({node,parts,strength,slot,top,scale:heatmapScales[parts[3]],depth:0});
@@ -626,16 +631,16 @@ function measureHeatmapOrbit() {
   return {width:width*1.01,height:height*1.01};
 }
 function renderHeatmap(timestamp=heatmapTime) {
-  const scanning=viewState!=='rest';
-  const scan=Math.min(15,Math.floor(progress*16));
-  const {u,d}=heatmapHover??{u:3-Math.floor(scan/4),d:scan%4};
+  const scan=heatmapFrame();
+  const scanning=viewState!=='rest'&&(heatmapHover!==null||scan>=0&&scan<config.U*config.dp);
+  const {u,d}=heatmapHover??{u:config.U-1-Math.floor(scan/config.dp),d:scan%config.dp};
   const slotParts=heatmapHover?.slot===undefined?null:digits(heatmapHover.slot);
   for(let factor=0;factor<4;factor++) {
     const selectedValue=scanning?(slotParts?slotParts[factor]:factor===u?d:-1):-1;
     heatmapSources[factor].forEach((bar,value)=>set(bar,{'fill-opacity':scanning?(value===selectedValue?1:.22):.55}));
     heatmapSourceLabels[factor].forEach(({node,compact},value)=>{
       const selected=value===selectedValue;
-      set(node,{opacity:compact?(selected||!scanning&&value===0?1:0):scanning&&!selected?.55:1,'font-weight':selected?700:400});
+      set(node,{opacity:compact?(selected||viewState==='rest'&&value===0?1:0):scanning&&!selected?.55:1,'font-weight':selected?700:400});
     });
   }
   const time=timestamp/1000,theta=heatmapOrbit.thetaRate*time;
@@ -657,8 +662,8 @@ function renderHeatmap(timestamp=heatmapTime) {
     set(item.node,{cx:point.x.toFixed(1),cy:point.y.toFixed(1),
       r:((active?4.5:3.1)*1.5*point.perspective).toFixed(1),
       ...probabilityAppearance(active&&!slotParts?color(u):outputColor(),item.strength),
-      stroke:item.top?'#202020':active&&slotParts?outputColor():'#30383f',
-      'stroke-opacity':item.top?.95:active&&slotParts?.9:.28+.3*item.strength,'stroke-width':item.top||active&&slotParts?1.4:.7});
+      stroke:item.top?palette.neutral('dark'):active&&slotParts?outputColor():palette.neutral(0),
+      'stroke-opacity':item.top?.95:active&&slotParts?.9:.28+.3*palette.weight(item.strength,active&&!slotParts?color(u):outputColor()),'stroke-width':item.top||active&&slotParts?1.4:.7});
   });
   heatmapNodes.sort((a,b)=>a.depth-b.depth);
   // Keep hovered nodes attached unless their depth order actually changes.
@@ -693,7 +698,7 @@ function buildRegroupMatrix(scene,x,y,cols,cellSize,rowColor,columnColor,topSlot
     svg('rect',{x:x+(slot%cols)*cellSize+gap/2,y:y+Math.floor(slot/cols)*cellSize+gap/2,
       width:cellSize-gap,height:cellSize-gap,rx:Math.min(1,cellSize/8),
       ...probabilityAppearance(outputColor(),strength),
-      stroke:'#202020','stroke-width':1.2,'stroke-opacity':selected?.95:0,
+      stroke:palette.neutral('dark'),'stroke-width':1.2,'stroke-opacity':selected?.95:0,
       'data-slot':slot,'data-top-k':selected,'data-layout':cols===4?'64x4':'4x64'},group);
   }
   const rowGuide=svg('rect',{x,y,width,height:cellSize,fill:rowColor,'fill-opacity':.12,
@@ -701,8 +706,8 @@ function buildRegroupMatrix(scene,x,y,cols,cellSize,rowColor,columnColor,topSlot
   const columnGuide=svg('rect',{x,y,width:cellSize,height,fill:columnColor,'fill-opacity':.12,
     stroke:columnColor,'stroke-opacity':.65,'stroke-width':.8},group);
   const selection=svg('rect',{x,y,width:cellSize-gap,height:cellSize-gap,rx:1,
-    fill:'none',stroke:'#3269a8','stroke-width':1.6,'pointer-events':'none'},group);
-  svg('rect',{x,y,width,height,rx:1.5,fill:'none',stroke:'#7f929d',
+    fill:'none',stroke:palette.tone('sky','ink'),'stroke-width':1.6,'pointer-events':'none'},group);
+  svg('rect',{x,y,width,height,rx:1.5,fill:'none',stroke:palette.neutral(7),
     'stroke-width':1,'stroke-opacity':.65,'pointer-events':'none'},group);
   svg('rect',{x,y,width,height,fill:'transparent',style:'cursor:crosshair'},group);
   bindInteractionRegion(group,event=>{
@@ -728,7 +733,7 @@ function buildRegroupScene() {
   const stripWidth=sourceSize.width*3+factorGap*2,stripHeight=64;
   const wideX=sourceX+(sourceWidth-cellSize*64)/2,wideY=height-46-cellSize*4;
   const tallY=height-24-cellSize*64,tallX=sourceX+sourceWidth+40;
-  const mergedColors=['#8c4b46','#784653'];
+  const mergedColors=[diagram.colors.pink,diagram.text(diagram.colors.pink)];
   const routeColor=u=>u<config.U?color(u):mergedColors[u-config.U];
   const factorX=(u,index)=>{
     const bar=index===null?null:regroupSources[u][digits(index)[u]];
@@ -826,6 +831,15 @@ function buildRegroupScene() {
       return [[startX,sourceBottom+5],[startX,sourceBottom+28],[outerX,sourceBottom+28],[outerX,y],[wideX-5,y]];
     }}
   );
+  const addressStyle={'font-family':'ui-monospace, SFMono-Regular, monospace','font-size':12,
+    'font-weight':700,'paint-order':'stroke',stroke:palette.color('paper'),'stroke-width':3,
+    'stroke-linejoin':'round','pointer-events':'none'};
+  regroupAddressLabels={
+    tallRow:label('',tallX+cellSize*4+5,0,{...addressStyle,fill:mergedColors[0]},scene),
+    tallCol:label('',0,tallY-10,{...addressStyle,fill:color(0),'text-anchor':'middle'},scene),
+    wideCol:label('',0,wideY-10,{...addressStyle,fill:mergedColors[1],'text-anchor':'middle'},scene),
+    wideRow:label('',wideX-10,0,{...addressStyle,fill:color(3),'text-anchor':'end'},scene)
+  };
   currentIndex=-1;renderRegroup();
 }
 function renderRegroup() {
@@ -833,7 +847,7 @@ function renderRegroup() {
   if(index===currentIndex)return;
   currentIndex=index;
   const parts=digits(index);
-  regroupSources.forEach((bars,u)=>bars.forEach((bar,d)=>set(bar,{'fill-opacity':scanning?(d===parts[u]?1:.24):.55})));
+  regroupSources.forEach((bars,u)=>bars.forEach((bar,d)=>set(bar,{'fill-opacity':d===parts[u]?1:.24})));
   for(const [name,value] of [['upper64',Math.floor(index/4)],['lower64',index%64]]) {
     const strip=regroupStrips[name];
     set(strip.selection,{x:strip.left+value*strip.step,opacity:scanning?1:0});
@@ -844,7 +858,18 @@ function renderRegroup() {
     set(panel.rowGuide,{y,opacity:scanning?1:0});set(panel.columnGuide,{x,opacity:scanning?1:0});
     set(panel.selection,{x:x+panel.gap/2,y:y+panel.gap/2,opacity:scanning?1:0});
   }
-  for(const link of regroupLinks)set(link.path,{d:roundedRoute(link.points(scanning?index:null))});
+  for(const link of regroupLinks)set(link.path,{d:roundedRoute(link.points(index))});
+  const {tall,wide}=regroupPanels;
+  const tallRow=Math.floor(index/tall.cols),tallCol=index%tall.cols;
+  const wideRow=Math.floor(index/wide.cols),wideCol=index%wide.cols;
+  set(regroupAddressLabels.tallRow,{y:tall.y+(tallRow+.5)*tall.cellSize-5});
+  set(regroupAddressLabels.tallCol,{x:tall.x+(tallCol+.5)*tall.cellSize});
+  set(regroupAddressLabels.wideCol,{x:wide.x+(wideCol+.5)*wide.cellSize});
+  set(regroupAddressLabels.wideRow,{y:wide.y+(wideRow+.5)*wide.cellSize-5});
+  regroupAddressLabels.tallRow.textContent=tallRow.toString(2).padStart(6,'0');
+  regroupAddressLabels.tallCol.textContent=tallCol.toString(2).padStart(2,'0');
+  regroupAddressLabels.wideCol.textContent=wideCol.toString(2).padStart(6,'0');
+  regroupAddressLabels.wideRow.textContent=wideRow.toString(2).padStart(2,'0');
 }
 function buildWaveformScene() {
   const scene=$('waveform-scene');scene.replaceChildren();waveformRows=[];waveformBars=[];
@@ -895,13 +920,14 @@ function buildWaveformScene() {
   waveformReadout=svg('g',{opacity:0,'pointer-events':'none'},scene);
   waveformScan=svg('g',{},waveformReadout);
   waveformRows.forEach((row,depth)=>{
-    row.scanLine=svg('line',{x1:0,x2:0,y1:row.y-4,y2:row.y+rowHeight+4,strokeRole:'frame',stroke:'#718590','stroke-width':1.3,'stroke-dasharray':'4 5','stroke-opacity':.7},waveformScan);
-    row.point=svg('circle',{r:3,fillRole:'bar',fill:row.c,stroke:'#f6f0e3','stroke-width':1.2},waveformReadout);
+    row.scanLine=svg('line',{x1:0,x2:0,y1:row.y-4,y2:row.y+rowHeight+4,strokeRole:'frame',stroke:palette.neutral(6),'stroke-width':1.3,'stroke-dasharray':'4 5','stroke-opacity':.7},waveformScan);
+    row.point=svg('circle',{r:3,fillRole:'bar',fill:row.c,stroke:palette.mix(palette.color('paper'),palette.neutral(16),9/20),'stroke-width':1.2},waveformReadout);
     row.address=label('',0,row.y+rowHeight+12+(depth===config.U?20:18)*fontScale,{'text-anchor':'middle','font-size':depth===config.U?20:18,fill:row.c},waveformReadout);
     row.addressParts=[];
     for(let u=config.U-1;u>=0;u--){
       const relevant=depth===config.U||u===row.u;
-      row.addressParts[u]=svg('tspan',{fill:relevant?color(u):'#a9afb1','fill-opacity':relevant?1:.55},row.address);
+       const inactive=palette.ranges.inactiveFactor;
+       row.addressParts[u]=svg('tspan',{fill:relevant?color(u):`hsl(${colorHue(color(u))} ${inactive.saturation}% ${inactive.lightness}%)`,'fill-opacity':relevant?1:inactive.opacity},row.address);
     }
   });
   const hit=svg('rect',{x:plotX,y:startY,width:plotWidth,height:height-startY-12,fill:'transparent',style:'cursor:crosshair',role:'presentation'},scene);
@@ -1018,7 +1044,7 @@ function layoutPages() {
   }}));
 }
 function arrangePages() {
-  const shades=['#eee8db','#e8e1d2','#e1d9c8','#dad1bf','#d3cab6'];
+  const shades=[palette.mix(palette.color('paper'),palette.neutral(16),4/20),palette.color('paper'),palette.mix(palette.color('paperEdge'),palette.color('paper'),15/20),palette.mix(palette.color('paperEdge'),palette.color('paper'),10/20),palette.mix(palette.color('paper'),palette.tone('gold','ink'),3/20)];
   for(const [depth,name] of pageOrder.entries()) {
     const card=$(name+'-card'),tab=$(name+'-tab'),layer=$(name+'-page');
     card.hidden=false;
@@ -1112,7 +1138,7 @@ function stepPlayback(direction) {
   cancelParameterPause();setViewState('interaction');
   if(activeSection==='heatmap'){
     heatmapHover=null;
-    progress=Math.max(0,Math.min(15,Math.floor(progress*16)+direction))/16;
+    progress=heatmapProgress(Math.max(-1,Math.min(config.U*config.dp,heatmapFrame()+direction)));
   } else if(activeSection==='tree') {
     const next=Math.max(0,Math.min(actions.length-1,activeAction+direction));
     progress=Math.min(1,actions[next].start+.00001);
@@ -1147,19 +1173,19 @@ function render() {
     currentIndex=index;
     for(let u=0;u<config.U;u++) {
       for(let d=0;d<config.dp;d++) {
-        const selected=scanning&&d===parts[u],nodes=sourceNodes[u].row[d];
-        set(nodes.bar,{'fill-opacity':scanning?(selected?1:.28):.55});
-        set(nodes.tag,{fill:selected?color(u):'#7c8478','font-weight':selected?700:400,opacity:nodes.compactLabels&&!selected&&(scanning||d!==0)?0:1});
+        const selected=d===parts[u],nodes=sourceNodes[u].row[d];
+        set(nodes.bar,{'fill-opacity':selected?1:.28});
+        set(nodes.tag,{fill:selected?color(u):palette.neutral(6),'font-weight':selected?700:400,opacity:nodes.compactLabels&&!selected?0:1});
         nodes.bar.setAttribute('aria-pressed',String(selected));
       }
       const bar=sourceNodes[u].row[parts[u]].bar;
-      const sx=scanning?Number(bar.getAttribute('x'))+Number(bar.getAttribute('width'))/2:sourceNodes[u].center,sy=sourceNodes[u].arrowY;
+      const sx=Number(bar.getAttribute('x'))+Number(bar.getAttribute('width'))/2,sy=sourceNodes[u].arrowY;
       const multiplyX=chart.x+chart.width/2,outer=u===0||u===3,ex=multiplyX+(u>=2?(outer?-25:-9):(outer?25:9));
       routeNodes[u].setAttribute('d',roundedRoute(outer?[[sx,sy],[sx,multiplyY],[ex,multiplyY]]:[[sx,sy],[sx,multiplyY-40],[ex,multiplyY-40],[ex,multiplyY-23]]));
       addressNodes[u].textContent=binary(parts[u]);
     }
-    const bin=Math.floor(index/binSize),x=chart.x+(scanning?(index+.5)/total:.5)*chart.width;
-    const step=chart.width/groups.length,y=scanning?chart.bottom-probabilities[index]/outputScaleMax*chart.plotHeight:chart.bottom-chart.height;
+    const bin=Math.floor(index/binSize),x=chart.x+(index+.5)/total*chart.width;
+    const step=chart.width/groups.length,y=chart.bottom-probabilities[index]/outputScaleMax*chart.plotHeight;
     bars.forEach((bar,i)=>set(bar,{'fill-opacity':scanning?(i===bin?1:topBars.has(i)?.65:diagram.alpha.low):.55}));
     set(highlight,{x:chart.x+bin*step});set(scanLine,{x1:x,x2:x});
     const startY=multiplyY+21,turnY=Math.min(multiplyY+65,(startY+y-8)/2);

@@ -1,0 +1,114 @@
+{
+    "colors":  {
+                   "paper":  "#e8e2d3",
+                   "paperEdge":  "#c8c0af",
+                   "pageAccent":  "#82afe6",
+                   "actionInk":  "#203c60",
+                   "controlInk":  "#425d7e",
+                   "readBright":  "#3bac88",
+                   "writeBright":  "#d37871",
+                   "resultGoldInk":  "#614c2c",
+                   "resultGoldBorder":  "#947346",
+                   "sectionNumber":  "#94a9c6",
+                   "eyebrowInk":  "#587393"
+               },
+    "tones":  {
+                  "red":  [
+                              "#ba736d",
+                              "#8c4b46"
+                          ],
+                  "pink":  [
+                               "#ab749f",
+                               "#804c75"
+                           ],
+                  "purple":  [
+                                 "#967bb5",
+                                 "#6c5289"
+                             ],
+                  "indigo":  [
+                                 "#7e83bf",
+                                 "#575a92"
+                             ],
+                  "sky":  [
+                              "#6995cc",
+                              "#36669f"
+                          ],
+                  "green":  [
+                                "#5a9971",
+                                "#2f6f49"
+                            ],
+                  "gold":  [
+                               "#a28545",
+                               "#785c18"
+                           ],
+                  "orange":  [
+                                 "#b37a53",
+                                 "#87512a"
+                             ]
+              },
+    "neutral":  {
+                    "black":  "#000000",
+                    "dark":  "#202020",
+                    "ink":  "#373737",
+                    "light":  "#ffffff",
+                    "steps":  16
+                },
+    "alpha":  {
+                   "surface":  0.06,
+                   "border":  0.35,
+                   "link":  0.72,
+                   "low":  0.24,
+                   "strong":  0.82
+               },
+    "ranges":  {
+                   "jointWeight":  {
+                                       "saturation":  {
+                                                          "start":  8,
+                                                          "end":  92,
+                                                          "scaling":  "linear"
+                                                      },
+                                       "lightness":  {
+                                                         "start":  70,
+                                                         "end":  48,
+                                                         "scaling":  "linear"
+                                                     },
+                                       "opacity":  {
+                                                       "start":  0.6,
+                                                       "end":  0.95,
+                                                       "scaling":  "linear"
+                                                   }
+                                   },
+                   "inactiveFactor":  {
+                                          "saturation":  18,
+                                          "lightness":  67,
+                                          "opacity":  0.55
+                                      },
+                   "diagramStrength":  {
+                                           "start":  0.08,
+                                           "end":  0.82,
+                                           "scaling":  "sqrt",
+                                           "toneScale":  {
+                                                             "sky":  1.07,
+                                                             "gold":  1.03,
+                                                             "orange":  1.02
+                                                         }
+                                       },
+                   "slotWeight":  {
+                                       "start":  0.12,
+                                       "end":  1,
+                                       "scaling":  "linear",
+                                       "darken":  0.92
+                                   },
+                   "capeTokenGray":  {
+                                          "start":  82,
+                                          "end":  66,
+                                          "scaling":  "linear",
+                                          "border":  65
+                                      },
+                   "resultRank":  {
+                                      "start":  "red",
+                                      "end":  "green",
+                                      "scaling":  "linear"
+                                  }
+               }
+}
