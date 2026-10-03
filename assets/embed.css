@@ -37,7 +37,7 @@ body, .exhibit-body { color: var(--neutral-0); font-family: "Segoe UI", Arial, s
 .stage-timeline:has(.stage-timeline-seek:focus-visible) { box-shadow: inset 0 0 0 2px var(--color-pageAccent); }
 .stage-timeline-step:focus-visible { outline-offset: -3px; }
 .exhibit-attn_cmp .stage { overflow-x: auto; }
-.exhibit-attn_cmp #scene { min-width: 0; cursor: pointer; }
+.exhibit-attn_cmp #scene { min-width: 0; }
 .exhibit-ramnet_arch canvas, .exhibit-cape #scene, .exhibit-gsu canvas { min-width: 0; }
 .exhibit-cal_pipeline .stage { overflow-x: auto; }
 .exhibit-cal_pipeline .viewport { min-width: 0; }

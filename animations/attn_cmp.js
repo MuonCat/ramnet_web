@@ -6,7 +6,7 @@ const palette=window.RamnetPalette;
 const diagram=window.ramnetDiagramTheme;
     const $ = id => document.getElementById(id);
     const params = {sceneAspectRatio:4,count:20,ratio:.2,height:88,outputHeightRatio:1,outputGap:6,gap:8,distance:320,cachePadding:17,endpointGap:8,radius:3,lineWidth:2.8,panelRadius:18,framePadding:6,selectionOpacity:24,compressionRatio:.25,comparisonGap:32,backgroundPadding:16,sparseGroupSize:4,sparseGroupGap:24,linearCacheCount:4,ramnetCacheCount:12,ramnetTopK:2,red:diagram.colors.red,green:diagram.colors.green,gray:palette.neutral(12),processedColor:palette.neutral(8),fullColor:diagram.colors.pink,compressedColor:diagram.colors.cyan,sparseColor:diagram.colors.orange,linearColor:diagram.colors.purple,ramnetColor:diagram.colors.sky,packetOpacity:diagram.alpha.strong*100,overlapFade:128,writeTime:.3,scanTime:.1,readTime:.3,blankTime:.1};
-    let actions = [], total = 0, time = 0, playing = true, lastStamp = null, currentIndex = -1, geometries=[];
+    let actions = [], total = 0, time = 0, lastStamp = null, currentIndex = -1, geometries=[];
     let randomState=Date.now()>>>0||1;
     const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
     const ease = t => {t=clamp(t,0,1);return t*t*(3-2*t);};
@@ -225,12 +225,8 @@ const diagram=window.ramnetDiagramTheme;
       for(const g of geometries)renderPanel(g,a,p);
       currentIndex=index;
     }
-    function updatePlayback(){}
-    function seek(t){time=clamp(t,0,total);playing=false;lastStamp=null;updatePlayback();render();}
-    function togglePlay(){if(!playing&&time>=total){time=0;currentIndex=-1;}playing=!playing;lastStamp=null;updatePlayback();render();}
-    function step(direction){seek(actions[clamp(currentIndex+direction,0,actions.length-1)].start);}
     function frame(stamp){
-      if(lastStamp!==null&&playing){time+=Math.min((stamp-lastStamp)/1000,.1);if(time>=total){time%=total;currentIndex=-1;}render();}
+      if(lastStamp!==null){time+=Math.min((stamp-lastStamp)/1000,.1);if(time>=total){time%=total;currentIndex=-1;}render();}
       lastStamp=stamp;requestAnimationFrame(frame);
     }
     document.addEventListener('visibilitychange',()=>{lastStamp=null;});
@@ -239,12 +235,7 @@ const diagram=window.ramnetDiagramTheme;
     scope.onAutoplayStart?.(event=>{
       if(event.detail?.resumeCurrent)event.detail.remainingMs=Math.max(0,(total-time)*1000);
       else{time=0;currentIndex=-1;}
-      playing=true;lastStamp=null;render();
+      lastStamp=null;render();
     });
-  
-$('scene').addEventListener('click',togglePlay);
-$('scene').setAttribute('tabindex','0');
-$('scene').setAttribute('aria-label','Attention comparison. Click or press Space to pause or resume.');
-$('scene').addEventListener('keydown',e=>{if(e.code==='Space'||e.code==='Enter'){e.preventDefault();togglePlay();}});
 };
 if (document.body.classList.contains('exhibit-attn_cmp')) window.RamnetRuntime.mountStandalone('attn_cmp');
