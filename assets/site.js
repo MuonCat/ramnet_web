@@ -7,6 +7,14 @@
   const compactLayout = window.RamnetRuntime.compactLayout;
   const sectionNames = [...document.querySelectorAll('.section-name')].map(box => ({box, text: box.firstElementChild, name: box.textContent.trim()}));
   const nameMeasure = document.createElement('canvas').getContext('2d');
+  function textInkOffset(element) {
+    const style = getComputedStyle(element);
+    nameMeasure.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+    const lines = element.textContent.toUpperCase().split('\n');
+    const first = nameMeasure.measureText(lines[0]);
+    const last = lines.length > 1 ? nameMeasure.measureText(lines[lines.length - 1]) : first;
+    return (first.fontBoundingBoxAscent - first.fontBoundingBoxDescent - first.actualBoundingBoxAscent + last.actualBoundingBoxDescent) / 2;
+  }
   function fitSectionNames() {
     for (const {box, text, name} of sectionNames) {
       const style = getComputedStyle(text);
@@ -22,6 +30,10 @@
       const stacked = stackedSize > singleSize;
       text.textContent = stacked ? words.join('\n') : name;
       text.style.fontSize = `${Math.floor(Math.max(singleSize, stackedSize) * 100) / 100}px`;
+      // Center the visible glyphs, including Georgia's uneven numeral heights.
+      for (const element of [box.previousElementSibling, text]) {
+        element.style.transform = compactLayout.matches ? `translateY(${-textInkOffset(element)}px)` : '';
+      }
     }
   }
   let compactWidth = window.innerWidth;
