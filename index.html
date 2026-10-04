@@ -6,7 +6,7 @@
   <title>RAM-Net — Linear-Time Sequence Modeling with Sparsely Addressable State</title>
   <meta name="description" content="Explore RAM-Net: a larger recurrent memory with sparse read and write access. An interactive explanation of Product Softmax, CAPE, Gated Sparse Update and the CUDA execution pipeline.">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/site.css?v=sec7-three-stage-20261002">
+  <link rel="stylesheet" href="assets/site.css?v=section-name-fit-20261004">
   <script>
     history.scrollRestoration = 'manual';
     window.ramnetInitialHash = location.hash === '#top' ? '' : location.hash;
@@ -16,8 +16,8 @@
   <script defer src="assets/animation-runtime.js?v=geometry-compact-20261002"></script><script defer src="assets/exhibit-markup.js?v=sec8-compact-hover-20261002"></script>
   <script defer src="data/probes/niah_traces.js"></script><script defer src="data/probes/niah_slot_maps.js"></script><script defer src="data/probes/head_traces.js"></script>
   <script defer src="assets/stage-timeline.js"></script>
-  <script defer src="animations/attn_cmp.js?v=sec1-display-only-20261003"></script><script defer src="animations/ramnet_arch.js?v=perceptual-20261002"></script><script defer src="animations/product_softmax.js?v=unified-compact-20261002"></script><script defer src="animations/cape.js?v=perceptual-20261002"></script><script defer src="animations/gsu.js?v=mass-eta-timing-20261002"></script><script defer src="animations/cal_pipeline.js?v=perceptual-20261002"></script><script defer src="animations/niah_probe.js?v=sec8-compact-hover-20261002"></script><script defer src="animations/head_probe.js?v=perceptual-20261002"></script>
-  <script defer src="assets/exhibit-host.js?v=semantic-palette-20261002"></script><script defer src="assets/site.js?v=geometry-compact-20261002"></script><script defer src="assets/hero.js"></script><script defer src="assets/section-scroll.js?v=resize-chapter-20261002"></script><script defer src="data/experiments.js"></script><script defer src="assets/experiments.js?v=sec7-three-stage-20261002"></script><script defer src="assets/reading-position.js?v=section-alignment-20260930"></script>
+  <script defer src="animations/attn_cmp.js?v=sec1-display-only-20261003"></script><script defer src="animations/ramnet_arch.js?v=perceptual-20261002"></script><script defer src="animations/product_softmax.js?v=unified-compact-20261002"></script><script defer src="animations/cape.js?v=perceptual-20261002"></script><script defer src="animations/gsu.js?v=web-copy-20261004"></script><script defer src="animations/cal_pipeline.js?v=perceptual-20261002"></script><script defer src="animations/niah_probe.js?v=sec8-compact-hover-20261002"></script><script defer src="animations/head_probe.js?v=perceptual-20261002"></script>
+  <script defer src="assets/exhibit-host.js?v=semantic-palette-20261002"></script><script defer src="assets/site.js?v=section-name-fit-20261004"></script><script defer src="assets/hero.js"></script><script defer src="assets/section-scroll.js?v=resize-chapter-20261002"></script><script defer src="data/experiments.js"></script><script defer src="assets/experiments.js?v=sec7-three-stage-20261002"></script><script defer src="assets/reading-position.js?v=section-alignment-20260930"></script>
 </head>
 <body id="top">
 <a class="skip-link" href="#memory">Skip to the paper</a>
@@ -26,10 +26,10 @@
   <div class="header-meta"><span>A visual research story</span></div>
 </header>
 <section class="hero" aria-labelledby="paper-title">
-  <div class="eyebrow">Sequence modeling · Addressable memory</div>
+  <div class="eyebrow">Sequence modeling · Efficient attention</div>
   <div class="hero-grid"><div>
     <h1 id="paper-title">RAM-Net<span>Linear-Time Sequence Modeling<br>with Sparsely Addressable State</span></h1>
-    <p class="hero-deck">Keep a large memory. Read and write only the slots that matter.</p>
+    <p class="hero-deck">A larger fixed-size state, accessed a few slots at a time.</p>
     <div class="hero-actions"><a class="button-link primary" href="#memory">Explore the method <span aria-hidden="true">↓</span></a><a class="text-link" href="#results">See the results ↗</a></div>
     <div class="hero-resources" role="group" aria-label="Paper and project resources">
       <a class="resource-link" href="https://arxiv.org/abs/2602.11958" target="_blank" rel="noopener noreferrer" aria-label="Read the paper on arXiv (opens in a new tab)">arXiv <span aria-hidden="true">↗</span></a>
@@ -54,108 +54,154 @@
 <text x="235" y="340" fill="var(--tone-sky-ink)" font-size="10" font-weight="600" text-anchor="middle">current</text>
 <text x="235" y="353" fill="var(--tone-sky-ink)" font-size="10" font-weight="600" text-anchor="middle">token</text>
 </svg></div></div>
-  <div class="hero-summary"><span class="micro">The idea, in brief</span><p>RAM-Net separates <strong class="text-highlight">memory capacity from per-token access</strong>. It stores history in a fixed-size array of addressable slots, while each token reads and writes only a small subset. More slots provide room for more information without a full-state scan at every step. Sparse access keeps sequence processing linear in length and confines direct write interference to shared slots.</p></div>
+  <div class="hero-summary"><span class="micro">The idea, in brief</span><div>
+<p>Mainstream linear attention adds every token into one shared state, where their contributions interfere.
+Instead, RAM-Net splits the state into many slots.
+Each token's key selects a few slots to write, and its query selects a few slots to read.</p>
+<ul>
+  <li><strong>Less interference.</strong> Each read or write accesses only the selected slots, not the entire state, so tokens interfere only when they select the same slots.</li>
+  <li><strong>Scalable state.</strong> More slots add capacity, while the cost of each read or write stays constant.</li>
+</ul>
+  </div></div>
 </section>
-<nav class="chapter-nav" aria-label="Paper chapters"><div class="nav-inner"><span class="nav-label">IN THIS PAPER</span><div class="chapter-links"><a href="#memory"><span>01</span>Memory</a><a href="#architecture"><span>02</span>Architecture</a><a href="#addressing"><span>03</span>Addressing</a><a href="#position"><span>04</span>CAPE</a><a href="#update"><span>05</span>GSU</a><a href="#execution"><span>06</span>Execution</a><a href="#results"><span>07</span>Results</a><a href="#retrieval-probe"><span>08</span>Retrieval probe</a><a href="#head-probes"><span>09</span>Head probes</a></div><button class="autoplay-toggle" id="autoplay-toggle" type="button" aria-pressed="false" aria-label="Start automatic section playback"><span class="autoplay-icon" aria-hidden="true"></span><span>Auto play</span></button></div><div class="reading-progress" aria-hidden="true"></div></nav>
+<nav class="chapter-nav" aria-label="Paper chapters"><div class="nav-inner"><span class="nav-label">IN THIS PAPER</span><div class="chapter-links"><a href="#memory"><span>01</span>Motivation</a><a href="#architecture"><span>02</span>Architecture</a><a href="#addressing"><span>03</span>Addressing</a><a href="#position"><span>04</span>CAPE</a><a href="#update"><span>05</span>GSU</a><a href="#execution"><span>06</span>Execution</a><a href="#results"><span>07</span>Results</a><a href="#retrieval-probe"><span>08</span>Retrieval Traces</a><a href="#head-probes"><span>09</span>Address Patterns</a></div><button class="autoplay-toggle" id="autoplay-toggle" type="button" aria-pressed="false" aria-label="Start automatic section playback"><span class="autoplay-icon" aria-hidden="true"></span><span>Auto play</span></button></div><div class="reading-progress" aria-hidden="true"></div></nav>
 <noscript><p>The paper is readable without JavaScript. Enable JavaScript to explore the interactive figures.</p></noscript>
 <main class="article" id="paper">
 <section class="paper-section" id="memory" aria-labelledby="heading-memory"><div class="section-opening">
-<div class="section-heading"><div class="section-kicker"><span>01</span>The memory question</div><h2 id="heading-memory">More Memory, Less State Access</h2></div>
+<div class="section-heading"><div class="section-kicker"><span class="section-number">01</span><span class="section-name"><span class="section-name-text">Motivation</span></span></div><div><h2 id="heading-memory">Larger State, Sparser Access</h2><p class="section-subtitle">The cost of history</p></div></div>
 <figure class="exhibit-figure" id="figure-1">
   <div class="figure-stage"><div class="embedded-exhibit" data-exhibit="attn_cmp" role="group" aria-label="Five ways to organize history" style="min-height:310px"></div></div>
 </figure>
 </div>
 <div class="prose">
-<p>A sequence model needs to store information and retrieve it when it matters. Memory capacity and access cost are separate concerns: a larger memory is useful only if the model can find the right information efficiently.</p>
-<p>Full attention keeps a key–value entry for every token and retrieves values by comparing their keys with the current query. This supports precise retrieval, but the cache and per-step access cost grow with the sequence.</p>
-<p>Linear attention compresses history into a fixed-size recurrent state. Storage and per-step computation stay constant as the sequence grows, but superposed contributions can interfere and make individual facts harder to retrieve.</p>
-<p>RAM-Net organizes its recurrent state into addressable slots. Each token <strong class="text-highlight">reads or updates only a few slots</strong>, so memory capacity can grow without scanning the entire state.</p>
-
-</div><div class="comparison-table" role="region" aria-label="Comparison of memory mechanisms" tabindex="0"><table><thead><tr><th scope="col">Method</th><th scope="col">How history is stored</th><th scope="col">How it is accessed at each step</th></tr></thead><tbody><tr><td>Full Attention</td><td>A separate KV entry for each token</td><td>Score historical entries and aggregate their values</td></tr><tr><td>KV Quantization / MLA</td><td>Reduce the precision or dimensionality of each historical entry</td><td>Retrieve information from compressed historical representations</td></tr><tr><td>Sparse Attention</td><td>Many methods retain a KV cache that grows with sequence length</td><td>Access only selected historical positions</td></tr><tr><td>Linear Attention</td><td>Aggregate history into a fixed-size state</td><td>Common implementations read and write the state densely</td></tr><tr><td>RAM-Net</td><td>Aggregate history by address into a fixed-size slot array</td><td>Read and write only a small subset of selected slots</td></tr></tbody></table></div><div class="prose">
-<p>Writes can still collide when they select the same slot. Increasing the slot count gives the model more room to separate information without a proportional increase in per-step state access.</p>
-</div></section>
+<p>A sequence model stores information from past tokens and retrieves the relevant part at every step.
+Its efficiency therefore depends on two costs, the amount of history it stores and the amount it accesses per step.</p>
+<p>Full attention keeps one key–value entry per token and compares each query against all of them, so both costs grow with sequence length.
+To mitigate this, KV compression and sparse attention reduce per-step access, but the cache typically keeps growing.</p>
+<p>Instead, mainstream linear attention compresses history into a fixed-size state.
+However, every step reads and writes the entire state.
+Consequently, all tokens interfere within the same state, and any increase in state size directly increases per-step access.</p>
+<p>To address both issues, RAM-Net divides this fixed-size state into many addressable slots, and each step reads and writes only a few selected ones.
+Therefore, tokens interfere only when they select the same slots, and the state can grow without increasing per-step access.</p>
+</div><div class="comparison-table" role="region" aria-label="Comparison of memory mechanisms" tabindex="0"><table>
+<thead><tr><th scope="col">Method</th><th scope="col">How history is stored</th><th scope="col">What each step accesses</th></tr></thead>
+<tbody>
+<tr><td>Full attention</td><td>One key–value entry per token</td><td>All entries</td></tr>
+<tr><td>KV quantization / MLA</td><td>One compressed entry per token</td><td>All compressed entries</td></tr>
+<tr><td>Sparse attention</td><td>One entry per token in most methods</td><td>Selected entries</td></tr>
+<tr><td>Linear attention</td><td>A single fixed-size state</td><td>The entire state in most designs</td></tr>
+<tr><td>RAM-Net</td><td>A fixed-size array of slots</td><td>A few selected slots</td></tr>
+</tbody>
+</table></div></section>
 <section class="paper-section" id="architecture" aria-labelledby="heading-architecture"><div class="section-opening">
-<div class="section-heading"><div class="section-kicker"><span>02</span>Inside RAM-Net</div><h2 id="heading-architecture">Reading and Writing a Small Part of Memory</h2></div>
+<div class="section-heading"><div class="section-kicker"><span class="section-number">02</span><span class="section-name"><span class="section-name-text">Architecture</span></span></div><div><h2 id="heading-architecture">Reading and Writing a Few Slots</h2><p class="section-subtitle">Inside RAM-Net</p></div></div>
 <figure class="exhibit-figure" id="figure-2">
   <div class="figure-stage"><div class="embedded-exhibit" data-exhibit="ramnet_arch" role="group" aria-label="From a token to a memory operation" style="min-height:850px"></div></div>
 </figure>
 </div>
 <div class="prose">
-<p>Each token produces a key to select write locations, a query to select read locations, and a value to store.</p>
-<p>The Address Decoder maps the key and query to <strong class="text-highlight">weighted slot addresses</strong>. Gated Sparse Update modifies the selected write slots. The read path combines the selected contents, then applies normalization, an output gate, and a linear projection.</p>
-
-<p>Read and write addresses may differ. Slots outside the write set remain untouched.</p>
-<p>Two quantities control the design: the total slot count <span class="math"><i>M</i></span> sets <strong class="text-highlight">memory capacity</strong>, while <span class="math"><i>K</i></span> sets <strong class="text-highlight">how many slots each read or write accesses</strong>. Both stay fixed as the sequence grows for a given model configuration.</p>
-<p>The remaining challenge is to select useful addresses without scoring every slot.</p>
+<p>Each token produces a key to select write slots, a query to select read slots, and a value to store.</p>
+<p>RAM-Net processes them in three stages.
+First, the Address Decoder maps the key and the query to <strong class="text-highlight">sparse write and read addresses</strong>, which select a few slots and weight their contributions.
+Next, Cyclic Address Positional Embedding (CAPE) can shift these addresses according to token position, making them position-aware.
+Finally, Gated Sparse Update (GSU) writes the value into the selected write slots and leaves all other slots unchanged.
+The selected read slots are then combined by their weights, normalized, gated, and projected to produce the output.</p>
+<p>Since each step accesses only the selected slots, the size of the state and the per-step access are set separately.
+The slot count <span class="math"><i>M</i></span> sets <strong class="text-highlight">the size of the state</strong>, while <span class="math"><i>K</i></span> sets <strong class="text-highlight">how many slots each read or write accesses</strong>.
+Neither grows with sequence length, so storage and per-token cost stay constant as the context grows.</p>
 </div></section>
 <section class="paper-section" id="addressing" aria-labelledby="heading-addressing"><div class="section-opening">
-<div class="section-heading"><div class="section-kicker"><span>03</span>Product Softmax</div><h2 id="heading-addressing">Product Softmax: Many Slots, Few Logits</h2></div>
+<div class="section-heading"><div class="section-kicker"><span class="section-number">03</span><span class="section-name"><span class="section-name-text">Addressing</span></span></div><div><h2 id="heading-addressing">Efficient Sparse Addressing</h2><p class="section-subtitle">Product Softmax</p></div></div>
 <figure class="exhibit-figure" id="figure-3">
   <div class="figure-stage"><div class="embedded-exhibit" data-exhibit="product_softmax" role="group" aria-label="One product structure. Five perspectives." style="min-height:950px"></div></div>
   <figcaption class="figure-interaction-hint">Select a view or adjust Top-K<span class="fine-interaction-hint">; drag factor weights to reshape the addresses</span>.</figcaption>
 </figure>
 </div>
 <div class="prose">
-<p>Product Softmax constructs a large address distribution by multiplying small component distributions.</p>
-<p>Four address components with four choices each define <span class="math">4<sup>4</sup> = 256</span> slots. Four small softmax operations need <strong class="text-highlight">just 16 logits</strong> to describe a distribution over all 256.</p>
-<p>The weight of a complete address is the product of the corresponding weights in its components. More generally, <span class="math"><i>U</i></span> groups with <span class="math"><i>d</i><sub>p</sub></span> choices each represent <span class="math"><i>M</i> = <i>d</i><sub>p</sub><sup><i>U</i></sup></span> slots using only <span class="math"><i>U d</i><sub>p</sub></span> logits.</p>
-
+<p>Selecting <span class="math"><i>K</i></span> slots naively would score all <span class="math"><i>M</i></span> of them for every token, reintroducing a cost that grows with the state size.
+Instead, Product Softmax avoids this by composing the large address distribution from a few small ones.</p>
+<p>Specifically, Product Softmax factors the slot count as <span class="math"><i>M</i> = <i>d<sub>p</sub></i><sup><i>U</i></sup></span>, so that each slot index can be written as <span class="math"><i>U</i></span> digits with <span class="math"><i>d<sub>p</sub></i></span> values each.
+The key or query is split into <span class="math"><i>U</i></span> parts, and a softmax over each part gives a distribution over the <span class="math"><i>d<sub>p</sub></i></span> values of one digit.
+The weight of a slot is then the product of the probabilities assigned to its digits.
+As a result, <span class="math"><i>U d<sub>p</sub></i></span> scores suffice to address all <span class="math"><i>M</i></span> slots.
+For example, RAM-Net uses <span class="math"><i>M</i> = 1024 = 4<sup>5</sup></span> with only 20 scores.</p>
+<p>The figure above shows how these digit distributions combine into a distribution over slots, from five equivalent perspectives.</p>
 <h3>Soft Radix Address</h3>
-<p>Replace each fixed address digit with a distribution. Each combination of digits identifies a slot, and the product of their probabilities gives its access weight. A soft address can therefore assign weight to several slots at once.</p>
+<p>In base <span class="math"><i>d<sub>p</sub></i></span>, each slot index is a sequence of <span class="math"><i>U</i></span> digits.
+Instead of fixing every digit to select a single slot, Product Softmax gives each digit a distribution over its <span class="math"><i>d<sub>p</sub></i></span> values.
+Every slot is then weighted by the product of its digit probabilities.</p>
 <h3>Multilevel Decision Tree</h3>
-<p>Each tree level represents one address component, and each root-to-leaf path represents a slot. Its weight is the product of the branch weights. Sharing the same component distribution across a level makes the highest-weight paths efficient to find.</p>
+<p>Each digit forms one level of a tree, so every root-to-leaf path corresponds to one slot.
+A slot's weight is the product of the branch probabilities along its path.
+Since all nodes at a level share the same digit distribution, the most probable slots can be found level by level, at a cost that grows with the depth <span class="math"><i>U</i></span> rather than the number of leaves <span class="math"><i>M</i></span>.</p>
 <h3>Joint Distribution</h3>
-<p>Each slot is a point in a four-dimensional address lattice, with one coordinate from each factor. Fixing one factor value selects a <strong class="text-highlight">64-slot slice</strong>: that value is broadcast across the slice and multiplied by the other three factors to determine each slot's weight.</p>
-<p>The rotating projection uses three coordinates for position and the fourth for cube scale. Color strength represents the joint weight; the highlighted slice shows where the active factor value contributes. Black outlines mark the Top-K slots.</p>
+<p>Each digit corresponds to one axis of a <span class="math"><i>U</i></span>-dimensional grid, so each slot is a grid point weighted by the product of its probabilities along every axis.
+A confident digit confines the weight to a slice of the grid, whereas an uncertain digit spreads it along its axis.
+Thus, the highest-weight slots lie where these slices intersect, extending only along the axes of uncertain digits.
+The figure illustrates the case <span class="math"><i>U</i> = <i>d<sub>p</sub></i> = 4</span>.</p>
 <h3>Regroupable Address</h3>
-<p>The product structure lets us <strong class="text-highlight">regroup factors without changing any slot weight</strong>. View A combines factors 1–3 into a 64-way row coordinate, with factor 4 selecting one of four columns. View B uses factor 1 for four rows and combines factors 2–4 into 64 columns.</p>
-<p>The same address sequence scans both the <span class="math">64 × 4</span> and <span class="math">4 × 64</span> arrays, tracing different spatial patterns. These are two views of one address space: every slot keeps its weight, and the same Top-K slots retain their black outlines.</p>
+<p>Since the weight is a product, any set of digits can be merged into a single coarser digit without changing any slot weight.
+Splitting the digits into two groups thus arranges the slots as a matrix whose weights form an outer product of two vectors.
+The figure shows two such groupings, 64 × 4 and 4 × 64, which trace different patterns over the same weights.</p>
 <h3>Waveform Modulation</h3>
-<p>In slot-index order, each address component forms a repeating, piecewise-constant waveform. Higher-order digits select broad regions; lower-order digits vary over shorter intervals. Their pointwise product produces the final distribution.</p>
-<p>All five views describe the same distribution. RAM-Net builds addresses one component at a time, retaining only the <strong class="text-highlight">Top-K candidates</strong> at each step. This finds the final addresses without materializing the full <span class="math"><i>M</i></span>-dimensional distribution.</p>
+<p>Read along the slot index, each digit's distribution becomes a periodic step waveform.
+Low-order digits change at every slot and repeat quickly, whereas high-order digits change slowly and hold each value over long intervals.
+The address distribution is the product of these waveforms, with the slow ones setting a coarse envelope and the fast ones modulating it within.</p>
+<p>All five views express one property, namely that a slot's weight factorizes into independent per-digit probabilities.
+This factorization enables an exact and efficient Top-<span class="math"><i>K</i></span> search.
+Following the tree, RAM-Net fixes the digits one level at a time and keeps only the <span class="math"><i>K</i></span> most probable partial addresses at each level.
+A dropped partial address already trails <span class="math"><i>K</i></span> others, and since all of them are multiplied by the same remaining digit probabilities, it can never overtake them.
+The search thus returns <strong class="text-highlight">the exact Top-<span class="math"><i>K</i></span></strong> while evaluating only <span class="math"><i>K d<sub>p</sub></i></span> candidates per level, rather than all <span class="math"><i>M</i></span> slots.</p>
 </div></section>
 <section class="paper-section" id="position" aria-labelledby="heading-position"><div class="section-opening">
-<div class="section-heading"><div class="section-kicker"><span>04</span>Position-aware addresses</div><h2 id="heading-position">CAPE: Position-Aware Memory Access</h2></div>
+<div class="section-heading"><div class="section-kicker"><span class="section-number">04</span><span class="section-name"><span class="section-name-text">CAPE</span></span></div><div><h2 id="heading-position">Position-Aware Addressing</h2><p class="section-subtitle">Relative position</p></div></div>
 <figure class="exhibit-figure" id="figure-4">
   <div class="figure-stage"><div class="embedded-exhibit" data-exhibit="cape" role="group" aria-label="Content meets relative position" style="min-height:690px"></div></div>
   <figcaption class="figure-interaction-hint">Toggle CAPE in the diagram<span class="fine-interaction-hint">; drag read or write weights</span> to compare address overlap.</figcaption>
 </figure>
 </div>
 <div class="prose">
-<p>Content identifies what to retrieve. Position tells the model how far that information lies from the current token.</p>
-<p>Cyclic Address Positional Embedding (CAPE) shifts read and write addresses around the slot array according to token position. Address overlap then reflects both <strong class="text-highlight">content and relative distance</strong>.</p>
-
-<p>Repeated writes of the same content trace a cyclic path through memory. Shifting the current read address in the same way makes matching sensitive to the distance between the read and the earlier write.</p>
-<p>CAPE shifts slot indices while keeping access sparse. RAM-Net combines position-sensitive heads with content-only heads to capture both relative-position patterns and associations that hold across positions.</p>
+<p>Product Softmax addresses slots by content alone, so identical content maps to the same slots at every position.
+Such addresses cannot tell where a token occurs relative to the current one.</p>
+<p>Cyclic Address Positional Embedding (CAPE) adds this information by shifting each token's read and write addresses along the slot array according to its position.
+A read at step <span class="math"><i>t</i></span> then overlaps a write from step <span class="math"><i>s</i></span> according to their content and the distance <span class="math"><i>t</i> − <i>s</i></span>, rather than their absolute positions.</p>
+<p>As a result, the same content written at different positions lands on different slots instead of overwriting the same ones.
+Since the slot array is finite, these shifts wrap around its end, which makes the embedding cyclic.</p>
+<p>The shift only permutes slot indices, so each read and write still accesses <span class="math"><i>K</i></span> slots.
+RAM-Net applies CAPE to some heads and leaves the others content-only, without any positional shift.
+The CAPE heads capture relative-position patterns, whereas the content-only heads capture associations that hold regardless of distance.</p>
 </div></section>
 <section class="paper-section" id="update" aria-labelledby="heading-update"><div class="section-opening">
-<div class="section-heading"><div class="section-kicker"><span>05</span>Gated Sparse Update</div><h2 id="heading-update">GSU: Balancing Retention and New Information</h2></div>
+<div class="section-heading"><div class="section-kicker"><span class="section-number">05</span><span class="section-name"><span class="section-name-text">GSU</span></span></div><div><h2 id="heading-update">Balancing Retention and New Information</h2><p class="section-subtitle">Updating slots</p></div></div>
 <figure class="exhibit-figure" id="figure-5">
   <div class="figure-stage"><div class="embedded-exhibit" data-exhibit="gsu" role="group" aria-label="How a selected slot changes" style="min-height:620px"></div></div>
   <figcaption class="figure-interaction-hint">Select a stage<span class="fine-interaction-hint">, adjust γ, or drag a value</span> to follow the slot update.</figcaption>
 </figure>
 </div>
 <div class="prose">
-<p>Each new write poses a choice: how much of the slot's history should remain, and how strongly should the new value change it?</p>
-<p>Gated Sparse Update (GSU) maintains content <span class="math"><i>s</i></span> and <strong class="text-highlight">retained write mass</strong> <span class="math"><i>m</i></span> for each slot. Larger mass makes the content harder to change. The forgetting gate reduces that mass, giving the incoming write more influence.</p>
-
-<p>For slot <span class="math"><i>a</i></span> at step <span class="math"><i>t</i></span>, let <span class="math"><i>w</i><sub>t</sub>(<i>a</i>)</span> be its write weight, <span class="math"><i>v</i><sub>t</sub></span> the incoming value, and <span class="math">γ<sub>t</sub></span> the forgetting control. A small <span class="math">ε</span> stabilizes the update rate. The update has four steps.</p>
+<p>Each write must balance a selected slot's history against the incoming value, while leaving all other slots unchanged.
+Unlike the forgetting gates of mainstream linear attention, which decay the entire state at every step, Gated Sparse Update (GSU) forgets and writes only at the selected slots.</p>
+<p>For each slot <span class="math"><i>i</i></span>, GSU keeps its content <span class="math"><b>S</b><sub><i>t</i>,<i>i</i></sub></span> together with a <strong class="text-highlight">write mass</strong> <span class="math"><i>m</i><sub><i>t</i>,<i>i</i></sub></span>, which measures how much write weight the slot has accumulated.
+A new write changes the content in proportion to its weight relative to this mass, so a heavily written slot changes slowly.
+The input-dependent scalar <span class="math">γ<sub><i>t</i></sub></span>, computed from the current token by a learned projection, controls how much of the mass is retained, and thus how readily the slot accepts new values.</p>
+<p>Given the write weight <span class="math"><i>w</i><sub><i>t</i>,<i>i</i></sub></span> and the incoming value <span class="math"><b>v</b><sub><i>t</i></sub></span>, the update proceeds in four steps.</p>
 <div class="equation equation-system" role="group" aria-label="Gated sparse update equations">
-<math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="Retention factor"><msub><mi>α</mi><mi>t</mi></msub><mo>(</mo><mi>a</mi><mo>)</mo><mo>=</mo><mi>σ</mi><mo>(</mo><mi mathvariant="normal">logit</mi><mo>(</mo><mn>1</mn><mo>−</mo><msub><mi>w</mi><mi>t</mi></msub><mo>(</mo><mi>a</mi><mo>)</mo><mo>)</mo><mo>−</mo><msub><mi>γ</mi><mi>t</mi></msub><mo>)</mo></math>
-<math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="Updated write mass"><msub><mi>m</mi><mi>t</mi></msub><mo>(</mo><mi>a</mi><mo>)</mo><mo>=</mo><msub><mi>α</mi><mi>t</mi></msub><mo>(</mo><mi>a</mi><mo>)</mo><msub><mi>m</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>(</mo><mi>a</mi><mo>)</mo><mo>+</mo><msub><mi>w</mi><mi>t</mi></msub><mo>(</mo><mi>a</mi><mo>)</mo></math>
-<math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="Update rate"><msub><mi>η</mi><mi>t</mi></msub><mo>(</mo><mi>a</mi><mo>)</mo><mo>=</mo><mfrac><mrow><msub><mi>w</mi><mi>t</mi></msub><mo>(</mo><mi>a</mi><mo>)</mo></mrow><mrow><msub><mi>m</mi><mi>t</mi></msub><mo>(</mo><mi>a</mi><mo>)</mo><mo>+</mo><mi>ε</mi></mrow></mfrac></math>
-<math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="Updated slot content"><msub><mi>s</mi><mi>t</mi></msub><mo>(</mo><mi>a</mi><mo>)</mo><mo>=</mo><msub><mi>s</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>(</mo><mi>a</mi><mo>)</mo><mo>+</mo><msub><mi>η</mi><mi>t</mi></msub><mo>(</mo><mi>a</mi><mo>)</mo><mo>(</mo><msub><mi>v</mi><mi>t</mi></msub><mo>−</mo><msub><mi>s</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>(</mo><mi>a</mi><mo>)</mo><mo>)</mo></math>
+<math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="Retention factor"><msub><mi>α</mi><mrow><mi>t</mi><mo>,</mo><mi>i</mi></mrow></msub><mo>=</mo><mi>σ</mi><mo>(</mo><mo>−</mo><mi mathvariant="normal">logit</mi><mo>(</mo><msub><mi>w</mi><mrow><mi>t</mi><mo>,</mo><mi>i</mi></mrow></msub><mo>)</mo><mo>−</mo><msub><mi>γ</mi><mi>t</mi></msub><mo>)</mo></math>
+<math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="Updated write mass"><msub><mi>m</mi><mrow><mi>t</mi><mo>,</mo><mi>i</mi></mrow></msub><mo>=</mo><msub><mi>α</mi><mrow><mi>t</mi><mo>,</mo><mi>i</mi></mrow></msub><msub><mi>m</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn><mo>,</mo><mi>i</mi></mrow></msub><mo>+</mo><msub><mi>w</mi><mrow><mi>t</mi><mo>,</mo><mi>i</mi></mrow></msub></math>
+<math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="Update rate"><msub><mi>λ</mi><mrow><mi>t</mi><mo>,</mo><mi>i</mi></mrow></msub><mo>=</mo><mfrac><msub><mi>w</mi><mrow><mi>t</mi><mo>,</mo><mi>i</mi></mrow></msub><mrow><msub><mi>m</mi><mrow><mi>t</mi><mo>,</mo><mi>i</mi></mrow></msub><mo>+</mo><mi>ε</mi></mrow></mfrac></math>
+<math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="Updated slot content"><msub><mi mathvariant="bold">S</mi><mrow><mi>t</mi><mo>,</mo><mi>i</mi></mrow></msub><mo>=</mo><msub><mi mathvariant="bold">S</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn><mo>,</mo><mi>i</mi></mrow></msub><mo>+</mo><msub><mi>λ</mi><mrow><mi>t</mi><mo>,</mo><mi>i</mi></mrow></msub><mo>(</mo><msub><mi mathvariant="bold">v</mi><mi>t</mi></msub><mo>−</mo><msub><mi mathvariant="bold">S</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn><mo>,</mo><mi>i</mi></mrow></msub><mo>)</mo></math>
 </div>
 <ol class="equation-notes">
-<li><strong class="text-highlight">Retention (α).</strong> The sigmoid sets how much of the previous mass survives. A stronger write or larger <span class="math">γ<sub>t</sub></span> lowers this fraction.</li>
-<li><strong class="text-highlight">Mass (m).</strong> Keep the retained previous mass, then add the current write weight.</li>
-<li><strong class="text-highlight">Update rate (η).</strong> Divide the write weight by the new mass plus <span class="math">ε</span>. This keeps the denominator nonzero and controls the new value's influence.</li>
-<li><strong class="text-highlight">Content (s).</strong> Move the old slot content toward <span class="math"><i>v</i><sub>t</sub></span> by that rate: a small rate preserves more history, while a rate near 1 lets the new value dominate.</li>
+<li><strong class="text-highlight">Retention (α).</strong> A stronger write or a larger <span class="math">γ<sub><i>t</i></sub></span> keeps less of the previous mass.</li>
+<li><strong class="text-highlight">Mass (m).</strong> The new mass adds the current write weight to the retained mass.</li>
+<li><strong class="text-highlight">Update rate (λ).</strong> The rate is the write weight relative to the new mass, with a small <span class="math">ε</span> for numerical stability.</li>
+<li><strong class="text-highlight">Content (S).</strong> The content moves toward <span class="math"><b>v</b><sub><i>t</i></sub></span> by a fraction λ of the remaining gap, so a small λ preserves history and a λ near 1 lets the new value dominate.</li>
 </ol>
-<p>For an unselected slot, <span class="math"><i>w</i><sub>t</sub>(<i>a</i>) = 0</span>, the retention factor is 1, and the update rate is 0. <strong class="text-highlight">Both content and write mass stay unchanged.</strong> GSU confines forgetting and updating to the selected write slots, allowing frequently used slots to adapt while preserving untouched memories.</p>
+<p>For an unselected slot, <span class="math"><i>w</i><sub><i>t</i>,<i>i</i></sub> = 0</span> gives <span class="math">α<sub><i>t</i>,<i>i</i></sub> = 1</span> and <span class="math">λ<sub><i>t</i>,<i>i</i></sub> = 0</span>, so <strong class="text-highlight">both its content and mass stay unchanged</strong>.
+For a selected slot, <span class="math">γ<sub><i>t</i></sub></span> ranges the update between two extremes, averaging all past writes as <span class="math">γ<sub><i>t</i></sub> → −∞</span> and overwriting with the newest value as <span class="math">γ<sub><i>t</i></sub> → +∞</span>.</p>
 </div></section>
 <section class="paper-section" id="execution" aria-labelledby="heading-execution"><div class="section-opening">
-<div class="section-heading"><div class="section-kicker"><span>06</span>Sparse access on the GPU</div><h2 id="heading-execution">CUDA: Parallel Work Across Memory Slots</h2></div>
+<div class="section-heading"><div class="section-kicker"><span class="section-number">06</span><span class="section-name"><span class="section-name-text">Execution</span></span></div><div><h2 id="heading-execution">Parallel Work Across Memory Slots</h2><p class="section-subtitle">CUDA · Sparse access on the GPU</p></div></div>
 <figure class="exhibit-figure" id="figure-6">
   <div class="figure-stage"><div class="embedded-exhibit" data-exhibit="cal_pipeline" role="group" aria-label="From scattered events to parallel work" style="min-height:840px"></div></div>
 </figure>
@@ -167,7 +213,7 @@
 <p>Different slots and their channels can run in parallel, while events within each slot preserve the <strong class="text-highlight">causal order</strong> required by the recurrence. Slots with no events require no work.</p>
 <p>During autoregressive decoding, the model directly accesses the slots selected by the current token. It does not scan the full recurrent state.</p>
 </div></section>
-<section class="paper-section" id="results" data-cycle-ms="12000" aria-labelledby="heading-results"><div class="section-heading"><div class="section-kicker"><span>07</span>Evidence &amp; trade-offs</div><h2 id="heading-results">Results: Quality and State Access</h2></div>
+<section class="paper-section" id="results" data-cycle-ms="12000" aria-labelledby="heading-results"><div class="section-heading"><div class="section-kicker"><span class="section-number">07</span><span class="section-name"><span class="section-name-text">Results</span></span></div><div><h2 id="heading-results">Quality and State Access</h2><p class="section-subtitle">Evidence &amp; trade-offs</p></div></div>
 <div class="metric-grid" aria-label="Selected experimental results">
 <div class="metric"><strong>0.4<span class="metric-unit">M</span></strong><span>Active state · 340M Top-8</span><small>26.2M total state elements</small></div>
 <div class="metric"><strong>72.9</strong><span>S-NIAH average · 340M Top-32</span><small>Three tasks · 1K–16K contexts</small></div>
@@ -218,7 +264,7 @@
 <p>Separate 340M-scale decoding benchmarks on a single NVIDIA RTX 5090 report throughput comparable to GLA and higher than the tested Mamba2, DeltaNet, and Gated DeltaNet implementations. Runtime depends on the implementation and hardware as well as state access.</p>
 </div><div class="results-note">Retrieval still depends on <strong class="text-highlight">reliable address selection</strong>: an unselected slot cannot contribute to the current read. More slots increase capacity; a larger Top-K increases access. Their benefits depend on the task.</div></section>
 <section class="paper-section" id="retrieval-probe" aria-labelledby="heading-retrieval-probe"><div class="section-opening">
-<div class="section-heading"><div class="section-kicker"><span>08</span>Retrieval probe</div><h2 id="heading-retrieval-probe">Following a Needle Through Memory</h2></div>
+<div class="section-heading"><div class="section-kicker"><span class="section-number">08</span><span class="section-name"><span class="section-name-text">Retrieval Traces</span></span></div><div><h2 id="heading-retrieval-probe">Following a Needle Through Memory</h2><p class="section-subtitle">S-NIAH-1 &amp; S-NIAH-3</p></div></div>
 <figure class="exhibit-figure" id="figure-8">
   <div class="figure-stage"><div class="embedded-exhibit" data-exhibit="niah_probe" role="group" aria-label="Recorded writes and reads across 1,024 memory slots" style="min-height:520px"></div></div>
 </figure>
@@ -227,7 +273,7 @@
 <p>Colors track source contributions under the recorded GSU gains. They illustrate provenance, not the actual hidden vectors. Each head uses a fixed, reordered slot layout to expose spatial patterns. These selected examples help inspect retrieval behavior; they do not estimate its overall success rate.</p>
 </div></section>
 <section class="paper-section" id="head-probes" aria-labelledby="heading-head-probes"><div class="section-opening">
-<div class="section-heading"><div class="section-kicker"><span>09</span>Head probes</div><h2 id="heading-head-probes">What Do Shared Addresses Reveal?</h2></div>
+<div class="section-heading"><div class="section-kicker"><span class="section-number">09</span><span class="section-name"><span class="section-name-text">Address Patterns</span></span></div><div><h2 id="heading-head-probes">What Do Shared Addresses Reveal?</h2><p class="section-subtitle">Word pieces and paired punctuation</p></div></div>
 <figure class="exhibit-figure" id="figure-9">
   <div class="figure-stage"><div class="embedded-exhibit" data-exhibit="head_probe" role="group" aria-label="Read and write traces for word pieces and paired punctuation" style="min-height:650px"></div></div>
 </figure>

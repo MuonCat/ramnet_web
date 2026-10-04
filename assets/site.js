@@ -5,6 +5,25 @@
   const addressingExhibit = exhibits.find(exhibit => exhibit.dataset.exhibit === 'product_softmax');
   const article = document.querySelector('main.article');
   const compactLayout = window.RamnetRuntime.compactLayout;
+  const sectionNames = [...document.querySelectorAll('.section-name')].map(box => ({box, text: box.firstElementChild, name: box.textContent.trim()}));
+  const nameMeasure = document.createElement('canvas').getContext('2d');
+  function fitSectionNames() {
+    for (const {box, text, name} of sectionNames) {
+      const style = getComputedStyle(text);
+      const fontSize = parseFloat(style.fontSize);
+      const lineHeight = parseFloat(style.lineHeight) / fontSize;
+      const spacing = parseFloat(style.letterSpacing) / fontSize;
+      nameMeasure.font = `${style.fontWeight} 100px ${style.fontFamily}`;
+      const widthAtOnePixel = line => nameMeasure.measureText(line.toUpperCase()).width / 100 + line.length * spacing;
+      const words = name.split(/\s+/);
+      const width = box.clientWidth - 1, height = box.clientHeight - 1;
+      const singleSize = Math.min(width / widthAtOnePixel(name), height / lineHeight);
+      const stackedSize = Math.min(width / Math.max(...words.map(widthAtOnePixel)), height / (words.length * lineHeight));
+      const stacked = stackedSize > singleSize;
+      text.textContent = stacked ? words.join('\n') : name;
+      text.style.fontSize = `${Math.floor(Math.max(singleSize, stackedSize) * 100) / 100}px`;
+    }
+  }
   let compactWidth = window.innerWidth;
   let compactScales = new WeakMap();
   let addressingLayout = null;
@@ -75,6 +94,7 @@
     const width = useCompactLayout ? fittedWidth(0, false, true) : desktopWidth;
     article.style.setProperty('--addressing-tab-gutter', `${useCompactLayout ? 0 : gutter}px`);
     article.style.setProperty('--article-width-limit', `${Math.floor(width)}px`);
+    fitSectionNames();
     sections.forEach(section => {
       const stage = section.querySelector('.figure-stage');
       const exhibit = stage?.querySelector('.embedded-exhibit');

@@ -51,7 +51,9 @@ a.resource-link:hover { background: color-mix(in srgb, var(--neutral-16) 65%, va
 .hero-visual .route { stroke: var(--tone-sky); stroke-width: 1.5; fill: none; stroke-dasharray: 4 5; }
 .hero-summary { margin-top: 57px; padding-top: 24px; border-top: 1px solid var(--line); display: grid; grid-template-columns: 210px 1fr; gap: 34px; }
 .hero-summary .micro { color: var(--neutral-5); padding-top: 5px; }
-.hero-summary p { font-size: 14px; line-height: 1.85; color: var(--body); margin: 0; max-width: 860px; }
+.hero-summary :is(p, ul) { font-size: 14px; line-height: 1.85; color: var(--body); margin: 0; max-width: 860px; }
+.hero-summary ul { margin-top: 12px; padding-left: 1.2em; }
+.hero-summary li + li { margin-top: 6px; }
 .chapter-nav { position: sticky; top: 0; z-index: 20; border-block: 1px solid var(--line); background: color-mix(in srgb, var(--color-paper) 96.08%, transparent); backdrop-filter: blur(16px); }
 .nav-inner { display: flex; align-items: center; max-width: 1240px; margin: auto; gap: 26px; min-height: 56px; }
 .nav-label { font-size: 9px; letter-spacing: 1.7px; color: var(--muted); }
@@ -68,9 +70,12 @@ a.resource-link:hover { background: color-mix(in srgb, var(--neutral-16) 65%, va
 main.article { --text-inset: clamp(36px, 4.5vw, 60px); --content-width: calc(100% - 2 * var(--text-inset)); --section-top-gap: clamp(24px, calc(12vh - 72px), 82px); --section-heading-gap: clamp(10px, calc(5vh - 30px), 32px); width: calc(100% - clamp(40px, 7vw, 88px)); max-width: min(1160px, var(--article-width-limit, 1160px)); margin: auto; }
 .paper-section { padding: var(--section-top-gap) 0 76px; border-bottom: 1px solid var(--line); }
 .section-opening { margin-bottom: 48px; display: flow-root; }
-.section-heading { display: grid; grid-template-columns: 88px minmax(0,1fr); align-items: center; gap: 32px; margin-bottom: var(--section-heading-gap); }
-.section-kicker { color: color-mix(in srgb, var(--color-paper) 10%, var(--tone-indigo-ink) 90%); line-height: 1.8; }
-.section-kicker span { display: block; font-family: var(--serif); font-size: clamp(44px, calc(5vh + 4px), 64px); font-weight: 400; letter-spacing: -3px; line-height: 1; color: var(--color-sectionNumber); margin-bottom: clamp(2px, calc(2vh - 14px), 10px); }
+.section-heading { --section-name-width: 88px; --section-name-height: 32px; display: grid; grid-template-columns: var(--section-name-width) minmax(0,1fr); align-items: center; gap: 32px; margin-bottom: var(--section-heading-gap); }
+.section-kicker { display: flex; flex-direction: column; align-items: center; color: color-mix(in srgb, var(--color-paper) 10%, var(--tone-indigo-ink) 90%); font-weight: 700; text-align: center; }
+.section-number { display: block; width: 100%; font-family: var(--serif); font-size: clamp(44px, calc(5vh + 4px), 64px); font-weight: 400; letter-spacing: -3px; line-height: 1; color: var(--color-sectionNumber); margin-bottom: clamp(2px, calc(2vh - 14px), 10px); }
+.section-name { display: flex; align-items: center; justify-content: center; flex: none; width: var(--section-name-width); height: var(--section-name-height); }
+.section-name-text { display: block; white-space: pre; font-size: 12px; letter-spacing: .04em; line-height: 1.15; }
+.section-subtitle { margin: 8px 0 0; color: var(--tone-sky-ink); font-size: 15px; font-weight: 600; line-height: 1.5; }
 h2 { font-family: var(--serif); font-size: clamp(30px,3.3vw,43px); line-height: 1.2; font-weight: 400; letter-spacing: -1.1px; margin: 0; text-wrap: balance; }
 .prose { width: var(--content-width); margin-left: var(--text-inset); font-size: 16px; line-height: 1.9; color: var(--body); }
 .prose p { margin: 0 0 20px; }
@@ -207,7 +212,7 @@ noscript p { padding: 16px; background: color-mix(in srgb, var(--neutral-16) 75%
   main.article { --text-inset: clamp(36px, 4.5vw, 48px); }
   .hero-grid { gap: 20px; }
   .hero h1 span { font-size: 30px; }
-  .section-heading { grid-template-columns: 72px minmax(0,1fr); gap: 24px; }
+  .section-heading { --section-name-width: 72px; --section-name-height: 30px; gap: 24px; }
   .nav-label { display: none; }
   .nav-inner { gap: 16px; }
   .chapter-links { gap: 18px; }
@@ -225,7 +230,7 @@ html.compact-layout {
   .hero-deck { font-size: 15px; max-width: 390px; }
   .hero-visual { display: none; }
   .hero-summary { margin-top: 32px; grid-template-columns: 1fr; gap: 14px; }
-  .hero-summary p { font-size: 13px; }
+  .hero-summary :is(p, ul) { font-size: 13px; }
   .nav-inner { min-height: 50px; margin-right: 12px; gap: 12px; }
   .chapter-links { gap: 20px; }
   .chapter-links a { padding-block: 18px 15px; }
@@ -235,9 +240,9 @@ html.compact-layout {
   .embedded-exhibit { min-height: 0; }
   #figure-3 { width: var(--content-width); margin-left: var(--text-inset); }
   .section-opening { margin-bottom: 30px; }
-  .section-heading { display: block; margin-bottom: var(--section-heading-gap); }
-  .section-kicker { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; font-size: 9px; }
-  .section-kicker span { margin: 0; font-size: 32px; letter-spacing: -1px; }
+  .section-heading { --section-name-width: 112px; --section-name-height: 28px; display: block; margin-bottom: var(--section-heading-gap); }
+  .section-kicker { flex-direction: row; gap: 12px; margin-bottom: 14px; }
+  .section-number { width: auto; margin: 0; font-size: 32px; letter-spacing: -1px; }
   h2 { font-size: 31px; letter-spacing: -.8px; }
   .prose { font-size: 14px; line-height: 1.85; }
   table { min-width: 650px; font-size: 11px; }
