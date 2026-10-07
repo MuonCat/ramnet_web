@@ -6,7 +6,7 @@ const palette=window.RamnetPalette;
 const diagram=window.ramnetDiagramTheme;
 const $=id=>document.getElementById(id), canvas=$('scene'), ctx=canvas.getContext('2d');
 const W=1400,H=790,AX=435,AW=907;
-const C={ink:palette.neutral(0),muted:palette.neutral(6),line:palette.neutral(11),paper:'transparent',purple:diagram.colors.purple,gold:diagram.colors.gold,v:diagram.colors.orange,gsu:diagram.colors.green,slot:diagram.colors.sky,mass:diagram.colors.indigo,token:palette.neutral(10),tokenDone:palette.neutral(7),tokenSpent:palette.neutral(12),red:diagram.colors.red,link:palette.neutral(7),archPaper:palette.mix(palette.neutral(16),palette.tone('green'),1/20),frame:palette.neutral(14),bg:palette.mix(palette.neutral(16),palette.tone('green'),2/20),accent:palette.mix(palette.color('paper'),palette.tone('green','ink'),17/20),highlight:palette.mix(palette.color('paper'),palette.neutral(16),9/20)};
+const C={ink:palette.neutral(0),muted:palette.neutral(6),line:palette.neutral(11),paper:'transparent',purple:diagram.colors.purple,gold:diagram.colors.gold,v:diagram.colors.orange,gsu:diagram.colors.cyan,slot:diagram.colors.sky,mass:diagram.colors.indigo,token:palette.neutral(10),tokenDone:palette.neutral(7),tokenSpent:palette.neutral(12),red:diagram.colors.red,link:palette.neutral(7),archPaper:palette.mix(palette.neutral(16),palette.tone('green'),1/20),frame:palette.neutral(14),bg:palette.mix(palette.neutral(16),palette.tone('green'),2/20),accent:palette.mix(palette.color('paper'),palette.tone('green','ink'),17/20),highlight:palette.mix(palette.color('paper'),palette.neutral(16),9/20)};
 const actions=[
  ['linear projection','token 向上投影为 gate、γ、v、q、k。',1.5],
  ['k · Product Softmax','k 拆成 U 个列向量；各因子概率相乘，快速扫描全部地址，输出完整 w。',3],
