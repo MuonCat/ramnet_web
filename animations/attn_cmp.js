@@ -24,19 +24,23 @@ const diagram=window.ramnetDiagramTheme;
       randomState^=randomState<<13;randomState^=randomState>>>17;randomState^=randomState<<5;
       return (randomState>>>0)/4294967296;
     }
-    function randomWeights(count=params.linearCacheCount,topK=count,minStrength=.8){
-      const ranked=Array.from({length:count},(_,index)=>({index,weight:random()})).sort((a,b)=>b.weight-a.weight);
-      const weights=Array(count).fill(0);
-      ranked.slice(0,topK).forEach((entry,i)=>{weights[entry.index]=i===0?1:minStrength+(.9-minStrength)*random();});
-      return weights;
+    function attentionVector(){
+      const vector=Array.from({length:8},()=>2*random()-1);
+      const scale=(2+random())/Math.hypot(...vector);
+      return vector.map(value=>value*scale);
     }
-    function attentionWeights(count){
-      const weights=Array.from({length:count},()=>.01+.04*random());
-      const primary=Math.floor(random()*count);weights[primary]=1;
-      if(count>1&&random()<.65){
-        const secondary=(primary+1+Math.floor(random()*(count-1)))%count;
-        weights[secondary]=.55+.3*random();
-      }
+    function attentionWeights(count,topK=count){
+      // Norms in [2, 3] and scaled dot products produce softer attention weights.
+      const query=attentionVector();
+      const logits=Array.from({length:count},()=>{
+        const key=attentionVector();
+        return key.reduce((dot,value,i)=>dot+query[i]*value,0)/Math.sqrt(query.length);
+      });
+      const peak=Math.max(...logits),scores=logits.map(logit=>Math.exp(logit-peak));
+      const sum=scores.reduce((total,score)=>total+score,0);
+      const ranked=scores.map((score,index)=>({index,weight:score/sum})).sort((a,b)=>b.weight-a.weight);
+      const weights=Array(count).fill(0);
+      ranked.slice(0,topK).forEach(({index,weight})=>{weights[index]=weight;});
       return weights;
     }
     function randomizeAction(a){
@@ -49,7 +53,7 @@ const diagram=window.ramnetDiagramTheme;
         groupWeights.forEach((weight,i)=>{a.sparseWeights[start+i]=weight;});
       }
       if(a.kind==='write'||a.kind==='read'){
-        a.weights=randomWeights();a.ramnetWeights=randomWeights(params.ramnetCacheCount,params.ramnetTopK,.55);
+        a.weights=attentionWeights(params.linearCacheCount);a.ramnetWeights=attentionWeights(params.ramnetCacheCount,params.ramnetTopK);
       }
     }
     function buildActions(){
@@ -135,7 +139,10 @@ const diagram=window.ramnetDiagramTheme;
       const ty=downward?g.y+g.h+Math.min(params.endpointGap,params.outputGap/2):g.outputY+g.outputH+params.endpointGap;
       const mx=Number(g.caches[cache].getAttribute('x'))+g.cacheW/2,my=g.cacheY-params.endpointGap;
       const [start,end]=downward?[[tx,ty],[mx,my]]:[[mx,my],[tx,ty]];
-      const path=g.paths[index];path.setAttribute('d',`M${start} L${end}`);path.setAttribute('stroke',color);path.setAttribute('opacity',opacity*strength);
+      // Share the same weight encoding for every read and write; zero means no access.
+      const path=g.paths[index];path.setAttribute('d',`M${start} L${end}`);path.setAttribute('stroke',mix(color,diagram.text(color),.55*strength));
+      path.setAttribute('opacity',opacity*(strength>0?.55+.25*strength:0));
+      path.setAttribute('stroke-width',params.lineWidth*(1+.8*strength));
       const packet=g.packets[index];packet.setAttribute('fill',g.colors.packet);
       const t=ease(packetProgress),packetW=downward?g.w+(g.cacheW-g.w)*t:g.cacheW+(g.w-g.cacheW)*t;
       const packetH=downward?g.h:g.h+(g.outputH-g.h)*t;
@@ -158,7 +165,8 @@ const diagram=window.ramnetDiagramTheme;
       const write=a.kind==='write',read=a.kind==='read'&&p<1,scan=a.kind==='scan';
       const selectionFill=params.selectionOpacity/100*(scan?1:read?1-ease(p/.45):0);
       const arrival=write?ease((p-.72)/.28):1,cacheCount=g.linear?g.caches.length:a.token+1;
-      const weights=g.ramnet?a.ramnetWeights:g.linear?a.weights:g.sparse?a.sparseWeights:a.historyWeights;
+      const probabilities=g.ramnet?a.ramnetWeights:g.linear?a.weights:g.sparse?a.sparseWeights:a.historyWeights;
+      const peak=probabilities?Math.max(...probabilities):1,weights=probabilities?.map(weight=>weight/peak);
       const routedWeights=g.ramnet&&scan?actions.find(candidate=>candidate.kind==='read'&&candidate.token===a.token).ramnetWeights:weights;
       const cacheSpan=cacheOffset(g,cacheCount-1)+g.cacheW;
       const selectedCache=read?a.cache:scan?actions.find(candidate=>candidate.kind==='read'&&candidate.token===a.token).cache:0;
@@ -195,12 +203,12 @@ const diagram=window.ramnetDiagramTheme;
       if(g.linear){
         for(let i=0;i<cacheCount;i++){
           const strength=write||read?weights[i]:1;
-          connection(g,i*2,a.token,i,params.red,write?p:1,write&&p<1?.85:0,strength);
+          connection(g,i*2,a.token,i,params.red,write?p:1,write&&p<1?.9:0,strength);
           connection(g,i*2+1,a.token,i,params.green,read?p:1,read?.9:0,strength);
         }
       }else{
         for(let i=0;i<g.caches.length;i++){
-          connection(g,i*2,a.token,i,params.red,write&&i===a.token?p:1,write&&p<1&&i===a.token?.85:0);
+          connection(g,i*2,a.token,i,params.red,write&&i===a.token?p:1,write&&p<1&&i===a.token?.9:0);
           connection(g,i*2+1,a.token,i,params.green,read?p:1,read?.9:0,read?weights[i]||0:0);
         }
       }
