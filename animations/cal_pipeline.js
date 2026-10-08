@@ -1,6 +1,6 @@
 window.RamnetAnimations ??= {};
 window.RamnetAnimations.cal_pipeline = function mount(scope) {
-const {document, requestAnimationFrame, cancelAnimationFrame} = scope;
+const {document, requestAnimationFrame, cancelAnimationFrame, translateText} = scope;
 const palette=window.RamnetPalette;
 'use strict';
 const diagram=window.ramnetDiagramTheme;
@@ -23,7 +23,7 @@ const bits=(a,n=cfg.u)=>a.toString(2).padStart(2*n,'0');
 const lerpBox=(a,b,p)=>({x:mix(a.x,b.x,p),y:mix(a.y,b.y,p),w:mix(a.w,b.w,p),h:mix(a.h,b.h,p)});
 function fade(a,fn){if(a<=0)return;ctx.save();ctx.globalAlpha*=clamp(a);fn();ctx.restore();}
 function box(x,y,w,h,fill,stroke,r=cfg.radius){ctx.beginPath();ctx.roundRect(x,y,w,h,Math.min(r,w/2,h/2));if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1.4;ctx.stroke();}}
-function text(s,x,y,c=colors.muted,size=12,align='center',serif=false){ctx.fillStyle=diagram.text(c);ctx.font=`${serif?'italic 600 ':'400 '}${size}px ${serif?'Georgia':'Consolas, monospace'}`;ctx.textAlign=align;ctx.textBaseline='middle';ctx.fillText(s,x,y);}
+function text(s,x,y,c=colors.muted,size=12,align='center',serif=false){ctx.fillStyle=diagram.text(c);ctx.font=`${serif?'italic 600 ':'400 '}${size}px ${serif?'Georgia':'Consolas, monospace'}`;ctx.textAlign=align;ctx.textBaseline='middle';ctx.fillText(translateText(s),x,y);}
 function line(x,y,xx,yy,c=colors.line,width=1.5){ctx.beginPath();ctx.lineCap='round';ctx.lineJoin='round';ctx.moveTo(x,y);ctx.lineTo(xx,yy);ctx.strokeStyle=c;ctx.lineWidth=width;ctx.stroke();}
 function arrow(x,y,xx,yy,c,p=1){xx=mix(x,xx,p);yy=mix(y,yy,p);line(x,y,xx,yy,c);const a=Math.atan2(yy-y,xx-x),r=4;line(xx,yy,xx-r*Math.cos(a-.5),yy-r*Math.sin(a-.5),c);line(xx,yy,xx-r*Math.cos(a+.5),yy-r*Math.sin(a+.5),c);}
 function flow(x,y,xx,yy,c,p,strength=1,payload='dot',bend=mix(y,yy,.5)){ctx.beginPath();ctx.moveTo(x,y);ctx.bezierCurveTo(x,bend,xx,bend,xx,yy);ctx.strokeStyle=rgba(c,.55+cfg.trail*.35);ctx.lineWidth=.8+strength;ctx.stroke();const angle=yy===bend?Math.atan2(yy-y,xx-x):Math.atan2(yy-bend,0);line(xx,yy,xx-4*Math.cos(angle-.5),yy-4*Math.sin(angle-.5),rgba(c,.9));line(xx,yy,xx-4*Math.cos(angle+.5),yy-4*Math.sin(angle+.5),rgba(c,.9));const q=clamp(p),v=1-q,py=v*v*v*y+3*v*v*q*bend+3*v*q*q*bend+q*q*q*yy,px=v*v*v*x+3*v*v*q*x+3*v*q*q*xx+q*q*q*xx;if(payload==='vector')box(px-3,py-9,6,18,rgba(c,.7),c,2);else if(payload==='scalar'){const size=6+strength*4;box(px-size/2,py-size/2,size,size,rgba(c,.2+strength*.7),c,1.5);}else{ctx.beginPath();ctx.arc(px,py,3.4,0,Math.PI*2);ctx.fillStyle=c;ctx.fill();}}
@@ -228,7 +228,7 @@ function draw(){
 }
 function resize(){hideTooltip();const viewport=$('viewport');view.width=viewport.clientWidth;view.height=viewport.clientHeight;const dpr=Math.min(devicePixelRatio||1,3);canvas.width=Math.round(view.width*dpr);canvas.height=Math.round(view.height*dpr);view.scale=Math.min((view.width-18)/data.geo.W,(view.height-12)/data.geo.H);draw();}
 function updateUI(){stageTimeline.update(playhead);}
-function setPlaying(value){playing=value;lastFrame=0;window.RamnetRuntime.setPlaybackIcon($('play'),playing);$('play').title=playing?'Pause (Space)':'Play (Space)';}
+function setPlaying(value){playing=value;lastFrame=0;window.RamnetRuntime.setPlaybackIcon($('play'),playing);$('play').title=translateText(playing?'Pause (Space)':'Play (Space)');}
 function seekAction(i){i=clamp(i,0,actionGroups.length-1);const s=stages[actionGroups[i].first];playhead=(s.start+Math.min(.08,s.weight*.025))/totalWeight*cfg.duration;setPlaying(false);hideTooltip();draw();}
 function applyStyle(){document.documentElement.style.setProperty('--radius',cfg.panelRadius+'px');document.documentElement.style.setProperty('--space',cfg.space+'px');}
 function hideTooltip(){pointer=null;hover=null;$('tooltip').style.display='none';}
@@ -238,7 +238,7 @@ function updateHover(){
  const hit=hits.findLast(h=>x>=h.g.x&&x<=h.g.x+h.g.w&&y>=h.g.y&&y<=h.g.y+h.g.h),tip=$('tooltip');
  hover=hit??null;
  if(!hit){tip.style.display='none';return;}
- tip.textContent=hit.e?`slot ${bits(hit.e.addr)}\n${hit.e.type==='w'?'write':'read'} @ t = ${hit.e.t}\nweight = ${hit.e.weight.toFixed(4)}`:`slot ${bits(hit.segment.addr)}\nevent segment`;tip.style.display='block';tip.style.left=clamp(pointer.x+12,4,Math.max(4,view.width-tip.offsetWidth-6))+'px';tip.style.top=clamp(pointer.y+12,4,Math.max(4,view.height-tip.offsetHeight-6))+'px';
+ tip.textContent=hit.e?`${translateText('slot')} ${bits(hit.e.addr)}\n${translateText(hit.e.type==='w'?'write':'read')} @ t = ${hit.e.t}\n${translateText('weight')} = ${hit.e.weight.toFixed(4)}`:`${translateText('slot')} ${bits(hit.segment.addr)}\n${translateText('event segment')}`;tip.style.display='block';tip.style.left=clamp(pointer.x+12,4,Math.max(4,view.width-tip.offsetWidth-6))+'px';tip.style.top=clamp(pointer.y+12,4,Math.max(4,view.height-tip.offsetHeight-6))+'px';
 }
 $('play').addEventListener('click',()=>{if(playhead>=cfg.duration){playhead=0;randomizeData();}setPlaying(!playing);});
 $('restart').addEventListener('click',()=>{playhead=0;randomizeData();setPlaying(true);});

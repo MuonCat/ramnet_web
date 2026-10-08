@@ -63,6 +63,8 @@ svg { width: 17px; height: 17px; display: block; fill: none; stroke: currentColo
 .timeline-marker-label { position: absolute; top: -24px; transform: translateX(-50%); font: 600 10px var(--font); letter-spacing: .5px; }
 .timeline-marker-label.needle { color: var(--tone-sky-ink); }
 .timeline-marker-label.read { color: var(--tone-green-ink); }
+:host(:lang(zh)) .timeline-marker-label { white-space: nowrap; }
+:host(:lang(zh)) .timeline-marker-label.read { transform: translateX(-100%); }
 .timeline-caret { position: absolute; top: -7.5px; width: 2px; height: 21px; background: var(--tone-cyan); transform: translateX(-50%); }
 .controls { display: flex; align-items: flex-end; gap: 12px; margin-top: 18px; }
 .control-field { min-width: 0; }

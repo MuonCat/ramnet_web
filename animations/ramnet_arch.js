@@ -1,6 +1,6 @@
 window.RamnetAnimations ??= {};
 window.RamnetAnimations.ramnet_arch = function mount(scope) {
-const {document, requestAnimationFrame, cancelAnimationFrame} = scope;
+const {document, requestAnimationFrame, cancelAnimationFrame, translateText} = scope;
 const palette=window.RamnetPalette;
 'use strict';
 const diagram=window.ramnetDiagramTheme;
@@ -68,7 +68,7 @@ function resetSimulation(){round=0;initialTime=Math.ceil((tokenBeltLayout.right-
 function nextRound(){memory=data.updated.map(x=>x.slice());mass=data.updatedMass.slice();round++;elapsed=0;beginRound();}
 function alpha(a,fn){if(a<=0)return;ctx.save();ctx.globalAlpha*=clamp(a);fn();ctx.restore();}
 function box(x,y,w,h,fill,stroke=null,r=params.cellRadius){ctx.beginPath();ctx.roundRect(x,y,Math.max(0,w),Math.max(0,h),Math.min(r,w/2,h/2));if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=params.lineWidth;ctx.stroke();}}
-function label(text,x,y,color=C.ink,size=16,align='center',math=false){ctx.save();const transform=ctx.getTransform();ctx.translate(x,y);ctx.scale(transform.d/transform.a,1);ctx.fillStyle=diagram.text(color);ctx.font=`${math?'italic ':''}${color!==C.ink&&color!==C.muted?'600':'400'} ${size*params.fontScale}px ${math?'Georgia':'"Segoe UI", sans-serif'}`;ctx.textAlign=align;ctx.textBaseline='middle';ctx.fillText(text,0,0);ctx.restore();}
+function label(text,x,y,color=C.ink,size=16,align='center',math=false){ctx.save();const transform=ctx.getTransform();ctx.translate(x,y);ctx.scale(transform.d/transform.a,1);ctx.fillStyle=diagram.text(color);ctx.font=`${math?'italic ':''}${color!==C.ink&&color!==C.muted?'600':'400'} ${size*params.fontScale}px ${math?'Georgia':'"Segoe UI", sans-serif'}`;ctx.textAlign=align;ctx.textBaseline='middle';ctx.fillText(translateText(text),0,0);ctx.restore();}
 function path(points,color=C.line,width=params.lineWidth,dashed=false){ctx.beginPath();points.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dashed?[4,5]:[]);ctx.lineJoin='round';ctx.lineCap='round';ctx.stroke();ctx.setLineDash([]);}
 function curve(points,color=C.line){ctx.beginPath();ctx.moveTo(...points[0]);ctx.bezierCurveTo(...points[1],...points[2],...points[3]);ctx.strokeStyle=color;ctx.lineWidth=params.lineWidth;ctx.lineCap='round';ctx.stroke();}
 function curvePoint(points,t){const s=1-t;return [0,1].map(d=>s*s*s*points[0][d]+3*s*s*t*points[1][d]+3*s*t*t*points[2][d]+t*t*t*points[3][d]);}
@@ -109,7 +109,7 @@ function moduleBox(x,y,w,h,name,color,lit=false,radius=Math.min(params.panelRadi
 function moduleOpacity(start,end){const fade=params.moduleFade;return ease((elapsed-stageStart(start))/fade)*(1-ease((elapsed-stageStart(end))/fade));}
 function outsideShapes(shapes,draw){ctx.save();for(const shape of shapes){const mask=new Path2D();mask.rect(0,0,W,H);mask.addPath(shape);ctx.clip(mask,'evenodd');}draw();ctx.restore();}
 function outsideModules(rects,draw){outsideShapes(rects.map(([x,y,w,h,r=Math.min(params.panelRadius,12)])=>{const shape=new Path2D();shape.roundRect(x,y,w,h,Math.min(r,w/2,h/2));return shape;}),draw);}
-function verticalModule(x,y,width,height,name,color,depth=0,radius=Math.min(params.panelRadius,12)){moduleBox(x-width/2,y,width,height,'',color,true,radius);alpha(depth,()=>box(x-width/2,y,width,height,color+'55',color,radius));ctx.save();ctx.translate(x,y+height/2);ctx.rotate(-Math.PI/2);ctx.fillStyle=diagram.text(color);ctx.font=`600 ${16*params.fontScale}px "Segoe UI",sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(name,0,0);ctx.restore();}
+function verticalModule(x,y,width,height,name,color,depth=0,radius=Math.min(params.panelRadius,12)){moduleBox(x-width/2,y,width,height,'',color,true,radius);alpha(depth,()=>box(x-width/2,y,width,height,color+'55',color,radius));ctx.save();ctx.translate(x,y+height/2);ctx.rotate(-Math.PI/2);ctx.fillStyle=diagram.text(color);ctx.font=`600 ${16*params.fontScale}px "Segoe UI",sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(translateText(name),0,0);ctx.restore();}
 function viewport(){const step=Math.max(AW/data.N,28)*params.zoom,width=data.N*step,offset=Math.max(0,width-AW)*pan;return {step,offset,x:j=>AX+(j+.5)*step-offset,cell:Math.min(42,step-params.gap),first:Math.max(0,Math.floor(offset/step)),last:Math.min(data.N-1,Math.ceil((offset+AW)/step)-1),width};}
 function clipAddresses(fn){ctx.save();ctx.beginPath();ctx.rect(AX,64,AW,510);ctx.clip();fn();ctx.restore();}
 function architecture(i,p){

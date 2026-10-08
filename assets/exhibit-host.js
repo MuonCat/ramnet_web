@@ -19,6 +19,7 @@
     const body = document.createElement('div');
     body.className = `${markup.bodyClass} exhibit-body`;
     body.innerHTML = markup.html;
+    window.RamnetI18n?.translate(body);
     wrapper.append(body);
     shadow.append(wrapper);
     runtime.applyTheme(host);
@@ -58,7 +59,7 @@
   window.RamnetPaletteReady.then(() => {
     hosts.forEach(host => mount(host).catch(error => {
       console.error(error);
-      host.textContent = 'Unable to load this figure.';
+      host.textContent = runtime.translateText('Unable to load this figure.');
     }));
   });
 })();

@@ -1,6 +1,6 @@
 window.RamnetAnimations ??= {};
 window.RamnetAnimations.cape = function mount(scope) {
-const {document, requestAnimationFrame, cancelAnimationFrame} = scope;
+const {document, requestAnimationFrame, cancelAnimationFrame, translateText} = scope;
 const palette=window.RamnetPalette;
 'use strict';
 const diagram=window.ramnetDiagramTheme;
@@ -106,7 +106,7 @@ let nodes,geometry;
 function element(tag,attrs,parent){const el=document.createElementNS(svgNS,tag);for(const key in attrs)el.setAttribute(key,attrs[key]);parent.append(el);return el}
 function rect(parent,x,y,w,h,fill,stroke='none'){return element('rect',{x,y,width:w,height:h,rx:Math.min(params.cellRadius,w/2,h/2),fill,stroke,'stroke-width':1.1},parent)}
 function label(parent,x,y,text,cls='',anchor='middle',edge='baseline'){
- const el=element('text',{x,y,'text-anchor':anchor,class:cls},parent);el.textContent=text;
+ const el=element('text',{x,y,'text-anchor':anchor,class:cls},parent);el.textContent=translateText(text);
  if(edge!=='baseline'){
   const box=el.getBBox();el.setAttribute('y',y+y-box.y-(edge==='bottom'?box.height:edge==='center'?box.height/2:0));
  }
@@ -131,7 +131,7 @@ function createDistributionEditor(parent,side,x,y,height){
   element('rect',{x:-7,y:-3*gripScale,width:36,height:6*gripScale,fill:'transparent'},divider);
   element('rect',{x:-3,y:-2*gripScale,width:28,height:4*gripScale,rx:2*gripScale,fill:palette.color('paper'),stroke:color(tone,.9),class:'dist-grip'},divider);
   path(divider,'M 7 0 H 15',color(tone,.9),1.2,{'pointer-events':'none'});
-  element('title',{},divider).textContent='Drag vertically to adjust adjacent address weights';
+  element('title',{},divider).textContent=translateText('Drag vertically to adjust adjacent address weights');
   bindDistributionDrag(divider,side,'divider',i);
   editor.dividers.push(divider);
  }
@@ -279,7 +279,7 @@ function layoutScene(){
  nodes.copyCells=nodes.left.map(cell=>{const copy=cell.cloneNode(false);nodes.writeCopy.append(copy);return copy});
  nodes.inspect=element('g',{},overlay);
  const capeControl=element('g',{id:'cape',class:'cape-control',role:'switch',tabindex:0,'aria-label':'CAPE','aria-checked':'false'},svg);
- element('title',{},capeControl).textContent='Toggle CAPE; the selection is retained until the next round';
+ element('title',{},capeControl).textContent=translateText('Toggle CAPE; the selection is retained until the next round');
  const scoreBox=scoreLabel.getBBox(),capeY=Math.max(distY+distHeight,scoreBox.y+scoreBox.height)+Math.min(48,22+spareHeight*.3);
  geometry.capeY=capeY;
  const capeLabel=label(capeControl,0,capeY,'CAPE','cape-label','start','center'),capeLabelBox=capeLabel.getBBox();

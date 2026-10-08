@@ -14,7 +14,7 @@ class StageTimeline {
     this.input.min = 0;
     this.input.max = 10000;
     this.input.step = 1;
-    this.input.setAttribute('aria-label', 'Animation stages and progress');
+    this.input.setAttribute('aria-label', window.RamnetRuntime.translateText('Animation stages and progress'));
     this.marker = document.createElement('span');
     this.marker.className = 'stage-timeline-marker';
     this.marker.setAttribute('aria-hidden', 'true');
@@ -32,7 +32,8 @@ class StageTimeline {
     this.stages = stages.map(stage => {
       // Blend equal widths with true durations so short stages still fit their labels.
       const width = .65 / stages.length + .35 * stage.duration / this.total;
-      const entry = {...stage, start, left, width};
+      const entry = {...stage, label: window.RamnetRuntime.translateText(stage.label),
+        description: window.RamnetRuntime.translateText(stage.description), start, left, width};
       start += stage.duration;
       left += width;
       return entry;

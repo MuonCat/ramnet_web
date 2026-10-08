@@ -1,5 +1,6 @@
 (async () => {
   'use strict';
+  const t = window.RamnetRuntime.translateText;
   let data = window.ramnetExperiments;
   if (location.protocol !== 'file:') {
     try {
@@ -91,7 +92,7 @@
     function addHeader(row, label, scope) {
       const cell = document.createElement('th');
       cell.scope = scope;
-      cell.textContent = label;
+      cell.textContent = t(label);
       row.append(cell);
       return cell;
     }
@@ -103,7 +104,7 @@
         group.colSpan = columns.filter(item => item.group === column.group).length;
       }
       const header = addHeader(column.group ? lower : top,
-        `${column.label} ${column.better === 'lower' ? '↓' : '↑'}`, 'col');
+        `${t(column.label)} ${column.better === 'lower' ? '↓' : '↑'}`, 'col');
       if (grouped && !column.group) header.rowSpan = 2;
       header.dataset.columnIndex = index;
     });
@@ -139,7 +140,7 @@
       const size = document.createElement('b');
       size.textContent = groupData.scale;
       const unit = document.createElement('span');
-      unit.textContent = 'parameters';
+      unit.textContent = t('parameters');
       text.append(size, unit);
       label.append(text);
       heading.append(label);
@@ -176,7 +177,7 @@
           const standing = values.length > 1 ? .5 + (worse - better) / (2 * (values.length - 1)) : .5;
           const level = Math.round(standing * 4);
           cell.style.setProperty('--relative-position', `${standing * 100}%`);
-          cell.title = `${['Lower', 'Lower-middle', 'Middle', 'Upper-middle', 'Upper'][level]} relative standing · ${group.dataset.scale} models · ${direction > 0 ? 'Higher' : 'Lower'} values are better · Red to green indicates weaker to stronger relative performance`;
+          cell.title = `${t(['Lower', 'Lower-middle', 'Middle', 'Upper-middle', 'Upper'][level])} ${t('relative standing')} · ${group.dataset.scale} ${t('models')} · ${t(direction > 0 ? 'Higher values are better' : 'Lower values are better')} · ${t('Red to green indicates weaker to stronger relative performance')}`;
         });
       }
     }
@@ -189,10 +190,10 @@
         cell.classList.add('stacked-heading');
         for (const [index, text] of column.lines.entries()) {
           const line = document.createElement('span');
-          line.textContent = index ? text : text + ' ';
+          line.textContent = index ? t(text) : t(text) + ' ';
           label.append(line);
         }
-      } else label.textContent = column.label;
+      } else label.textContent = t(column.label);
       const arrow = document.createElement('span');
       arrow.className = 'experiment-heading-arrow';
       arrow.textContent = column.better === 'lower' ? '↓' : '↑';

@@ -243,7 +243,7 @@
     document.documentElement.classList.remove('is-autoplaying');
     delete document.documentElement.dataset.autoplaySection;
     autoplayButton.setAttribute('aria-pressed', 'false');
-    autoplayButton.setAttribute('aria-label', 'Start automatic section playback');
+    autoplayButton.setAttribute('aria-label', window.RamnetRuntime.translateText('Start automatic section playback'));
     autoplayIcon.innerHTML = window.RamnetRuntime.playbackIcon(false);
     window.dispatchEvent(new Event('ramnet:autoplay-change'));
     scheduleSnap();
@@ -278,7 +278,7 @@
     autoplay = true;
     document.documentElement.classList.add('is-autoplaying');
     autoplayButton.setAttribute('aria-pressed', 'true');
-    autoplayButton.setAttribute('aria-label', 'Stop automatic section playback');
+    autoplayButton.setAttribute('aria-label', window.RamnetRuntime.translateText('Stop automatic section playback'));
     autoplayIcon.innerHTML = window.RamnetRuntime.playbackIcon(true);
     window.dispatchEvent(new Event('ramnet:autoplay-change'));
     const current = sections.findLast(section => section.getBoundingClientRect().top <= chapterNav.getBoundingClientRect().bottom + 80);

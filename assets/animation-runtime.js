@@ -19,6 +19,7 @@
   const narrowLayout = compactLayout;
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const nativeFrame = requestAnimationFrame.bind(window);
+  const translateText = value => window.RamnetI18n?.t(value) ?? value;
 
   window.ramnetDiagramTheme = {
     get colors() { return toneColors ??= Object.fromEntries(Object.entries(tones()).map(([name, pair]) => [name, pair[0]])); },
@@ -54,8 +55,8 @@
       button.innerHTML = playbackIcon(playing);
       button.dataset.playbackIcon = mode;
     }
-    button.setAttribute('aria-label', playing ? 'Pause' : 'Play');
-    button.title = playing ? 'Pause' : 'Play';
+    button.setAttribute('aria-label', translateText(playing ? 'Pause' : 'Play'));
+    button.title = translateText(playing ? 'Pause' : 'Play');
   }
 
   function bindInteractions(container, content) {
@@ -94,6 +95,7 @@
     reducedMotion.addEventListener('change', () => { reducedFrameRendered = false; schedule(); });
     return {
       document: scopedDocument,
+      translateText,
       requestAnimationFrame(callback) {
         const id = ++nextId;
         callbacks.set(id, callback);
@@ -123,6 +125,6 @@
   window.RamnetRuntime = {
     compactInteractions, compactLayout, narrowLayout, reducedMotion,
     applyTheme, bindInteractions, createScope, mountStandalone,
-    playbackIcon, setPlaybackIcon
+    playbackIcon, setPlaybackIcon, translateText
   };
 })();

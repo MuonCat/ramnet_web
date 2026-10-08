@@ -25,6 +25,11 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible { outline: 2px s
 .wordmark svg { width: 25px; height: 25px; }
 .header-meta { display: flex; align-items: center; gap: 24px; font-size: 11px; }
 .header-meta > span { color: var(--muted); }
+.language-switch { display: flex; align-items: center; gap: 2px; }
+.language-switch button { border: 0; border-radius: 4px; background: transparent; color: var(--muted); padding: 6px 9px; font-size: 12px; }
+.language-switch button[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent-ink); font-weight: 650; }
+html[lang="zh-CN"] { --sans: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; --serif: Georgia, "Songti SC", "SimSun", serif; }
+html[lang="zh-CN"] :is(h2, .hero h1 span, .prose h3) { letter-spacing: 0; }
 .hero { max-width: 1240px; margin: auto; padding: 78px 0 70px; }
 .eyebrow, .section-kicker, .micro { font-size: 10px; font-weight: 550; letter-spacing: 1.7px; text-transform: uppercase; }
 .eyebrow { display: flex; align-items: center; gap: 10px; color: var(--color-eyebrowInk); }
@@ -102,9 +107,7 @@ tr:last-child td { background: color-mix(in srgb, var(--neutral-16) 75%, var(--t
 tr:last-child td:first-child { color: var(--accent-ink); }
 .math { font-family: var(--serif); color: var(--ink); white-space: nowrap; }
 .equation { font-size: 23px; line-height: 2; color: var(--ink); background: color-mix(in srgb, var(--color-paperEdge) 15%, var(--color-paper) 85%); border-left: 2px solid var(--color-pageAccent); padding: 20px 28px; margin: 20px 0; overflow-x: auto; }
-.equation math { font-family: var(--serif); }
-.equation-system { display: grid; gap: .55em; line-height: 1.4; }
-.equation-system math { justify-self: start; }
+.equation-image { display: block; width: 16em; max-width: 100%; height: auto; }
 .equation-notes { margin: 20px 0 25px; padding-left: 1.4em; }
 .equation-notes li { padding-left: .25em; }
 .equation-notes li + li { margin-top: 10px; }

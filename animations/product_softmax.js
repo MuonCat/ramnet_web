@@ -1,6 +1,6 @@
 window.RamnetAnimations ??= {};
 window.RamnetAnimations.product_softmax = function mount(scope) {
-const {document, requestAnimationFrame, cancelAnimationFrame} = scope;
+const {document, requestAnimationFrame, cancelAnimationFrame, translateText} = scope;
 const palette=window.RamnetPalette;
 'use strict';
 const diagram=window.ramnetDiagramTheme;
@@ -153,7 +153,7 @@ function svg(tag,attrs={},parent=$('scene')) {
 }
 function label(value,x,y,attrs={},parent) {
   const node = svg('text',{x,y,'font-weight':600,...attrs},parent);
-  node.textContent = value;
+  node.textContent = translateText(value);
   return node;
 }
 function set(node,attrs) { for (const [key,value] of Object.entries(attrs)) node.setAttribute(key,value);applyPaint(node,attrs); }
@@ -567,7 +567,7 @@ function buildHeatmapFactor(scene,u,x,y,width,height) {
 function buildHeatmapScene() {
   const scene=$('heatmap-scene');scene.replaceChildren();
   const topSlots=new Set([...probabilities.keys()].sort((a,b)=>probabilities[b]-probabilities[a]||a-b).slice(0,config.topK));
-  scene.setAttribute('aria-label','Four-dimensional address lattice. Each factor value activates a 64-point slice.');
+  scene.setAttribute('aria-label',translateText('Four-dimensional address lattice. Each factor value activates a 64-point slice.'));
   const sourceX=28,sourceSize=factorSize(config.cardWidth);
   const {width,height}=animationSize(scene,Math.max(480,sourceSize.height*4+config.cardGap*3+64));
   const sourceStart=(height-sourceSize.height*4-config.cardGap*3)/2;
@@ -984,7 +984,7 @@ function layoutPages() {
   const mobile=window.matchMedia('(max-width:540px)').matches,style=getComputedStyle($('distribution-tab'));
   const measure=document.createElement('canvas').getContext('2d');
   measure.font=`700 ${style.fontSize} ${style.fontFamily}`;
-  const tabWidth=compact?0:Math.min(Math.ceil(Math.max(...SECTIONS.map(name=>measure.measureText(SECTION_NAMES[name]).width)))+parseFloat(style.paddingLeft)+parseFloat(style.paddingRight)+2,
+  const tabWidth=compact?0:Math.min(Math.ceil(Math.max(...SECTIONS.map(name=>measure.measureText(translateText(SECTION_NAMES[name])).width)))+parseFloat(style.paddingLeft)+parseFloat(style.paddingRight)+2,
     window.innerWidth<=1024?108:Infinity);
   if(articleLayout&&!compact) {
     // Keep the tabs inside the exhibit when the article cannot reserve their gutter.

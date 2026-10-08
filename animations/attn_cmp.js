@@ -1,6 +1,6 @@
 window.RamnetAnimations ??= {};
 window.RamnetAnimations.attn_cmp = function mount(scope) {
-const {document, requestAnimationFrame, cancelAnimationFrame} = scope;
+const {document, requestAnimationFrame, cancelAnimationFrame, translateText} = scope;
 const palette=window.RamnetPalette;
 'use strict';
 const diagram=window.ramnetDiagramTheme;
@@ -106,9 +106,9 @@ const diagram=window.ramnetDiagramTheme;
 
         const content=svgElement('g',{transform:`translate(0,${offsetY})`},root);
         svgElement('rect',{x:0,y:0,width:viewW,height:viewH,rx:params.panelRadius,fill:mix(palette.color('paper'),panel.base,diagram.alpha.surface),stroke:mix(palette.color('paper'),panel.base,diagram.alpha.border),'stroke-width':2,class:'mechanism-card'},content);
-        svgElement('text',{x:viewW/2,y:outer+62,class:'panel-title',fill:diagram.text(panel.base),'text-anchor':'middle'},content).textContent=panel.label;
+        svgElement('text',{x:viewW/2,y:outer+62,class:'panel-title',fill:diagram.text(panel.base),'text-anchor':'middle'},content).textContent=translateText(panel.label);
         const description=svgElement('text',{class:'panel-description',fill:palette.neutral(3),'text-anchor':'middle'},content);
-        panel.description.forEach((line,index)=>svgElement('tspan',{x:viewW/2,y:cacheY+h+cacheMargin+66+index*40},description).textContent=line);
+        panel.description.forEach((line,index)=>svgElement('tspan',{x:viewW/2,y:cacheY+h+cacheMargin+66+index*40},description).textContent=translateText(line));
         const layers={};for(const name of ['backdrop','links','tokens','module','packets'])layers[name]=svgElement('g',{},content);
         const g={w,h,outputH,outputY,cacheW,x,y,center:viewW/2,cacheX:viewW/2,cacheY,colors,root,sparse:!!panel.sparse,linear:!!panel.linear,ramnet:!!panel.ramnet,rects:[],outputs:[],caches:[],paths:[],packets:[],selections:[],tokenObstacles:[],obstacles:[]};
         g.frame=svgElement('rect',{x:viewW/2-padding,y:cacheY-padding,width:padding*2,height:h+padding*2,rx:params.radius+8,fill:colors.background,stroke:colors.border,'stroke-width':1.6,filter:'url(#shadow)',opacity:0},layers.backdrop);
