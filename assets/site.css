@@ -46,8 +46,7 @@ html[lang="zh-CN"] :is(h2, .hero h1 span, .prose h3) { letter-spacing: 0; }
 .hero-resources { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
 .resource-link { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px 12px; border: 1px solid color-mix(in srgb, var(--tone-sky) 50%, var(--color-paper) 50%); border-radius: 4px; background: color-mix(in srgb, var(--neutral-16) 75%, var(--tone-sky) 25%); color: var(--accent-ink); font-size: 12px; text-decoration: none; }
 a.resource-link:hover { background: color-mix(in srgb, var(--neutral-16) 65%, var(--tone-sky) 35%); border-color: var(--accent); }
-.resource-link.is-placeholder { border-color: var(--line); background: transparent; color: var(--body); }
-.resource-link small { color: var(--muted); font-size: 10px; }
+.resource-logo { width: 16px; height: 16px; flex: none; object-fit: contain; }
 .hero-visual { padding-top: 0; }
 .hero-visual svg { width: 111%; margin-left: -5.5%; display: block; overflow: visible; }
 .hero-visual text { font-family: var(--sans); }

@@ -6,14 +6,14 @@
   <title>RAM-Net — Linear-Time Sequence Modeling with Sparsely Addressable State</title>
   <meta name="description" content="Explore RAM-Net: a larger recurrent memory with sparse read and write access. An interactive explanation of Product Softmax, CAPE, Gated Sparse Update and the CUDA execution pipeline.">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/site.css?v=gsu-equation-20261008">
+  <link rel="stylesheet" href="assets/site.css?v=resource-logos-20261011">
   <script>
     history.scrollRestoration = 'manual';
     window.ramnetInitialHash = location.hash === '#top' ? '' : location.hash;
     if (location.hash) history.replaceState(history.state, '', location.pathname + location.search);
   </script>
   <script src="assets/palette.js?v=perceptual-20261002" data-palette="data/palette.json?v=sec3-cyan-20261002"></script>
-  <script defer src="assets/translations-zh.js?v=gsu-equation-20261008"></script><script defer src="assets/i18n.js?v=gsu-equation-20261008"></script>
+  <script defer src="assets/translations-zh.js?v=resources-20261011"></script><script defer src="assets/i18n.js?v=gsu-equation-20261008"></script>
   <script defer src="assets/animation-runtime.js?v=i18n-20261008"></script><script defer src="assets/exhibit-markup.js?v=i18n-20261008"></script>
   <script defer src="data/probes/niah_traces.js"></script><script defer src="data/probes/niah_slot_maps.js"></script><script defer src="data/probes/head_traces.js"></script>
   <script defer src="assets/stage-timeline.js?v=i18n-20261008"></script>
@@ -33,9 +33,9 @@
     <p class="hero-deck">A larger fixed-size state, accessed a few slots at a time.</p>
     <div class="hero-actions"><a class="button-link primary" href="#memory">Explore the method <span aria-hidden="true">↓</span></a><a class="text-link" href="#results">See the results ↗</a></div>
     <div class="hero-resources" role="group" aria-label="Paper and project resources">
-      <a class="resource-link" href="https://arxiv.org/abs/2602.11958" target="_blank" rel="noopener noreferrer" aria-label="Read the paper on arXiv (opens in a new tab)">arXiv <span aria-hidden="true">↗</span></a>
-      <span class="resource-link is-placeholder" role="link" aria-disabled="true">GitHub <small>Coming soon</small></span>
-      <span class="resource-link is-placeholder" role="link" aria-disabled="true">Hugging Face <small>Coming soon</small></span>
+      <a class="resource-link" href="https://arxiv.org/abs/2602.11958" target="_blank" rel="noopener noreferrer" aria-label="Read the paper on arXiv (opens in a new tab)"><img class="resource-logo" src="assets/icons/arxiv.svg" width="16" height="16" alt="">arXiv <span aria-hidden="true">↗</span></a>
+      <a class="resource-link" href="https://github.com/MuonCat/RAM-Net" target="_blank" rel="noopener noreferrer" aria-label="View the code on GitHub (opens in a new tab)"><img class="resource-logo" src="assets/icons/github.svg" width="16" height="16" alt="">GitHub <span aria-hidden="true">↗</span></a>
+      <a class="resource-link" href="https://huggingface.co/kaichengx/RAM-Net-Models/tree/main" target="_blank" rel="noopener noreferrer" aria-label="View the models on Hugging Face (opens in a new tab)"><img class="resource-logo" src="assets/icons/huggingface.svg" width="16" height="16" alt="">Hugging Face <span aria-hidden="true">↗</span></a>
     </div>
   </div><div class="hero-visual"><svg viewBox="0 30 470 350" role="img" aria-labelledby="memory-title memory-description">
 <title id="memory-title">A large memory, a small access footprint</title><desc id="memory-description">A current token writes to four random slots, then reads them back. Eight groups of sixteen slots form the memory array. This is a conceptual illustration.</desc>
