@@ -1,0 +1,36 @@
+.probe-usage { --font: "Segoe UI", Arial, "Microsoft YaHei", sans-serif; }
+.usage-controls { display: flex; align-items: flex-end; gap: 14px; }
+.usage-controls .transport { height: 36px; }
+.usage-controls label { min-width: 0; }
+.usage-head { flex: 0 0 155px; }
+.usage-corpus { flex: 1; }
+.usage-metrics { display: flex; justify-content: center; gap: 48px; margin: 0; }
+.usage-metrics > div { display: flex; align-items: baseline; gap: 10px; }
+.usage-metrics span { color: var(--neutral-4); font-size: 11px; }
+.usage-metrics strong { min-width: 4ch; color: var(--tone-sky-ink); font: 500 20px Georgia, serif; font-variant-numeric: tabular-nums; }
+.usage-metrics > div:last-child strong { color: var(--tone-purple-ink); }
+.usage-chart { position: relative; }
+.probe-usage .usage-tokens { position: absolute; inset: 0 0 auto; height: 36px; pointer-events: none; }
+.usage-token-track { position: absolute; top: 50%; left: 50%; display: flex; gap: inherit; width: max-content; }
+.usage-chart canvas { display: block; width: 100%; aspect-ratio: 1.85; touch-action: pan-y; }
+.usage-status { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: var(--muted); background: var(--color-paper); }
+.usage-legend { display: flex; justify-content: center; gap: 22px; margin: 0 0 18px; color: var(--neutral-4); font-size: 11px; }
+.usage-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.usage-legend span::before { content: ''; width: 18px; border-top: 3px solid var(--tone-sky); }
+.usage-legend .fitted { color: var(--tone-purple-ink); font-weight: 600; }
+.usage-legend .fitted::before { border-top: 2px dashed var(--tone-purple); }
+.usage-legend .uniform::before { height: 8px; border: 0; background: color-mix(in srgb, var(--neutral-5) 12%, transparent); }
+.usage-note { margin: 10px 0 0; color: var(--neutral-5); font-size: 10px; text-align: center; font-variant-numeric: tabular-nums; }
+.compact-interactions .usage-controls { flex-wrap: wrap; gap: 10px; }
+.compact-interactions .usage-controls .transport { height: 44px; }
+.compact-interactions .usage-controls button { width: 44px; height: 44px; }
+.compact-interactions .usage-controls select { height: 44px; }
+.compact-interactions .usage-head { flex: 1; }
+.compact-interactions .usage-corpus { flex-basis: 100%; }
+.compact-interactions .usage-metrics { justify-content: space-between; gap: 10px; }
+.compact-interactions .usage-metrics > div { flex-direction: column; gap: 2px; }
+.compact-interactions .usage-metrics span { font-size: 10px; }
+.compact-interactions .usage-metrics strong { font-size: 19px; }
+.compact-interactions .usage-chart canvas { aspect-ratio: 1.3; }
+.compact-interactions .usage-legend { flex-wrap: wrap; gap: 8px 16px; font-size: 10px; margin-bottom: 12px; }
+.compact-interactions .usage-chart .tooltip { display: none; }

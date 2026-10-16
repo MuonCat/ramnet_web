@@ -183,7 +183,7 @@ def main():
             check_page(ROOT / "index.html", url, 1366, profile, reduced=True, autoplay=True)
             check_page(ROOT / "index.html", url, 1366, profile, reduced=True, home=True)
             for name in ("attn_cmp", "ramnet_arch", "product_softmax", "cape",
-                         "gsu", "cal_pipeline", "niah_probe", "head_probe"):
+                         "gsu", "cal_pipeline", "niah_probe", "head_probe", "slot_usage"):
                 check_page(ROOT / "animations" / f"{name}.html", url, 900, profile)
     finally:
         server.shutdown()

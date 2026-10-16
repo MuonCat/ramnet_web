@@ -9,7 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 EXHIBITS = (
     "attn_cmp", "ramnet_arch", "product_softmax", "cape",
-    "gsu", "cal_pipeline", "niah_probe", "head_probe",
+    "gsu", "cal_pipeline", "niah_probe", "head_probe", "slot_usage",
 )
 DATA = {
     "data/experiments.json": ("data/experiments.js", "ramnetExperiments"),
@@ -30,6 +30,10 @@ def exhibit_markup(name):
     markup = re.sub(r'<(?:no)?script\b[^>]*>.*?</(?:no)?script>', '', body.group(2), flags=re.I | re.S).strip()
     styles = ([f"animations/{name}.css?v=palette-config-20261002c", "assets/embed.css?v=palette-config-20261002c"]
               if name not in ("niah_probe", "head_probe") else ["assets/probes.css?v=palette-config-20261002c"])
+    if name == "slot_usage":
+        styles = ["assets/embed.css?v=semantic-palette-20261002", "assets/probes.css?v=i18n-20261008", "animations/slot_usage.css?v=token-strip-20261016"]
+    elif name == "head_probe":
+        styles = ["assets/probes.css?v=head-fit-20261016"]
     return {"bodyClass": classes.group(1), "html": markup, "styles": styles}
 
 

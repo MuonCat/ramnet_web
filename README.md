@@ -15,7 +15,7 @@ assets/
   embed.css                     动画的统一展示样式与播放器样式
   animation-runtime.js          独立页与嵌入页共用的主题、交互模式和帧调度
   exhibit-host.js              主页面内的 Shadow DOM 动画容器
-  exhibit-markup.js            从八个动画 HTML 生成的静态模板
+  exhibit-markup.js            从九个动画 HTML 生成的静态模板
   stage-timeline.js             sec2 / sec6 共用的带阶段名称的非均匀时间轴
   favicon.svg                   本地站点图标
 animations/
@@ -27,6 +27,7 @@ animations/
   cal_pipeline.{html,css,js}     CUDA 执行流水线及分阶段播放器
   niah_probe.{html,js}           第 8 章探针动画
   head_probe.{html,js}           第 9 章探针动画
+  slot_usage.{html,css,js}       第 10 章访问累积、排序与 Zipf 参考曲线
 data/experiments.json           实验结果唯一的 JSON 数据源
 data/palette.json               固定色值、色系、透明度和渐变区间的配置
 data/experiments.js             本地直接打开时使用的数据快照
@@ -35,13 +36,16 @@ data/probes/
   *.js                           供页面直接使用的静态数据
 tools/sync_static.py             同步动画模板与 file:// 数据快照
 tools/check_site.py              Chrome 中检查嵌入页、独立页与结果表
+tools/prepare_slot_usage.ps1      从外部逐 token 记录生成槽位访问计数 JSON
 ```
 
 动画保留独立页面和共享的交互脚本，主页面使用 `assets/exhibit-markup.js` 中的静态 HTML 模板。`animations/*.html` 是模板源；修改结构或 JSON 数据后，运行 `python tools/sync_static.py` 更新生成文件，使用 `python tools/sync_static.py --check` 检查是否同步。部署时无需运行脚本。
 
 颜色从 `data/palette.json` 读取：`colors` 的键是稳定标识（初始色值），值是当前实际色值；同一个键在 CSS、SVG 和 Canvas 中共用。`tones` 将色系的主色和文字色关联到这些键；`ranges` 用 `start`、`end`、`scaling` 定义连续变化，其中 `linear`、`sqrt` 和 `sqrt-after` 分别表示线性、先对进度开方、插值后开方。修改 JSON 后直接刷新 HTTP 页面即可看到变化，颜色报告也读取同一份配置。
 
-主页面使用 Shadow DOM 将八个动画直接嵌入正文中的 div，隔离变量与样式；不使用 iframe。独立预览和正文嵌入共用 `assets/animation-runtime.js`，由它管理主题、窄屏交互和帧调度。第 8、9 章的 JSON 同时保存为生成的静态 JavaScript 数据文件，页面直接读取，无运行时数据请求。离开可视区的动画停止逐帧绘制，并尊重系统的减少动态效果设置。
+主页面使用 Shadow DOM 将九个动画直接嵌入正文中的 div，隔离变量与样式；不使用 iframe。独立预览和正文嵌入共用 `assets/animation-runtime.js`，由它管理主题、窄屏交互和帧调度。第 8、9 章的 JSON 同时保存为生成的静态 JavaScript 数据文件，页面直接读取，无运行时数据请求。离开可视区的动画停止逐帧绘制，并尊重系统的减少动态效果设置。
+
+第 10 章通过相对路径读取 `data/probes/slot_usage.json`。数据保留 11 个 head × 6 组语料的完整逐 token 事件，读写各 Top-8；CAPE 地址先撤销位置平移。地址与 token ID 采用 gzip + base64 无损保存，由浏览器原生 `DecompressionStream` 解码。播放时按顺序处理每个 token 的 16 次访问，每次加 1 并更新排名；即使两个显示帧之间跨过多个 token，也会逐个处理，不抽样、不聚合、不插值计数。Zipf 曲线由最终分布拟合，不参与生成访问次数。可用 `powershell -File tools/prepare_slot_usage.ps1 -SourcePath <source-json>` 重新清洗原始数据；此脚本无需额外依赖。章节支持中英文、共享布局、吸附与自动播放。
 
 动画窗口宽度不超过 760px，或不超过 1024px 且使用粗指针触控时，自动启用简化交互：停用概率、权重、门控、质量和向量的精细编辑，保留页签、Top-K、播放和阶段切换。CAPE 的图内开关仍可点击；主要触控目标至少为 44px。手机上的动画缩放到正文宽度，实验表格则可以横向滚动。恢复桌面尺寸和鼠标输入后，精细交互自动恢复。
 
