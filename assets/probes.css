@@ -99,7 +99,8 @@ svg { width: 17px; height: 17px; display: block; fill: none; stroke: currentColo
 .pan input::-moz-range-thumb { width: 25px; height: 6px; border: 0; border-radius: 3px; background: var(--tone-sky); }
 .case-card > .transport { display: block; padding: 12px 4px 0; border-top: 1px solid var(--line); }
 .transport-top { display: flex; align-items: center; }
-.selectors { display: grid; grid-template-columns: 100px auto minmax(0, 1fr); align-items: end; gap: 10px; }
+.selectors { display: grid; grid-template-columns: max-content auto minmax(0, 1fr); align-items: end; gap: 10px; }
+.selectors [data-el="head"] { width: auto; padding-inline: 7px 0; }
 .sentence-control { min-width: 0; }
 .sentence-choice { display: grid; grid-template-columns: minmax(0, 1fr) 32px; border: 1px solid var(--line); border-radius: 5px; }
 .sentence-choice:focus-within { outline: 2px solid var(--tone-sky-ink); outline-offset: 2px; }

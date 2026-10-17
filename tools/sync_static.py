@@ -33,7 +33,7 @@ def exhibit_markup(name):
     if name == "slot_usage":
         styles = ["assets/embed.css?v=semantic-palette-20261002", "assets/probes.css?v=i18n-20261008", "animations/slot_usage.css?v=mobile-controls-20261017"]
     elif name == "head_probe":
-        styles = ["assets/probes.css?v=head-fit-20261016"]
+        styles = ["assets/probes.css?v=head-width-20261017"]
     elif name == "hardware":
         styles = ["assets/embed.css?v=semantic-palette-20261002", "assets/probes.css?v=i18n-20261008", "animations/hardware.css?v=display-only-20261016"]
     return {"bodyClass": classes.group(1), "html": markup, "styles": styles}
