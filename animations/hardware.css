@@ -1,0 +1,4 @@
+.hardware-scene { display: block; width: 100%; height: auto; fill: none; stroke: none; font-family: "Segoe UI", Arial, "Microsoft YaHei", sans-serif; }
+.hardware-scene .hardware-address { font-family: "SFMono-Regular", Consolas, monospace; }
+.hardware-caption { min-height: 2.8em; margin: 10px 0 6px; color: var(--neutral-4); font-size: 12px; line-height: 1.4; text-align: center; }
+.compact-interactions .hardware-caption { font-size: 11px; }

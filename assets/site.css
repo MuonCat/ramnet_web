@@ -59,9 +59,9 @@ a.resource-link:hover { background: color-mix(in srgb, var(--neutral-16) 65%, va
 .hero-summary ul { margin-top: 12px; padding-left: 1.2em; }
 .hero-summary li + li { margin-top: 6px; }
 .chapter-nav { position: sticky; top: 0; z-index: 20; border-block: 1px solid var(--line); background: color-mix(in srgb, var(--color-paper) 96.08%, transparent); backdrop-filter: blur(16px); }
-.nav-inner { display: flex; align-items: center; max-width: 1240px; margin: auto; gap: 26px; min-height: 56px; }
-.nav-label { font-size: 9px; letter-spacing: 1.7px; color: var(--muted); }
-.chapter-links { display: flex; gap: 25px; flex: 1; overflow-x: auto; scrollbar-width: none; }
+.nav-inner { display: flex; align-items: center; max-width: 1240px; margin: auto; gap: 18px; min-height: 56px; }
+.nav-label { font-size: 9px; letter-spacing: 1.7px; color: var(--muted); white-space: nowrap; }
+.chapter-links { display: flex; gap: clamp(12px, 1.4vw, 20px); flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .chapter-links a { text-decoration: none; font-size: 11px; color: var(--neutral-5); padding: 21px 0 18px; border-bottom: 2px solid transparent; white-space: nowrap; }
 .chapter-links a:hover, .chapter-links a[aria-current="location"] { color: var(--accent-ink); border-color: var(--accent); }
 .chapter-links a span { font-size: 9px; margin-right: 6px; opacity: .6; }
@@ -208,17 +208,17 @@ noscript p { padding: 16px; background: color-mix(in srgb, var(--neutral-16) 75%
 @media (max-width: 1350px) {
   .hero, .nav-inner, .site-footer { margin-inline: clamp(20px, 3.5vw, 44px); }
   .hero { padding-top: 62px; }
-  .chapter-links { gap: 19px; }
+}
+@media (max-width: 1250px) {
+  .nav-label { display: none; }
+  .nav-inner { gap: 16px; }
+  .chapter-links a span { display: none; }
 }
 @media (max-width: 1050px) {
   main.article { --text-inset: clamp(36px, 4.5vw, 48px); }
   .hero-grid { gap: 20px; }
   .hero h1 span { font-size: 30px; }
   .section-heading { --section-name-width: 72px; --section-name-height: 30px; gap: 24px; }
-  .nav-label { display: none; }
-  .nav-inner { gap: 16px; }
-  .chapter-links { gap: 18px; }
-  .chapter-links a span { display: none; }
 }
 html.compact-layout {
   .site-header { height: 64px; padding-inline: clamp(16px, 3vw, 22px); }

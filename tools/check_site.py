@@ -148,7 +148,7 @@ def check_page(source, url, width, profile, reduced=False, restored=False, initi
         if initial_hash and (state["hash"] != initial_hash or abs(state["hashOffset"]) > 3):
             raise RuntimeError(f"Hash navigation failed: {state}")
         if source.name == "index.html":
-            if len(state["figures"]) != 8 or not all(item["mounted"] and not item["error"] for item in state["figures"]):
+            if len(state["figures"]) != 10 or not all(item["mounted"] and not item["error"] for item in state["figures"]):
                 raise RuntimeError(f"Figures failed: {state['figures']}")
             if [(item["headers"], item["groups"]) for item in state["tables"]] != [(1, 2), (2, 2), (1, 2)]:
                 raise RuntimeError(f"Tables failed: {state['tables']}")
@@ -183,7 +183,7 @@ def main():
             check_page(ROOT / "index.html", url, 1366, profile, reduced=True, autoplay=True)
             check_page(ROOT / "index.html", url, 1366, profile, reduced=True, home=True)
             for name in ("attn_cmp", "ramnet_arch", "product_softmax", "cape",
-                         "gsu", "cal_pipeline", "niah_probe", "head_probe", "slot_usage"):
+                         "gsu", "cal_pipeline", "niah_probe", "head_probe", "slot_usage", "hardware"):
                 check_page(ROOT / "animations" / f"{name}.html", url, 900, profile)
     finally:
         server.shutdown()

@@ -21,12 +21,11 @@
 .usage-legend .fitted::before { border-top: 2px dashed var(--tone-purple); }
 .usage-legend .uniform::before { height: 8px; border: 0; background: color-mix(in srgb, var(--neutral-5) 12%, transparent); }
 .usage-note { margin: 10px 0 0; color: var(--neutral-5); font-size: 10px; text-align: center; font-variant-numeric: tabular-nums; }
-.compact-interactions .usage-controls { flex-wrap: wrap; gap: 10px; }
-.compact-interactions .usage-controls .transport { height: 44px; }
+.compact-interactions .usage-controls { gap: 8px; }
+.compact-interactions .usage-controls .transport { flex: none; height: 44px; }
 .compact-interactions .usage-controls button { width: 44px; height: 44px; }
 .compact-interactions .usage-controls select { height: 44px; }
-.compact-interactions .usage-head { flex: 1; }
-.compact-interactions .usage-corpus { flex-basis: 100%; }
+.compact-interactions .usage-head { flex: 0 1 100px; }
 .compact-interactions .usage-metrics { justify-content: space-between; gap: 10px; }
 .compact-interactions .usage-metrics > div { flex-direction: column; gap: 2px; }
 .compact-interactions .usage-metrics span { font-size: 10px; }

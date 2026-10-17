@@ -9,7 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 EXHIBITS = (
     "attn_cmp", "ramnet_arch", "product_softmax", "cape",
-    "gsu", "cal_pipeline", "niah_probe", "head_probe", "slot_usage",
+    "gsu", "cal_pipeline", "niah_probe", "head_probe", "slot_usage", "hardware",
 )
 DATA = {
     "data/experiments.json": ("data/experiments.js", "ramnetExperiments"),
@@ -31,9 +31,11 @@ def exhibit_markup(name):
     styles = ([f"animations/{name}.css?v=palette-config-20261002c", "assets/embed.css?v=palette-config-20261002c"]
               if name not in ("niah_probe", "head_probe") else ["assets/probes.css?v=palette-config-20261002c"])
     if name == "slot_usage":
-        styles = ["assets/embed.css?v=semantic-palette-20261002", "assets/probes.css?v=i18n-20261008", "animations/slot_usage.css?v=token-strip-20261016"]
+        styles = ["assets/embed.css?v=semantic-palette-20261002", "assets/probes.css?v=i18n-20261008", "animations/slot_usage.css?v=mobile-controls-20261017"]
     elif name == "head_probe":
         styles = ["assets/probes.css?v=head-fit-20261016"]
+    elif name == "hardware":
+        styles = ["assets/embed.css?v=semantic-palette-20261002", "assets/probes.css?v=i18n-20261008", "animations/hardware.css?v=display-only-20261016"]
     return {"bodyClass": classes.group(1), "html": markup, "styles": styles}
 
 
