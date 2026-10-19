@@ -4,7 +4,7 @@
   let data = window.ramnetExperiments;
   if (location.protocol !== 'file:') {
     try {
-      const response = await fetch('data/experiments.json');
+      const response = await fetch('data/experiments.json?v=paper-v2-20261020');
       if (!response.ok) throw Error(`Experiment data: ${response.status}`);
       data = await response.json();
     } catch (error) { console.warn('Using bundled experiment data.', error); }

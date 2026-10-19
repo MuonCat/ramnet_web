@@ -93,6 +93,7 @@ window.RamnetChinese = {
     'More room to remember. Less to access.': '记忆更多，访问更少。',
     'RAM-Net · Interactive paper companion': 'RAM-Net · 论文交互式解读',
     'Back to top ↑': '返回顶部 ↑',
+    'References': '参考文献',
     'Method': '方法',
     'How history is stored': '如何存储历史',
     'What each step accesses': '每步访问的内容',
@@ -126,14 +127,14 @@ window.RamnetChinese = {
     'Lower is better': '越低越好',
     'Language & reasoning': '语言与推理',
     'S-NIAH retrieval': 'S-NIAH 检索',
-    'Task performance': '任务表现',
+    'Real-world recall': '真实场景召回',
     'Language Modeling and Reasoning': '语言建模与推理',
     'S-NIAH: Retrieval Across Context Lengths': 'S-NIAH：不同上下文长度下的检索',
-    'Performance Across Tasks': '各项任务的表现',
+    'Real-World Recall': '真实场景召回',
     '↓ Lower is better. ↑ Higher is better. State sizes are in millions of elements.': '↓ 越低越好，↑ 越高越好。状态规模以百万个元素为单位。',
     'Bold marks the best value; underlining marks the second-best distinct value within each model size, including ties.': '同一模型规模内，粗体标示最优值，下划线标示次优的不同数值；并列结果使用相同标记。',
     'All scores use ↑ higher is better. Columns within each task give the context length.': '所有分数均为 ↑ 越高越好；各任务下的列表示上下文长度。',
-    '↑ Higher is better.': '↑ 越高越好。',
+    '↑ Higher is better. FDA, SWDE, and NQ are evaluated at context lengths of 512 and 1K; the remaining tasks use the full document.': '↑ 越高越好。FDA、SWDE 与 NQ 在 512 与 1K 的上下文长度下评测，其余任务使用完整文档。',
     'What changes with Top-K?': 'Top-K 带来了哪些变化？',
     'Beyond these tables': '表格之外的实验',
     'Model': '模型',
@@ -303,10 +304,10 @@ window.RamnetChinese = {
     'CUDA execution: address decoding, grouping and parallel slot operations.': 'CUDA 执行：地址解码、归组与并行槽位操作。',
     'Language Modeling and Reasoning data table': '语言建模与推理数据表',
     'S-NIAH: Retrieval Across Context Lengths data table': '不同上下文长度下的 S-NIAH 检索数据表',
-    'Performance Across Tasks data table': '任务表现数据表',
+    'Real-World Recall data table': '真实场景召回数据表',
     'Language Modeling and Reasoning — 340M and 1.3B models': '语言建模与推理 — 340M 与 1.3B 模型',
     'S-NIAH: Retrieval Across Context Lengths — 340M and 1.3B models': '不同上下文长度下的 S-NIAH 检索 — 340M 与 1.3B 模型',
-    'Performance Across Tasks — 340M and 1.3B models': '任务表现 — 340M 与 1.3B 模型'
+    'Real-World Recall — 340M and 1.3B models': '真实场景召回 — 340M 与 1.3B 模型'
   },
   html: {
     '#paper-title > span': ['具有稀疏可寻址状态的<br>线性时间序列建模'],
@@ -317,25 +318,32 @@ window.RamnetChinese = {
     ],
     '#memory .prose p': [
       '序列模型存储过去词元的信息，并在每一步提取相关内容。因此，效率取决于两项成本：存储多少历史，以及每步访问多少历史。',
-      '全量注意力为每个词元保留一条键值记录，并将每个 query 与全部记录比较，因此两项成本都随序列长度增长。KV 压缩和稀疏注意力可以减少每步访问量，但缓存通常仍会持续增长。',
-      '主流线性注意力则将历史压缩至固定容量的状态。然而，每一步都要读写整个状态：所有词元在同一状态中相互干扰，而增大状态也会直接增加每步的访问量。',
+      '全量注意力 <a class="cite" href="#ref-1">[1]</a> 为每个词元保留一条键值记录，并将每个 query 与全部记录比较，因此两项成本都随序列长度增长。KV 压缩和稀疏注意力可以减少每步访问量，但缓存通常仍会持续增长。',
+      '主流线性注意力 <a class="cite" href="#ref-2">[2]</a> 则将历史压缩至固定容量的状态。然而，每一步都要读写整个状态：所有词元在同一状态中相互干扰，而增大状态也会直接增加每步的访问量。',
       'RAM-Net 将这个固定容量的状态划分为许多可寻址槽位，每一步只读写少量选中的槽位。词元仅在选中相同槽位时发生干扰，状态容量也可以扩大，而不增加每步访问量。'
     ],
     '#architecture .prose p': [
-      '每个词元产生一个 key 来选择写入槽位，一个 query 来选择读取槽位，以及一个待存储的 value。',
-      'RAM-Net 分三个阶段处理这些信息。首先，地址解码器将 key 和 query 映射为<strong class="text-highlight">稀疏的写入与读取地址</strong>，选出少量槽位并赋予权重。接着，循环地址位置嵌入（CAPE）可根据词元位置平移地址，使寻址感知位置。最后，门控稀疏更新（GSU）将 value 写入选中的槽位，其余槽位保持不变。选中的读取槽位按权重汇总，经归一化、门控与投影后产生输出。',
-      '每步只访问选中的槽位，因此状态容量与每步访问量可以独立设置。槽位数 <span class="math"><i>M</i></span> 决定<strong class="text-highlight">状态容量</strong>，<span class="math"><i>K</i></span> 决定<strong class="text-highlight">每次读写访问多少槽位</strong>。两者都不随序列长度增长，因此即使上下文变长，存储量和每词元成本仍保持不变。'
+      'RAM-Net 把固定容量的状态组织为由 <span class="math">|𝒜|</span> 个相互独立的槽位组成的数组：每个槽位存放一个向量，并有一个整数地址 <span class="math"><i>a</i> ∈ 𝒜 = {0, …, |𝒜| − 1}</span>。每个词元产生一个 key 来选择写入槽位，一个 query 来选择读取槽位，以及一个待存储的 value。',
+      '每一步只稀疏地读写其中少数几个槽位，分三个阶段完成：',
+      '选中的读取槽位按权重汇总，经归一化、门控与投影后产生输出。三个阶段的细节将分别在第 3、4、5 章展开。',
+      '每步只访问选中的槽位，因此状态容量与每步访问量可以独立设置。槽位数 <span class="math">|𝒜|</span> 决定<strong class="text-highlight">状态容量</strong>，<span class="math"><i>K</i></span> 决定<strong class="text-highlight">每次读写访问多少槽位</strong>。两者都不随序列长度增长，因此即使上下文变长，存储量和每词元成本仍保持不变。'
+    ],
+    '#architecture .stage-list li': [
+      '<strong>地址解码器：</strong>将 key 和 query 分别映射为<strong class="text-highlight">稀疏的写入与读取地址</strong>，即少量选中的槽位及其权重。这一步通过一种称为 Product Softmax 的构造完成：把每个槽位的地址 <span class="math"><i>a</i></span> 写成 <span class="math"><i>U</i></span> 位 <span class="math"><i>d<sub>p</sub></i></span> 进制数，因此 <span class="math">|𝒜| = <i>d<sub>p</sub></i><sup><i>U</i></sup></span>；key 被均分为 <span class="math"><i>U</i></span> 个长度为 <span class="math"><i>d<sub>p</sub></i></span> 的子向量，每个子向量经过 softmax，得到一位数字取各个值的概率；一个槽位的权重等于<strong class="text-highlight">其各位数字概率的乘积</strong>。最后只保留权重最大的 <span class="math"><i>K</i></span> 个槽位，作为写入地址；query 以同样的方式得到读取地址。为便于展示，上图取 <span class="math"><i>U</i> = 5</span>、<span class="math"><i>d<sub>p</sub></i> = 2</span>，共 <span class="math">2<sup>5</sup> = 32</span> 个槽位，<span class="math"><i>K</i> = 4</span>。',
+      '<strong>循环地址位置嵌入（CAPE）：</strong>根据词元位置平移地址，使寻址感知位置。',
+      '<strong>门控稀疏更新（GSU）：</strong>将 value 写入选中的写入槽位，其余槽位保持不变。'
     ],
     '#addressing .prose p': [
-      '直接选择 <span class="math"><i>K</i></span> 个槽位，需要为每个词元对全部 <span class="math"><i>M</i></span> 个槽位打分，成本又会随状态容量增长。Product Softmax 将大型地址分布分解为少数小分布的乘积，避免这一问题。',
-      '具体而言，Product Softmax 将槽位数表示为 <span class="math"><i>M</i> = <i>d<sub>p</sub></i><sup><i>U</i></sup></span>，使每个槽位索引由 <span class="math"><i>U</i></span> 位数字组成，每位有 <span class="math"><i>d<sub>p</sub></i></span> 个取值。key 或 query 被划分为 <span class="math"><i>U</i></span> 个因子，各自经过 softmax 得到一位数字的分布。一个槽位的权重就是其各位数字概率的乘积。因此，只需 <span class="math"><i>U d<sub>p</sub></i></span> 个分数即可寻址全部 <span class="math"><i>M</i></span> 个槽位。例如，RAM-Net 使用 <span class="math"><i>M</i> = 1024 = 4<sup>5</sup></span> 个槽位，仅需 20 个分数。',
+      '第 2 章介绍了地址解码器如何借助 Product Softmax 得到地址：把 key 或 query 拆成若干位数字的概率分布，再相乘得到每个槽位的权重。本章进一步说明为什么要这样构造地址，以及如何从不同角度理解这一构造。',
+      '最直接的做法，是把 key 和 query 投影到 <span class="math">|𝒜|</span> 维，对全部槽位做一次 softmax，再保留 Top-<span class="math"><i>K</i></span>。这样做有两个问题：其一，投影和 softmax 的参数量与计算量都随 <span class="math">|𝒜|</span> 线性增长；其二，经过 Top-<span class="math"><i>K</i></span> 截断后，每步只有被选中的 <span class="math"><i>K</i></span> 个槽位得到学习信号，<span class="math">|𝒜|</span> 越大，地址选择越难优化。',
+      'Product Softmax 同时解决了这两个问题。槽位数 <span class="math">|𝒜| = <i>d<sub>p</sub></i><sup><i>U</i></sup></span> 随位数 <span class="math"><i>U</i></span> 指数增长，而 key 与 query 的维度 <span class="math"><i>d<sub>k</sub></i> = <i>U d<sub>p</sub></i></span> 只线性增长，因此<strong class="text-highlight">只需 <span class="math"><i>U d<sub>p</sub></i></span> 个分数即可寻址全部 <span class="math">|𝒜|</span> 个槽位</strong>。例如，RAM-Net 使用 <span class="math">|𝒜| = 1024 = 4<sup>5</sup></span> 个槽位，仅需 20 个分数。此外，每位数字由许多槽位共享，一个被选中槽位的学习信号也会传到共享其数字的其他槽位。',
       '上图从五个等价视角，展示各位数字的分布如何组合成槽位分布。',
       '在 <span class="math"><i>d<sub>p</sub></i></span> 进制下，每个槽位索引是一串 <span class="math"><i>U</i></span> 位数字。Product Softmax 不将每位固定为一个值，而是给出其 <span class="math"><i>d<sub>p</sub></i></span> 个取值上的概率分布。每个槽位的权重由这些数字概率相乘得到。',
-      '每位数字对应树的一层，从根到叶的每条路径对应一个槽位。槽位权重是路径上分支概率的乘积。同一层的所有节点共享同一数字分布，因此可以逐层寻找概率最大的槽位，成本随深度 <span class="math"><i>U</i></span> 增长，而非随叶子数 <span class="math"><i>M</i></span> 增长。',
+      '每位数字对应树的一层，从根到叶的每条路径对应一个槽位。槽位权重是路径上分支概率的乘积。同一层的所有节点共享同一数字分布，因此可以逐层寻找概率最大的槽位，成本随深度 <span class="math"><i>U</i></span> 增长，而非随叶子数 <span class="math">|𝒜|</span> 增长。',
       '每位数字对应 <span class="math"><i>U</i></span> 维网格的一条轴，每个槽位是一个格点，其权重为沿各轴概率的乘积。确定性高的数字将权重集中在一个切片上，不确定的数字则将权重沿对应轴展开。因此，最高权重的槽位位于这些切片的交汇处，并仅沿不确定的轴延展。图中展示 <span class="math"><i>U</i> = <i>d<sub>p</sub></i> = 4</span> 的情况。',
       '由于权重具有乘积结构，任意几位数字都可以合并为一个更大的因子，而不改变任何槽位的权重。将数字分成两组，便可把槽位排列成矩阵，其权重是两个向量的外积。图中展示 64 × 4 与 4 × 64 两种视图：它们以不同的空间形状扫描同一组权重。',
       '沿槽位索引展开，每位数字的分布形成周期性的阶梯波。低位在每个槽位间快速变化，高位则变化缓慢，在较长区间内保持同一取值。地址分布是这些波形的乘积：慢波形成粗粒度包络，快波在其中进行调制。',
-      '五个视角描述同一个性质：槽位权重可分解为相互独立的逐位概率。利用这一结构，可以进行精确且高效的 Top-<span class="math"><i>K</i></span> 搜索。RAM-Net 沿树逐层确定数字，每层仅保留概率最大的 <span class="math"><i>K</i></span> 个部分地址。被丢弃的地址已经落后于至少 <span class="math"><i>K</i></span> 个候选；所有候选之后都乘以相同的剩余数字分布，因此它不可能反超。搜索得到<strong class="text-highlight">精确的 Top-<span class="math"><i>K</i></span></strong>，每层只需评估 <span class="math"><i>K d<sub>p</sub></i></span> 个候选，无需遍历全部 <span class="math"><i>M</i></span> 个槽位。'
+      '五个视角描述同一个性质：槽位权重可分解为相互独立的逐位概率。利用这一结构，可以进行精确且高效的 Top-<span class="math"><i>K</i></span> 搜索。RAM-Net 沿树逐层确定数字，每层仅保留概率最大的 <span class="math"><i>K</i></span> 个部分地址。被丢弃的地址已经落后于至少 <span class="math"><i>K</i></span> 个候选；所有候选之后都乘以相同的剩余数字分布，因此它不可能反超。搜索得到<strong class="text-highlight">精确的 Top-<span class="math"><i>K</i></span></strong>，每层只需评估 <span class="math"><i>K d<sub>p</sub></i></span> 个候选，无需遍历全部 <span class="math">|𝒜|</span> 个槽位。'
     ],
     '#position .prose p': [
       'Product Softmax 仅根据内容寻址，因此相同内容在任何位置都会映射至相同槽位。这样的地址无法区分一个词元相对于当前词元的位置。',
@@ -344,16 +352,24 @@ window.RamnetChinese = {
       '平移只改变槽位索引的排列，每次读写仍访问 <span class="math"><i>K</i></span> 个槽位。RAM-Net 对部分注意力头应用 CAPE，其余头保留纯内容寻址。前者捕获相对位置模式，后者捕获不受距离影响的内容关联。'
     ],
     '#update .prose p': [
-      '每次写入都需要在选中槽位的历史与新值之间取得平衡，并保持其他槽位不变。主流线性注意力的遗忘门每步衰减整个状态；门控稀疏更新（GSU）只对选中的槽位进行遗忘和写入。',
-      '对于每个槽位 <span class="math"><i>a</i></span>，GSU 同时维护内容 <span class="math"><b>s</b><sub><i>t</i></sub>[<i>a</i>]</span> 与<strong class="text-highlight">写入质量</strong> <span class="math"><i>m</i><sub><i>t</i></sub>[<i>a</i>]</span>，后者衡量槽位积累了多少写入权重。新写入按其权重相对于累计质量的比例改变内容，所以积累较多的槽位更新更慢。由当前词元经可学习投影得到的标量 <span class="math">γ<sub><i>t</i></sub></span> 控制保留多少质量，进而控制槽位接受新值的程度。',
-      '给定写入权重 <span class="math"><i>w</i><sub><i>t</i></sub>[<i>a</i>]</span> 与新值 <span class="math"><b>v</b><sub><i>t</i></sub></span>，更新分为四步。',
-      '未选中的槽位满足 <span class="math"><i>w</i><sub><i>t</i></sub>[<i>a</i>] = 0</span>，因此 <span class="math">λ<sub><i>t</i></sub>[<i>a</i>] = 1</span>、<span class="math">η<sub><i>t</i></sub>[<i>a</i>] = 0</span>，<strong class="text-highlight">内容与质量均保持不变</strong>。对于选中的槽位，<span class="math">γ<sub><i>t</i></sub></span> 在两个极端之间调节更新：当 <span class="math">γ<sub><i>t</i></sub> → −∞</span> 时累积平均历史写入，当 <span class="math">γ<sub><i>t</i></sub> → +∞</span> 时由最新值覆盖。'
+      '每次写入都需要在选中槽位的历史与新值之间取得平衡，同时保持其他槽位不变。主流线性注意力的遗忘门每步衰减整个状态；门控稀疏更新（GSU）则只在选中的槽位上遗忘和写入，<strong class="text-highlight">每个槽位独立更新</strong>。',
+      '对于每个槽位 <span class="math"><i>a</i></span>，GSU 维护两个量：内容 <span class="math"><b>s</b><sub><i>t</i></sub>[<i>a</i>]</span>，以及累计写入权重的<strong class="text-highlight">写入质量</strong> <span class="math"><i>m</i><sub><i>t</i></sub>[<i>a</i>]</span>。给定写入权重 <span class="math"><i>w</i><sub><i>t</i></sub>[<i>a</i>]</span> 与新值 <span class="math"><b>v</b><sub><i>t</i></sub></span>，更新按以下顺序计算，与上图的四个阶段一致。',
+      '这四个量环环相扣：槽位内容按步长 η 更新，η 取决于写入质量 m，m 又取决于保留系数 λ。',
+      '因此，GSU 具有三个性质：'
     ],
     '.equation-notes li': [
-      '<strong class="text-highlight">保留系数（λ）。</strong> 写入越强，或 <span class="math">γ<sub><i>t</i></sub></span> 越大，保留的历史质量就越少。',
-      '<strong class="text-highlight">质量（m）。</strong> 将当前写入权重加到保留的质量上，得到新质量。',
-      '<strong class="text-highlight">更新率（η）。</strong> 写入权重除以新质量，得到更新比例；较小的 <span class="math">ε</span> 用于保证数值稳定。',
-      '<strong class="text-highlight">内容（s）。</strong> 内容以剩余差值的 η 比例向 <span class="math"><b>v</b><sub><i>t</i></sub></span> 移动。较小的 η 保留历史，接近 1 的 η 则让新值占主导。'
+      '<strong class="text-highlight">内容（s）：</strong>以步长 <span class="math">η<sub><i>t</i></sub>[<i>a</i>]</span> 向 <span class="math"><b>v</b><sub><i>t</i></sub></span> 移动，即走完剩余差距的 η 比例。η 小则保留历史，η 接近 1 则新值占主导。',
+      '<strong class="text-highlight">步长（η）：</strong>等于写入权重 <span class="math"><i>w</i><sub><i>t</i></sub>[<i>a</i>]</span> 与更新后质量之比，<span class="math">ε</span> 是保证数值稳定的小常数。写入越强，步长越大；积累的质量越多，步长越小，因此<strong class="text-highlight">频繁写入的槽位变化更慢</strong>。',
+      '<strong class="text-highlight">质量（m）：</strong>先按保留系数 <span class="math">λ<sub><i>t</i></sub>[<i>a</i>]</span> 保留一部分旧质量，再加上本次的写入权重。',
+      '<strong class="text-highlight">保留系数（λ）：</strong>写入越强，λ 越小，槽位遗忘得越多。它还受遗忘强度 <span class="math">γ<sub><i>t</i></sub> = <b>x</b><sub><i>t</i></sub><i>W</i><sub>γ</sub></span> 调节：<span class="math">γ<sub><i>t</i></sub></span> 由当前词元经可学习投影得到，越大则保留的旧质量越少。'
+    ],
+    '#update .stage-list li': [
+      '<strong class="text-highlight">精确稀疏：</strong>未选中的槽位满足 <span class="math"><i>w</i><sub><i>t</i></sub>[<i>a</i>] = 0</span>，因此 <span class="math">λ<sub><i>t</i></sub>[<i>a</i>] = 1</span>、<span class="math">η<sub><i>t</i></sub>[<i>a</i>] = 0</span>，内容与质量均保持不变。不同词元的写入只在它们共同寻址的槽位上相互影响。',
+      '<strong class="text-highlight">内容有界：</strong>由于 <span class="math">η<sub><i>t</i></sub>[<i>a</i>] ∈ [0, 1)</span>，每次更新都是旧内容与 <span class="math"><b>v</b><sub><i>t</i></sub></span> 的凸组合，无论写入多少次，槽位都保持在 value 的数值尺度内。',
+      '<strong class="text-highlight">遗忘程度可调：</strong><span class="math">γ<sub><i>t</i></sub></span> 在两个极端之间调节更新。<span class="math">γ<sub><i>t</i></sub> → −∞</span> 时 <span class="math">λ<sub><i>t</i></sub>[<i>a</i>] → 1</span>，槽位累积平均历史写入；<span class="math">γ<sub><i>t</i></sub> → +∞</span> 时 <span class="math">λ<sub><i>t</i></sub>[<i>a</i>] → 0</span>、<span class="math">η<sub><i>t</i></sub>[<i>a</i>] ≈ 1</span>，每次写入几乎覆盖槽位。'
+    ],
+    '#update .insight-note': [
+      '<strong>测试时训练（TTT）视角。</strong>借鉴测试时训练 <a class="cite" href="#ref-3">[3]</a> 的观点，每个槽位都可以看作一个在线训练的参数，用来拟合写入它的 value。GSU 的内容更新恰好是对损失 <span class="math">ℓ<sub><i>t</i></sub>(<b>s</b>) = ½‖<b>s</b> − <b>v</b><sub><i>t</i></sub>‖<sup>2</sup></span> 做一步梯度下降，学习率为 <span class="math">η<sub><i>t</i></sub>[<i>a</i>]</span>。因此，GSU 是一种<strong class="text-highlight">逐槽位的测试时训练</strong>：每步只训练被寻址的槽位；每个槽位的学习率随写入积累而衰减，衰减快慢由 <span class="math">γ<sub><i>t</i></sub></span> 控制。'
     ],
     '#execution .prose p': [
       '稀疏访问减少了内存流量。为了将这一节省转化为高效的 GPU 执行，RAM-Net 围绕彼此独立的记忆槽位组织计算。',
@@ -361,15 +377,25 @@ window.RamnetChinese = {
       '不同槽位及其通道可以并行执行，同一槽位内部的事件则保持递推所需的<strong class="text-highlight">因果顺序</strong>。没有事件的槽位不需要计算。',
       '在自回归解码阶段，模型直接访问当前词元选中的槽位，无需扫描整个递归状态。'
     ],
-    '.results-intro p': ['这些表格比较不同模型规模与 Top-K 设置下的语言质量、检索表现、任务得分及活跃状态。'],
-    '#experiment-language > p:not(.experiment-key)': ['在 340M 模型中，Top-32 的 Wiki. 困惑度为 <strong class="text-highlight">25.87</strong>，是本组比较的最低值；Top-8 的 Wino 得分为 54.1，居于首位。在 1.3B 模型中，Top-16 将困惑度降至 <strong class="text-highlight">15.90</strong>，并在 LMB、ARC-c、COPA、Hella 和 Wino 上领先；其归一化 ARC-e 与 ARC-c 得分分别为 64.0 和 39.4。Gated DeltaNet 在 MMLU 和 SciQ 上仍有优势。'],
-    '#experiment-sniah > p:not(.experiment-key)': ['S-NIAH 使用 1K–16K 上下文，最长为训练长度的四倍。在 340M 模型中，Top-K 从 8 增至 32，均分由 <strong class="text-highlight">64.7 提升至 72.9</strong>；Top-16 与 Top-32 在 S1 的所有长度上均达到 100。在 1.3B 模型中，Top-16 均分为 70.1，高于 Top-8 的 65.0。S2 与 S3 在长上下文下仍更具挑战。'],
-    '#experiment-tasks > p:not(.experiment-key)': ['在 340M 模型中，Top-8、Top-16 与 Top-32 的任务均分分别为 23.2、27.9 和 <strong class="text-highlight">32.0</strong>，Transformer++ 为 35.1。在 1.3B 模型中，Top-8 为 40.6，Top-16 为 39.0；Gated DeltaNet 为 39.5，Transformer++ 为 49.8。'],
-    '#results > .prose:not(.results-intro):not(.results-discussion) p': ['340M Top-8 每次访问 0.4M 个状态元素，约占总状态 26.2M 的 <strong class="text-highlight">1.5%</strong>，也约为 Mamba2 活跃状态 12.9M 的 1/32。1.3B Top-8 访问 0.8M 个元素，总状态为 52.4M；Top-16 访问 1.6M。活跃状态衡量访问量，实际吞吐量仍需单独评估。'],
+    '.results-intro p': [
+      '这些表格将 RAM-Net 与 Transformer++ <a class="cite" href="#ref-4">[4]</a> 以及循环模型基线 Mamba2 <a class="cite" href="#ref-5">[5]</a>、Gated DeltaNet <a class="cite" href="#ref-6">[6]</a>、GLA <a class="cite" href="#ref-7">[7]</a>、GSA <a class="cite" href="#ref-8">[8]</a> 进行比较，涵盖语言建模、长上下文检索、真实场景召回，以及每步访问的状态量。'
+    ],
+    '#experiment-language > p:not(.experiment-key)': [
+      'RAM-Net 在<strong class="text-highlight">两种规模下都取得了最低的 WikiText 困惑度</strong>：340M 时 Top-32 为 25.87，1.3B 时 Top-16 为 15.90，略低于 Mamba2 的 15.96。常识推理方面同样具有竞争力：340M 时平均准确率最高（Top-32 为 50.9），1.3B 时与 Mamba2 并列（57.8）。增大 Top-K 会同时改善困惑度和平均准确率，说明每步访问更多槽位有助于语言建模。'
+    ],
+    '#experiment-sniah > p:not(.experiment-key)': [
+      'S-NIAH 是 RULER <a class="cite" href="#ref-9">[9]</a> 中的单针检索任务，测试长度为 1K–16K，最长为 4K 训练长度的四倍。RAM-Net 在<strong class="text-highlight">两种规模下都取得了最高的平均分</strong>：340M 时 Top-32 为 72.9，最强基线为 51.3；1.3B 时 Top-16 为 70.1，最强基线为 62.4。在 S-NIAH-1 上，所有 RAM-Net 设置直到 16K 都接近满分；Transformer++ 超出训练长度后失效，其他循环模型随上下文变长而下降。S-NIAH-2 与 S-NIAH-3 使用多样的自然文本作为干扰内容，难度更高：1.3B 时，Transformer++ 在训练长度内领先，超出训练长度后 Top-16 表现最好，但所有模型在 16K 时都较弱。增大 Top-K 会在两种规模下持续提高平均分。'
+    ],
+    '#experiment-tasks > p:not(.experiment-key)': [
+      '这些召回密集型任务 <a class="cite" href="#ref-10">[10]</a> 要求从真实文档中提取信息。Transformer++ 在两种规模下平均分都最高，因为它的 KV 缓存保留了上下文中的每个词元。在循环模型中，RAM-Net 在<strong class="text-highlight">两种规模下平均分都最高</strong>：340M 时 Top-32 为 32.0，1.3B 时 Top-8 为 40.6。在 340M 规模下，它与 Transformer++ 的差距从最强基线的 8.2 分缩小到 <strong class="text-highlight">3.1 分</strong>。'
+    ],
+    '#results > .prose:not(.results-intro):not(.results-discussion) p': [
+      '340M Top-8 每步只访问 <strong class="text-highlight">26.2M 个状态元素中的 0.4M</strong>，约占总状态的 1.5%。即使是访问最多的设置，即 340M Top-32 与 1.3B Top-16，每步也只访问 1.6M 个元素，比同规模的 Gated DeltaNet 少至少 5 倍，比 Mamba2 少至少 8 倍。这一优势也体现在实际速度上：Top-8 的解码吞吐量高于 Mamba2 与 Gated DeltaNet。'
+    ],
     '.results-discussion p': [
-      '在 340M 模型中，Top-K 从 8 增至 32，活跃状态由 0.4M 增至 1.6M，总状态保持 26.2M。S-NIAH 均分从 64.7 升至 72.9，任务均分从 23.2 升至 32.0。这体现了更大访问量与更好表现之间的权衡。',
-      '论文还报告了 MQAR，以及单独的长上下文 S-NIAH-1 实验。340M Top-8 在训练长度为 4K、使用重复填充内容的 128K 上下文中达到 99.4%。该设置与表格中的检索测试不同。',
-      '在单张 RTX 5090 上，340M RAM-Net 的吞吐量接近 GLA，并高于测试中的 Mamba2、DeltaNet 与 Gated DeltaNet。实际速度取决于硬件与实现。'
+      '在 340M 模型中，Top-K 从 8 增至 32，活跃状态由 0.4M 增至 1.6M，总状态保持 26.2M。Wiki. 困惑度从 26.89 降至 25.87，S-NIAH 均分从 64.7 升至 72.9，真实场景召回均分从 23.2 升至 32.0。这体现了<strong class="text-highlight">更好的结果与更高的每词元访问成本</strong>之间的权衡。',
+      '在合成的 MQAR 关联召回任务 <a class="cite" href="#ref-11">[11]</a> 上，以总状态规模为横轴，RAM-Net 位于准确率的上包络线；与准确率相当的基线相比，它每步访问的状态约少 10 倍。',
+      '在单张 NVIDIA RTX 5090 上，340M RAM-Net Top-8 的解码吞吐量与 GLA 相当，并在所有测试长度下高于 Mamba2、DeltaNet <a class="cite" href="#ref-12">[12]</a> 与 Gated DeltaNet。吞吐量的排序取决于每步访问的状态量，而非总状态规模：GLA 快，是因为整个状态很小；RAM-Net 快，是因为它只访问一个大得多的状态中的一小部分。'
     ],
     '.results-note': ['稀疏寻址需要<strong class="text-highlight">可靠的地址选择</strong>：没有被选中的槽位无法参与读取。扩大容量和增加 Top-K 分别改善记忆空间与访问范围，其收益取决于具体任务。'],
     '#retrieval-probe .prose p': [

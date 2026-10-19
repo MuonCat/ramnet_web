@@ -107,10 +107,22 @@ tr:last-child td:first-child { color: var(--accent-ink); }
 .math { font-family: var(--serif); color: var(--ink); white-space: nowrap; }
 .equation { font-size: 23px; line-height: 2; color: var(--ink); background: color-mix(in srgb, var(--color-paperEdge) 15%, var(--color-paper) 85%); border-left: 2px solid var(--color-pageAccent); padding: 20px 28px; margin: 20px 0; overflow-x: auto; }
 .equation-image { display: block; width: 16em; max-width: 100%; height: auto; }
-.equation-notes { margin: 20px 0 25px; padding-left: 1.4em; }
-.equation-notes li { padding-left: .25em; }
-.equation-notes li + li { margin-top: 10px; }
-.equation-notes li::marker { color: var(--tone-sky-ink); font-weight: 700; }
+:is(.equation-notes, .stage-list) { margin: 20px 0 25px; padding-left: 1.4em; }
+:is(.equation-notes, .stage-list) li { padding-left: .25em; }
+:is(.equation-notes, .stage-list) li + li { margin-top: 10px; }
+:is(.equation-notes, .stage-list) li::marker { color: var(--tone-sky-ink); font-weight: 700; }
+.insight-note { margin: 28px 0 0; padding: 18px 22px; background: color-mix(in srgb, var(--neutral-16) 78%, var(--tone-sky) 22%); border-left: 3px solid var(--tone-sky); border-radius: 4px; font-size: 15px; line-height: 1.85; color: var(--body); }
+.insight-note > strong:first-child { color: var(--tone-sky-ink); }
+.cite { margin-left: 1px; color: var(--tone-sky-ink); font-size: .72em; line-height: 0; vertical-align: super; text-decoration: none; white-space: nowrap; }
+.cite:hover { text-decoration: underline; }
+.references { padding: 56px 0 24px; border-top: 1px solid var(--line); }
+.references h2 { font-size: 28px; margin: 0 0 18px; }
+.reference-list { margin: 0; padding-left: 2em; font-size: 13px; line-height: 1.75; color: var(--muted); }
+.reference-list li { padding-left: .3em; scroll-margin-top: 90px; }
+.reference-list li + li { margin-top: 6px; }
+.reference-list li:target { color: var(--ink); }
+.reference-list a { color: var(--body); text-decoration: none; border-bottom: 1px solid var(--line); }
+.reference-list a:hover { color: var(--accent-ink); border-bottom-color: currentColor; }
 .metric-grid { width: var(--content-width); margin: 34px 0 34px var(--text-inset); display: grid; grid-template-columns: repeat(3,1fr); border-block: 1px solid var(--line); }
 .metric { padding: 27px 22px; border-right: 1px solid var(--line); }
 .metric:first-child { padding-left: 0; }
