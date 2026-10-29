@@ -14,7 +14,7 @@
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     while (walker.nextNode()) {
       const node = walker.currentNode;
-      if (node.parentElement?.closest('script, style, math, .math')) continue;
+      if (node.parentElement?.closest('script, style, math, .math, [translate="no"]')) continue;
       const key = node.textContent.trim().replace(/\s+/g, ' ');
       if (catalog.text[key]) node.textContent = node.textContent.replace(/\S[\s\S]*\S|\S/, t(key));
     }

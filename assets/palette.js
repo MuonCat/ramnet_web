@@ -61,7 +61,7 @@
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', config.colors.paper);
     const icon = document.querySelector('link[rel="icon"]');
     if (icon) fetch(icon.href).then(response => response.text()).then(svg => {
-      const fills = [config.colors.paper, mix(config.tones.sky[0], neutral(16), .3), config.colors.pageAccent];
+      const fills = [config.colors.paper, neutral(8), config.colors.pageAccent];
       let index = 0;
       icon.href = 'data:image/svg+xml,' + encodeURIComponent(svg.replace(/#[0-9a-f]{6}/gi,
         color => fills[index++] || color));

@@ -27,7 +27,7 @@ animations/
   cal_pipeline.{html,css,js}     CUDA 执行流水线及分阶段播放器
   niah_probe.{html,js}           第 8 章探针动画
   head_probe.{html,js}           第 9 章探针动画
-  slot_usage.{html,css,js}       第 10 章访问累积、排序与 Zipf 参考曲线
+  slot_usage.{html,css,js}       第 10 章访问累积、排序与对数正态排名参考曲线
   hardware.{html,css,js}         第 11 章整数寻址、独立执行与片上 SRAM 的硬件概念动画
 data/experiments.json           实验结果唯一的 JSON 数据源
 data/palette.json               固定色值、色系、透明度和渐变区间的配置
@@ -46,7 +46,7 @@ tools/prepare_slot_usage.ps1      从外部逐 token 记录生成槽位访问计
 
 主页面使用 Shadow DOM 将十个动画直接嵌入正文中的 div，隔离变量与样式；不使用 iframe。独立预览和正文嵌入共用 `assets/animation-runtime.js`，由它管理主题、窄屏交互和帧调度。第 8、9 章的 JSON 同时保存为生成的静态 JavaScript 数据文件，页面直接读取，无运行时数据请求。离开可视区的动画停止逐帧绘制，并尊重系统的减少动态效果设置。
 
-第 10 章通过相对路径读取 `data/probes/slot_usage.json`。数据保留 11 个 head × 6 组语料的完整逐 token 事件，读写各 Top-8；CAPE 地址先撤销位置平移。地址与 token ID 采用 gzip + base64 无损保存，由浏览器原生 `DecompressionStream` 解码。播放时按顺序处理每个 token 的 16 次访问，每次加 1 并更新排名；即使两个显示帧之间跨过多个 token，也会逐个处理，不抽样、不聚合、不插值计数。Zipf 曲线由最终分布拟合，不参与生成访问次数。可用 `powershell -File tools/prepare_slot_usage.ps1 -SourcePath <source-json>` 重新清洗原始数据；此脚本无需额外依赖。章节支持中英文、共享布局、吸附与自动播放。
+第 10 章通过相对路径读取 `data/probes/slot_usage.json`。数据保留 11 个 head × 6 组语料的完整逐 token 事件，读写各 Top-8；CAPE 地址先撤销位置平移。地址与 token ID 采用 gzip + base64 无损保存，由浏览器原生 `DecompressionStream` 解码。播放时按顺序处理每个 token 的 16 次访问，每次加 1 并更新排名；即使两个显示帧之间跨过多个 token，也会逐个处理，不抽样、不聚合、不插值计数。对数正态排名参考曲线使用最终访问计数拟合离散程度 σ，位置参数由总量归一化吸收；播放时仅缩放曲线总量，不参与生成访问次数。可用 `powershell -File tools/prepare_slot_usage.ps1 -SourcePath <source-json>` 重新清洗原始数据；此脚本无需额外依赖。章节支持中英文、共享布局、吸附与自动播放。
 
 第 11 章以概念时序展示前端解码整数地址、不同槽位独立执行、同一槽位保序，以及热点数据在片上 SRAM 中复用。动画为 SVG，共用颜色配置、阶段进度条和播放图标；随全局紧凑模式切换横向与纵向布局。
 

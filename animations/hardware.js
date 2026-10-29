@@ -8,202 +8,253 @@
     const tone = name => palette.tone(name), ink = name => palette.tone(name, 'ink');
     const clamp = value => Math.max(0, Math.min(1, value));
     const ease = value => { const u = clamp(value); return u * u * (3 - 2 * u); };
-    const schedules = Array.from({length: 4}, () => []), caches = schedules.map(() => new Map());
-    const queuesPerEU = 2, queueCapacity = 9;
-    const ticketWidth = 36;
-    const latency = {reg: .3, sram: 1.8, dram: 7.2};
-    const requestInterval = .24;
-    const lastCompleted = schedules.map(() => null);
-    const accessHeat = new Map();
+    const engines = Array.from({length: 4}, () => ({running: null, lastEntry: null, chainIssued: 0}));
+    const queuesPerEU = 2, queueCapacity = 9, ticketWidth = 36;
+    const queues = engines.map(() => Array.from({length: queuesPerEU}, () => []));
+    const caches = engines.map(() => new Map()), cacheLines = engines.map(() => []);
+    const slotOwners = new Map(), accessHeat = new Map(), events = [], transfers = [];
+    const latency = {reg: .3, sram: 1.8, dram: 7.2}, requestInterval = .24, inputInterval = .12;
     const heat = slot => accessHeat.get(slot) ?? 0;
     const chainHeat = slot => Math.max(0, heat(slot) - 2);
     const retention = entry => heat(entry.slot) + (Number.isFinite(entry.dirtyAt) ? 1 : 0);
-    // Maps reserve future ownership; histories retain the visible data until release.
-    const cacheLines = schedules.map(() => []), previousSlot = new Map(), backingReady = new Map(), events = [], transfers = [];
-    let time = 0, nextRequest = 0, nextRequestAt = -24 * requestInterval, lastFrame = 0;
+    let time = 0, nextRequest = 0, nextRequestAt = 0, held = null, lastFrame = 0;
     let layout, backpressure, lanes = [];
     // The page autoplay has a viewing interval; the request stream has no endpoint.
     scope.setCycleDuration(16.8);
 
-    function transfer(lane, slot, kind, start, finish) {
-      const movement = {lane, slot, kind, start, finish};
+    function transfer(lane, slot, kind, done) {
+      const movement = {lane, slot, kind, start: time, finish: time + latency.dram, done};
       if (layout) movement.element = transferPacket(movement);
       transfers.push(movement);
     }
 
-    function releaseEntry(lane, entry, earliest) {
-      const start = Math.max(earliest, entry.ready, entry.busyUntil);
-      const dirty = Number.isFinite(entry.dirtyAt), finish = start + (dirty ? latency.dram : 0);
-      if (dirty) {
-        transfer(lane, entry.slot, 'writeback', start, finish);
-        backingReady.set(entry.slot, Math.max(backingReady.get(entry.slot) ?? -Infinity, finish));
-        entry.drainedAt = finish;
+    function releaseEntry(lane, entry) {
+      if (entry.state !== 'resident' || engines[lane].running?.entry === entry) return;
+      const remove = () => {
+        caches[lane].delete(entry.slot);
+        slotOwners.delete(entry.slot);
+        cacheLines[lane][entry.cell].entry = null;
+        entry.state = 'released';
+      };
+      if (Number.isFinite(entry.dirtyAt)) {
+        entry.state = 'writeback';
+        entry.drainedAt = time + latency.dram;
+        transfer(lane, entry.slot, 'writeback', remove);
+      } else {
+        remove();
       }
-      caches[lane].delete(entry.slot);
-      const line = cacheLines[lane][entry.cell];
-      line.available = finish;
-      line.history.push({time: finish, entry: null});
     }
 
-    function queueEvents(lane, queue, at) {
-      // In-flight requests reserve a queue cell before leaving the front end.
-      return events.filter(event => event.lane === lane && event.queue === queue && event.launch <= at && event.start > at);
-    }
-
-    function prioritizeRegisterContinuation(lane, entry, readyAt) {
-      const schedule = schedules[lane];
-      const index = schedule.findLastIndex(event => event.entry === entry);
-      const predecessor = schedule[index];
-      if (!predecessor || predecessor.finish < Math.max(readyAt, time)) return null;
-      let finish = predecessor.finish + latency.reg;
-      const delayed = [];
-      for (let i = index + 1; i < schedule.length; i++) {
-        const event = schedule[i], start = Math.max(event.start, finish);
-        if (start === event.start) break;
-        // Keep existing eviction and migration deadlines unchanged.
-        if (caches[lane].get(event.slot) !== event.entry) return null;
-        finish = start + latency[event.access];
-        delayed.push({event, start, finish, firstWrite: event.kind === 'write' && event.entry.dirtyAt === event.finish});
-      }
-      for (const {event, start, finish, firstWrite} of delayed) {
-        event.start = start;
-        event.finish = finish;
-        event.entry.busyUntil = Math.max(event.entry.busyUntil, finish);
-        if (firstWrite) event.entry.dirtyAt = finish;
-        previousSlot.set(event.slot, event.entry.busyUntil);
-      }
-      return predecessor;
+    function queueEvents(lane, queue) {
+      // In-flight requests reserve real queue cells before leaving the front end.
+      return queues[lane][queue];
     }
 
     function generateRequests() {
-      // Warm up the pipeline before its first visible frame, then keep emitting.
-      while (nextRequestAt <= time) {
-        const created = nextRequestAt, firstQueue = nextRequest++ % (schedules.length * queuesPerEU);
-        const choice = Math.random();
-        const slot = 100 + Math.floor(Math.random() * 4) + (choice < .6 ? 0 : choice < .8 ? 4 : choice < .9 ? 8 : 12);
-        accessHeat.forEach((value, address) => accessHeat.set(address, value * .97));
-        accessHeat.set(slot, heat(slot) + 1);
-        // An outstanding slot stays in its specific queue, not just its EU.
-        const pending = events.find(event => event.slot === slot && event.finish > created);
-        const resident = caches.map(cache => cache.get(slot)).find(Boolean);
-        const slotQueues = schedules.map((schedule, lane) => {
-          const bindings = new Map([...caches[lane].values()].map(entry => [entry.slot, {queue: entry.queue, depth: 0}]));
-          for (const event of schedule) {
-            if (event.finish <= created) continue;
-            const depth = (bindings.get(event.slot)?.depth ?? 0) + 1;
-            bindings.set(event.slot, {queue: event.queue, depth});
-          }
-          return bindings;
-        });
-        const hotLoads = slotQueues.map(bindings => [...bindings.keys()].reduce((sum, address) => sum + (address === slot ? 0 : heat(address)), 0));
-        const queueLoads = slotQueues.map(bindings => Array.from({length: queuesPerEU}, (_, queue) =>
-          [...bindings].reduce((load, [address, binding]) => load + (address !== slot && binding.queue === queue ? Math.max(chainHeat(address), binding.depth - 1) : 0), 0)));
-        const targets = pending ? [{lane: pending.lane, queue: pending.queue}] : Array.from({length: schedules.length * queuesPerEU}, (_, i) => {
-          const index = (firstQueue + i) % (schedules.length * queuesPerEU);
+      if (held || nextRequestAt > time) return;
+      const firstQueue = nextRequest++ % (engines.length * queuesPerEU);
+      accessHeat.forEach((value, address) => accessHeat.set(address, value * .97));
+      const bindings = queues.map((laneQueues, lane) => {
+        const slots = new Map([...caches[lane].values()].map(entry => [entry.slot, {queue: entry.queue, depth: 0}]));
+        for (const event of [...laneQueues.flat(), engines[lane].running].filter(Boolean)) {
+          const depth = (slots.get(event.slot)?.depth ?? 0) + 1;
+          slots.set(event.slot, {queue: event.queue, depth});
+        }
+        return slots;
+      });
+      // Shape demonstration traffic around queue room and cache readiness.
+      const options = Array.from({length: 16}, (_, i) => {
+        const slot = 100 + i, owner = slotOwners.get(slot);
+        const pending = events.find(event => event.slot === slot && event.finish > time);
+        const bound = pending ?? (owner && owner.entry.state !== 'writeback' && chainHeat(slot) > 0 && owner.entry.queue !== undefined
+          ? {lane: owner.lane, queue: owner.entry.queue} : null);
+        const targets = bound ? [{lane: bound.lane, queue: bound.queue}] : Array.from({length: engines.length * queuesPerEU}, (_, j) => {
+          const index = (firstQueue + j) % (engines.length * queuesPerEU);
           return {lane: Math.floor(index / queuesPerEU), queue: index % queuesPerEU};
         });
         const candidates = targets.map(({lane, queue}) => {
-          const occupied = queueEvents(lane, queue, created);
-          const launch = occupied.length < queueCapacity ? created : Math.min(...occupied.map(event => event.start));
-          // Keep stable chains apart and steer sporadic requests toward shared queues.
-          const local = caches[lane].get(slot);
-          const moveCost = local ? 0 : .75 + heat(slot) * .5 + (resident && Number.isFinite(resident.dirtyAt) ? 2 : 0);
-          const affinityCost = local?.queue !== undefined && local.queue !== queue ? chainHeat(slot) : 0;
-          const queueCost = queueLoads[lane][queue] * (heat(slot) + 1);
-          const score = occupied.length + schedules[lane].filter(event => event.finish > created).length * .2 + hotLoads[lane] * heat(slot) * .5 + moveCost + affinityCost + queueCost;
-          return {lane, queue, launch, score};
+          const otherSlots = [...bindings[lane]].filter(([address]) => address !== slot);
+          const conflicts = otherSlots.filter(([address, binding]) =>
+            binding.queue === queue && (chainHeat(address) > 0 || binding.depth > 1)).length;
+          const hotLoad = otherSlots.reduce((sum, [address]) => sum + heat(address), 0);
+          const moveCost = owner?.lane === lane ? 0 : latency.dram + (owner && Number.isFinite(owner.entry.dirtyAt) ? latency.dram : 0);
+          const score = queues[lane][queue].length + queues[lane].flat().length * .2 + hotLoad * heat(slot) * .5 + moveCost;
+          return {lane, queue, conflicts, full: queues[lane][queue].length === queueCapacity, score};
         });
-        const earliest = Math.min(...candidates.map(candidate => candidate.launch));
-        const available = candidates.filter(candidate => candidate.launch === earliest);
-        const {lane, queue, launch} = available.reduce((best, value) => value.score < best.score ? value : best);
-        const arrival = launch + 2 * requestInterval;
-        // A full target queue stalls this request at the outlet and stops production.
-        nextRequestAt = launch + requestInterval;
-        // A new owner reads backing memory only after the previous dirty copy drains.
-        caches.forEach((cache, other) => {
-          if (other !== lane && cache.has(slot)) releaseEntry(other, cache.get(slot), arrival);
-        });
-        const cache = caches[lane];
-        let entry = cache.get(slot);
-        if (!entry) {
-          if (cache.size === 3) {
-            const entries = [...cache.values()];
-            // Cold entries go first; an idle hot dirty slot is still worth retaining.
-            const victim = entries.reduce((best, value) => retention(value) < retention(best) ? value : best);
-            releaseEntry(lane, victim, arrival);
+        candidates.sort((a, b) => Number(a.full) - Number(b.full) || a.conflicts - b.conflicts || a.score - b.score);
+        const target = candidates[0], engine = engines[target.lane];
+        const room = 1 - queues[target.lane][target.queue].length / queueCapacity;
+        const resident = owner?.lane === target.lane && owner.entry.state === 'resident';
+        const locality = resident ? 4 : owner?.entry.state === 'writeback' ? .05 : .4 / (1 + transfers.length);
+        const continuation = resident && (engine.running?.entry === owner.entry || !engine.running && engine.lastEntry === owner.entry);
+        // Let long register runs drain instead of continually replenishing them.
+        const refillWeight = continuation ? 1.5 * Math.max(0, 1 - engine.chainIssued / (2 * queueCapacity)) : 1;
+        const weight = (i < 4 ? 32 : i < 8 ? 2 : .75) * room * locality * refillWeight
+          / (1 + queues[target.lane].flat().length * .25);
+        return {slot, ...target, weight};
+      });
+      const available = options.filter(option => option.weight > 0);
+      let selected = available.at(-1) ?? options.reduce((best, option) => option.score < best.score ? option : best);
+      let choice = Math.random() * available.reduce((sum, option) => sum + option.weight, 0);
+      for (const option of available) {
+        choice -= option.weight;
+        if (choice < 0) { selected = option; break; }
+      }
+      const {slot, lane, queue} = selected;
+      accessHeat.set(slot, heat(slot) + 1);
+      const event = {lane, queue, slot, kind: Math.random() < .45 ? 'write' : 'read', created: time,
+        launch: Infinity, arrival: Infinity, ready: Infinity, start: Infinity, finish: Infinity};
+      if (layout) event.view = ticket(event);
+      events.push(event);
+      held = event;
+    }
+
+    function admitRequest() {
+      if (!held) return;
+      const queue = queues[held.lane][held.queue], engine = engines[held.lane];
+      if (queue.length === queueCapacity) return;
+      held.launch = time;
+      held.arrival = time + 2 * requestInterval;
+      const index = queue.findLastIndex(event => event.slot === held.slot);
+      if (index >= 0) {
+        queue.splice(index + 1, 0, held);
+      } else if (engine.running?.slot === held.slot && held.arrival <= engine.running.finish) {
+        queue.unshift(held);
+      } else {
+        queue.push(held);
+      }
+      // Resume the fixed cadence after backpressure, without catch-up bursts.
+      nextRequestAt = time + inputInterval;
+      held = null;
+    }
+
+    function startLoad(lane, line) {
+      if (!line.pending || line.entry || slotOwners.has(line.pending.slot)) return;
+      const {slot, queue} = line.pending, cell = cacheLines[lane].indexOf(line);
+      const entry = {slot, cell, queue, state: 'loading', ready: time + latency.dram,
+        busyUntil: time + latency.dram, dirtyAt: Infinity, drainedAt: Infinity};
+      line.entry = entry;
+      line.pending = null;
+      caches[lane].set(slot, entry);
+      slotOwners.set(slot, {lane, entry});
+      transfer(lane, slot, 'fill', () => { entry.state = 'resident'; });
+    }
+
+    function prepareMemory() {
+      queues.forEach((laneQueues, lane) => {
+        const engine = engines[lane];
+        cacheLines[lane].forEach(line => startLoad(lane, line));
+        const heads = laneQueues.map(queue => queue[0]).filter(event => event && event.arrival <= time);
+        for (const event of heads) {
+          let owner = slotOwners.get(event.slot);
+          if (owner?.lane === lane) continue;
+          if (owner) {
+            releaseEntry(owner.lane, owner.entry);
+            owner = slotOwners.get(event.slot);
+            if (owner) continue;
           }
-          const cell = cacheLines[lane].findIndex((_, index) => ![...cache.values()].some(value => value.cell === index));
-          const line = cacheLines[lane][cell], visibleAt = Math.max(arrival, line.available);
-          const fillAt = Math.max(visibleAt, backingReady.get(slot) ?? -Infinity);
-          entry = {slot, cell, ready: fillAt + latency.dram, busyUntil: fillAt + latency.dram, dirtyAt: Infinity, drainedAt: Infinity};
-          line.history.push({time: visibleAt, entry});
-          transfer(lane, slot, 'fill', fillAt, entry.ready);
-        }
-        cache.delete(slot);
-        cache.set(slot, entry);
-        entry.queue = queue;
-        let start = Math.max(arrival + .1, entry.ready, previousSlot.get(slot) ?? -Infinity);
-        // Backpressured admissions keep their reserved queue-release time.
-        const continuation = launch === created ? prioritizeRegisterContinuation(lane, entry, start) : null;
-        let predecessor = continuation ?? lastCompleted[lane];
-        if (continuation) {
-          start = continuation.finish;
-        } else {
-          for (const reserved of schedules[lane]) {
-            if (reserved.finish <= start) { predecessor = reserved; continue; }
-            const duration = predecessor?.entry === entry ? latency.reg : latency.sram;
-            if (start + duration <= reserved.start) break;
-            start = reserved.finish;
-            predecessor = reserved;
+          let line = cacheLines[lane].find(value => value.pending?.slot === event.slot);
+          if (!line) {
+            line = cacheLines[lane].find(value => !value.entry && !value.pending);
+            if (!line) {
+              const needed = new Set(laneQueues.map(queue => queue[0]?.slot));
+              if (!engine.running && laneQueues.some(queue => queue.some(value =>
+                value.slot === engine.lastEntry?.slot && value.arrival <= time))) needed.add(engine.lastEntry.slot);
+              const replaceable = cacheLines[lane].filter(value => !value.pending && value.entry?.state === 'resident'
+                && value.entry !== engine.running?.entry && !needed.has(value.entry.slot));
+              if (!replaceable.length) continue;
+              line = replaceable.reduce((best, value) => retention(value.entry) < retention(best.entry) ? value : best);
+            }
+            line.pending = {slot: event.slot, queue: event.queue};
+            if (line.entry) releaseEntry(lane, line.entry);
           }
+          startLoad(lane, line);
         }
-        // Reuse the register only for consecutive executions of the same resident entry.
-        const access = predecessor?.entry === entry ? 'reg' : 'sram';
-        const event = {lane, queue, slot, entry, access, kind: Math.random() < .45 ? 'write' : 'read', created, launch, arrival, ready: entry.ready, start, finish: start + latency[access]};
-        entry.busyUntil = Math.max(entry.busyUntil, event.finish);
-        if (event.kind === 'write') entry.dirtyAt = Math.min(entry.dirtyAt, event.finish);
-        previousSlot.set(slot, event.finish);
-        schedules[lane].push(event);
-        schedules[lane].sort((a, b) => a.start - b.start);
-        if (layout) event.view = ticket(event);
-        events.push(event);
+      });
+    }
+
+    function dispatchRequests() {
+      engines.forEach((engine, lane) => {
+        if (engine.running) return;
+        const ready = queues[lane].flatMap(queue => queue.filter((event, index) => {
+          if (index && queue[index - 1].slot === event.slot) return false;
+          const owner = slotOwners.get(event.slot);
+          return event.arrival <= time && owner?.lane === lane && owner.entry.state === 'resident';
+        }));
+        if (!ready.length) return;
+        const continuation = ready.find(event => slotOwners.get(event.slot).entry === engine.lastEntry);
+        const event = continuation ?? ready.reduce((oldest, event) => event.created < oldest.created ? event : oldest);
+        const queue = queues[lane][event.queue], entry = slotOwners.get(event.slot).entry;
+        event.issueIndex = queue.indexOf(event);
+        queue.splice(event.issueIndex, 1);
+        event.entry = entry;
+        event.ready = entry.ready;
+        event.start = time;
+        event.access = engine.lastEntry === entry ? 'reg' : 'sram';
+        event.finish = time + latency[event.access];
+        engine.chainIssued = event.access === 'reg' ? engine.chainIssued + 1 : 1;
+        engine.running = event;
+        entry.queue = event.queue;
+        entry.busyUntil = event.finish;
+      });
+    }
+
+    function completeOperations() {
+      engines.forEach(engine => {
+        const event = engine.running;
+        if (!event || event.finish > time) return;
+        if (event.kind === 'write') event.entry.dirtyAt = Math.min(event.entry.dirtyAt, event.finish);
+        engine.lastEntry = event.entry;
+        engine.running = null;
+      });
+      for (let i = transfers.length - 1; i >= 0; i--) {
+        if (transfers[i].finish > time) continue;
+        transfers[i].done();
+        transfers[i].element?.remove();
+        transfers.splice(i, 1);
       }
       for (let i = events.length - 1; i >= 0; i--) {
         if (events[i].finish > time) continue;
         events[i].view?.element.remove();
         events.splice(i, 1);
       }
-      for (let i = transfers.length - 1; i >= 0; i--) {
-        if (transfers[i].finish > time) continue;
-        transfers[i].element?.remove();
-        transfers.splice(i, 1);
+    }
+
+    function advance(end) {
+      while (true) {
+        completeOperations();
+        generateRequests();
+        admitRequest();
+        prepareMemory();
+        dispatchRequests();
+        admitRequest();
+        prepareMemory();
+        if (time >= end) break;
+        // Advance to the next real transition, independent of the display frame rate.
+        time = Math.min(end, held ? Infinity : nextRequestAt,
+          ...events.filter(event => event.arrival > time).map(event => event.arrival),
+          ...engines.filter(engine => engine.running).map(engine => engine.running.finish),
+          ...transfers.map(movement => movement.finish));
       }
-      schedules.forEach((queue, lane) => {
-        while (queue[0]?.finish <= time) {
-          const finished = queue.shift();
-          lastCompleted[lane] = {slot: finished.slot, entry: finished.entry, finish: finished.finish};
-        }
-      });
-      cacheLines.flat().forEach(({history}) => { while (history.length > 1 && history[1].time <= time) history.shift(); });
     }
 
     function restart() {
-      time = 0; nextRequest = 0; nextRequestAt = -24 * requestInterval; lastFrame = 0; layout = null;
-      events.length = 0; transfers.length = 0; previousSlot.clear(); backingReady.clear(); accessHeat.clear();
-      schedules.forEach((queue, lane) => {
-        queue.length = 0;
-        lastCompleted[lane] = null;
-        const cache = caches[lane];
-        cache.clear();
+      time = -24 * requestInterval; nextRequest = 0; nextRequestAt = time; held = null; lastFrame = 0; layout = null;
+      events.length = 0; transfers.length = 0; slotOwners.clear(); accessHeat.clear();
+      engines.forEach((engine, lane) => {
+        engine.running = null; engine.lastEntry = null; engine.chainIssued = 0;
+        queues[lane].forEach(queue => { queue.length = 0; });
+        caches[lane].clear();
         cacheLines[lane] = [];
         for (let cell = 0; cell < 3; cell++) {
           const slot = 100 + lane + cell * 4;
-          const entry = {slot, cell, ready: -Infinity, busyUntil: -Infinity, dirtyAt: Infinity, drainedAt: Infinity};
-          cache.set(slot, entry);
-          cacheLines[lane].push({available: -Infinity, history: [{time: -Infinity, entry}]});
+          const entry = {slot, cell, state: 'resident', ready: -Infinity, busyUntil: -Infinity, dirtyAt: Infinity, drainedAt: Infinity};
+          caches[lane].set(slot, entry);
+          cacheLines[lane].push({entry, pending: null});
+          slotOwners.set(slot, {lane, entry});
         }
       });
-      generateRequests();
+      advance(0);
       build();
     }
 
@@ -271,7 +322,7 @@
       text('On-chip SRAM', layout.ram, headerY, 14, ink('sky'));
       backpressure = text('Backpressure', f.x + f.w / 2, f.y + f.h + 20, 10, ink('gold'));
       const [cx, cy] = layout.cold;
-      lanes = schedules.map((_, index) => {
+      lanes = engines.map((_, index) => {
         const y = layout.start + index * layout.pitch, queueX = layout.q;
         const queueStatus = text('', queueX, y + 86, 9, ink('gold'));
         const queueViews = Array.from({length: queuesPerEU}, (_, queue) => {
@@ -330,11 +381,14 @@
       const waiting = admitted.map(lane => lane.map(queue => queue.filter(event => event.arrival <= time)));
       backpressure.setAttribute('opacity', events.some(event => event.created <= time && time < event.launch) ? '1' : '0');
       lanes.forEach((lane, index) => {
-        const running = events.find(event => event.lane === index && time >= event.start && time < event.finish);
+        const running = engines[index].running;
         const fetching = transfers.some(event => event.lane === index && time >= event.start && time < event.finish);
         const writingBack = transfers.some(event => event.lane === index && event.kind === 'writeback' && time >= event.start && time < event.finish);
         const registerHit = running?.access === 'reg', sramAccess = running && !registerHit;
-        const blocked = waiting[index].flat().filter(event => event.ready > time).length;
+        const blocked = waiting[index].flat().filter(event => {
+          const owner = slotOwners.get(event.slot);
+          return owner?.lane !== index || owner.entry.state !== 'resident';
+        }).length;
         const opColor = running ? tone(running.kind === 'write' ? 'red' : 'green') : tone('cyan');
         lane.engine.setAttribute('fill', palette.withAlpha(tone('cyan'), registerHit ? .28 : running ? .2 : .045));
         lane.engine.setAttribute('stroke', palette.withAlpha(tone('cyan'), running ? .9 : .4));
@@ -360,8 +414,8 @@
           lane.payload.setAttribute('fill', opColor);
         }
         lane.cells.forEach(({rect, label, dirty}, cell) => {
-          const entry = cacheLines[index][cell].history.findLast(change => change.time <= time).entry;
-          const resident = entry && entry.ready <= time, active = entry && sramAccess && running.slot === entry.slot;
+          const entry = cacheLines[index][cell].entry;
+          const resident = entry && entry.ready <= time, active = entry && sramAccess && running.entry === entry;
           const needsWriteback = entry && entry.dirtyAt <= time && time < entry.drainedAt;
           rect.setAttribute('fill', palette.withAlpha(tone('sky'), active ? .4 : resident ? .16 : .025));
           rect.setAttribute('stroke', active ? opColor : palette.withAlpha(needsWriteback ? tone('red') : tone('sky'), resident ? .5 : .25));
@@ -379,12 +433,12 @@
         const route = lane.routes[event.queue];
         const issueDuration = Math.min(.28, (event.finish - event.start) * .65);
         let x = layout.head, y = lane.y + 23 + event.queue * 36, opacity = 0;
-        const queueIndex = waiting[event.lane][event.queue].indexOf(event);
+        const queueIndex = admitted[event.lane][event.queue].indexOf(event);
         const held = time >= event.created && time < event.launch;
         if (held) {
           x = layout.out[0] + 32; y = layout.out[1]; opacity = 1;
         } else if (time >= event.launch && time < event.arrival) {
-          const ahead = events.filter(other => other.lane === event.lane && other.queue === event.queue && other.arrival < event.arrival && other.start > event.arrival).length;
+          const ahead = queueIndex;
           const entryX = layout.head - ahead * layout.queueStep;
           const distance = 32 + (route.length + entryX - lane.routeEnd - 32) * (time - event.launch) / (event.arrival - event.launch);
           const point = route.path.getPointAtLength(Math.min(route.length, distance));
@@ -394,14 +448,15 @@
           x -= queueIndex * layout.queueStep; opacity = 1;
         } else if (time >= event.start && time < event.start + issueDuration) {
           const u = ease((time - event.start) / issueDuration);
-          const ahead = events.filter(other => other.lane === event.lane && other.queue === event.queue && other.arrival < event.arrival && other.start > event.start).length;
-          x -= ahead * layout.queueStep;
+          x -= event.issueIndex * layout.queueStep;
           x += (layout.eu - x) * u; y += (lane.y + 41 - y) * u; opacity = 1 - u;
         }
         element.setAttribute('transform', `translate(${x} ${y})`);
         element.setAttribute('opacity', String(opacity));
-        wait.setAttribute('opacity', held || (queueIndex >= 0 && event.ready > time) ? '1' : '0');
-        title.textContent = `${event.slot} · ${t(held ? 'Backpressure' : queueIndex >= 0 && event.ready > time ? 'waiting for DRAM' : event.kind)}`;
+        const owner = slotOwners.get(event.slot);
+        const waitingForMemory = queueIndex >= 0 && (owner?.lane !== event.lane || owner.entry.state !== 'resident');
+        wait.setAttribute('opacity', held || waitingForMemory ? '1' : '0');
+        title.textContent = `${event.slot} · ${t(held ? 'Backpressure' : waitingForMemory ? 'waiting for DRAM' : event.kind)}`;
       });
       transfers.forEach(event => {
         const {element} = event;
@@ -422,7 +477,7 @@
     function animate(now) {
       const dt = lastFrame ? Math.min((now - lastFrame) / 1000, .08) : 0;
       lastFrame = now;
-      time += dt; generateRequests(); draw();
+      advance(time + dt); draw();
       requestAnimationFrame(animate);
     }
     restart();

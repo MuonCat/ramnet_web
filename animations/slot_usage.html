@@ -8,17 +8,17 @@
   <link rel="stylesheet" href="slot_usage.css?v=mobile-controls-20261017">
   <script src="../assets/palette.js?v=perceptual-20261002" data-palette="../data/palette.json?v=sec3-cyan-20261002"></script>
   <script src="../assets/animation-runtime.js?v=i18n-20261008"></script>
-  <script defer src="slot_usage.js?v=hover-settle-20261016"></script>
+  <script defer src="slot_usage.js?v=log-normal-20261028"></script>
 </head>
 <body class="probe-usage">
 <main class="exhibit-root" aria-label="Accumulated slot access counts">
   <div class="usage-metrics">
-    <div title="Visits to the eight slots with the highest cumulative counts, divided by all read and write visits so far."><span>Busiest 8 slots · access share</span><strong id="top8">—</strong></div>
+    <div title="Visits to the busiest 10% of all slots (rounded up), divided by all read and write visits so far."><span>Top 10% of slots · access share</span><strong id="topShare">—</strong></div>
     <div title="exp(entropy): the number of equally used slots with the same entropy"><span>Effective slots</span><strong id="effective">—</strong></div>
-    <div title="Exponent fitted to the completed rank-frequency distribution"><span>Zipf α</span><strong id="alpha">—</strong></div>
+    <div title="Log-scale spread fitted to the completed access ranking"><span>Log-normal σ</span><strong id="sigma">—</strong></div>
   </div>
   <div class="usage-chart" id="chart"><div class="token-row usage-tokens" id="tokenRow" aria-label="Tokens around the current position"></div><canvas id="field" role="img" aria-label="Slots ranked by cumulative read and write counts"></canvas><div class="tooltip hidden" id="tip"></div><p class="usage-status" id="status" role="status">Loading access counts…</p></div>
-  <div class="usage-legend"><span class="observed">Recorded accesses</span><span class="fitted">Zipf fit</span><span class="uniform">Uniform reference</span></div>
+  <div class="usage-legend"><span class="observed">Recorded accesses</span><span class="fitted">Log-normal reference</span><span class="uniform">Uniform reference</span></div>
   <div class="usage-controls">
     <div class="transport">
       <button class="icon-button" id="restart" type="button" title="Restart" aria-label="Restart"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 6a6 6 0 1 1-1 6M5 2v4h5"/></svg></button>

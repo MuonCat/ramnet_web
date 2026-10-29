@@ -1,1 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#e8e2d3"/><g fill="#9bbde8"><path d="M5 5h6v6H5zm8 0h6v6h-6zm8 0h6v6h-6zM5 13h6v6H5zm16 0h6v6h-6zM5 21h6v6H5zm8 0h6v6h-6zm8 0h6v6h-6z"/></g><path fill="#82afe6" d="M13 13h6v6h-6z"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="7" fill="#e8e2d3"/>
+  <g fill="#9b9b9b">
+    <rect x="12" y="2" width="8" height="8" rx="1.6"/>
+    <rect x="22" y="2" width="8" height="8" rx="1.6"/>
+    <rect x="2" y="12" width="8" height="8" rx="1.6"/>
+    <rect x="12" y="12" width="8" height="8" rx="1.6"/>
+    <rect x="22" y="12" width="8" height="8" rx="1.6"/>
+    <rect x="2" y="22" width="8" height="8" rx="1.6"/>
+    <rect x="12" y="22" width="8" height="8" rx="1.6"/>
+  </g>
+  <g fill="#82afe6">
+    <rect x="2" y="2" width="8" height="8" rx="1.6"/>
+    <rect x="22" y="22" width="8" height="8" rx="1.6"/>
+  </g>
+</svg>

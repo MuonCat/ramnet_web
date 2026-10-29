@@ -21,6 +21,8 @@
     });
     $('tokenRow').append(tokenTrack);
     const slotCount = 1024, mono = '"SFMono-Regular", Consolas, "Microsoft YaHei", monospace';
+    const topSlotCount = Math.ceil(slotCount * .1);
+    const quantiles = Float64Array.from({length: slotCount}, (_, rank) => normalQuantile(1 - (rank + .5) / slotCount));
     const barColors = Array.from({length: 32}, (_, i) => palette.mix(palette.color('paper'), palette.tone('sky'), .18 + .72 * i / 31));
     let data, corpus, visits, tokenIds, fit, totalTokens, width = 0, height = 0;
     let elapsed = 0, playing = true, hovered = false, lastFrame = 0, lastUi = 0, hit = null;
@@ -45,20 +47,33 @@
       for (let slot = 0; slot < slotCount; slot++) order[slot] = slotRanks[slot] = ranks[slot] = previousRanks[slot] = slot;
     }
 
-    function fitZipf(values) {
+    function normalQuantile(probability) {
+      let low = -8, high = 8;
+      for (let i = 0; i < 28; i++) {
+        const x = (low + high) / 2, scale = 1 / (1 + .2316419 * Math.abs(x));
+        // Abramowitz–Stegun approximation to the standard normal CDF.
+        const tail = Math.exp(-x * x / 2) / Math.sqrt(2 * Math.PI) * scale *
+          (.319381530 + scale * (-.356563782 + scale * (1.781477937 + scale * (-1.821255978 + scale * 1.330274429))));
+        const cumulative = x >= 0 ? 1 - tail : tail;
+        if (cumulative < probability) low = x; else high = x;
+      }
+      return (low + high) / 2;
+    }
+
+    function fitLogNormal(values) {
       const sorted = [...values].sort((a, b) => b - a), total = sorted.reduce((a, b) => a + b, 0);
-      const logs = Float64Array.from({length: slotCount}, (_, i) => Math.log(i + 1));
-      const target = sorted.reduce((sum, n, i) => sum + n / total * logs[i], 0);
+      if (!total) return {sigma: 0, counts: sorted};
+      const target = sorted.reduce((sum, n, i) => sum + n / total * quantiles[i], 0);
       let low = 0, high = 8;
       for (let i = 0; i < 40; i++) {
-        const alpha = (low + high) / 2;
+        const sigma = (low + high) / 2;
         let mass = 0, moment = 0;
-        for (const log of logs) { const p = Math.exp(-alpha * log); mass += p; moment += p * log; }
-        if (moment / mass > target) low = alpha; else high = alpha;
+        for (const z of quantiles) { const p = Math.exp(sigma * (z - quantiles[0])); mass += p; moment += p * z; }
+        if (moment / mass < target) low = sigma; else high = sigma;
       }
-      const alpha = (low + high) / 2, weights = Array.from(logs, log => Math.exp(-alpha * log));
+      const sigma = (low + high) / 2, weights = Array.from(quantiles, z => Math.exp(sigma * (z - quantiles[0])));
       const mass = weights.reduce((a, b) => a + b, 0);
-      return {alpha, counts: weights.map(p => p / mass * total)};
+      return {sigma, counts: weights.map(p => p / mass * total)};
     }
 
     async function choose() {
@@ -76,7 +91,7 @@
       const values = new Uint32Array(slotCount);
       for (const slot of visits) values[slot]++;
       totalTokens = tokenIds.length;
-      fit = fitZipf(values);
+      fit = fitLogNormal(values);
       resetCounts();
       elapsed = runtime.reducedMotion.matches ? countMs + 700 : 0;
       playing = true;
@@ -258,11 +273,11 @@
     function ui() {
       if (!visits) return;
       const total = processed * 16;
-      $('top8').textContent = total ? (order.slice(0, 8).reduce((sum, slot) => sum + counts[slot], 0) / total * 100).toFixed(1) + '%' : '—';
+      $('topShare').textContent = total ? (order.subarray(0, topSlotCount).reduce((sum, slot) => sum + counts[slot], 0) / total * 100).toFixed(1) + '%' : '—';
       let entropy = 0;
       if (total) for (const count of counts) if (count > 0) { const p = count / total; entropy -= p * Math.log(p); }
       $('effective').textContent = total ? Math.exp(entropy).toFixed(1) : '—';
-      $('alpha').textContent = fit.alpha.toFixed(2);
+      $('sigma').textContent = fit.sigma.toFixed(2);
       $('sampleInfo').textContent = `${corpus.sample_count} ${t('samples')} · ${t('Read + write, Top-8 each')} · ${t('Canonical addresses')}`;
       runtime.setPlaybackIcon($('play'), playing);
     }

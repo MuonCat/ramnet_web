@@ -6,7 +6,7 @@ function initProbe(){
 'use strict';
 const DATA=window.ramnetNiahTraces,MAPS=window.ramnetNiahSlotMaps;if(!DATA||!MAPS)throw Error('Trace data unavailable');
 const $=id=>document.getElementById(id),diagram=window.ramnetDiagramTheme;
-const cfg={fastMs:15,needleMs:500,readMs:800,cellSize:14,cellGap:3,groupGap:8,corner:2,borderScale:2.3,blue:diagram.colors.sky,purple:diagram.colors.sky,write:diagram.colors.red,read:diagram.colors.green};
+const cfg={cycleSeconds:20,needleWeight:20,readWeight:28,cellSize:14,cellGap:3,groupGap:8,corner:2,borderScale:2.3,blue:diagram.colors.sky,purple:diagram.colors.sky,write:diagram.colors.red,read:diagram.colors.green};
 const TOKEN_RADIUS=12;
 let scene=null,lastFrame=0,dragging=false;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),ease=x=>x*x*(3-2*x);
@@ -20,7 +20,19 @@ class NiahScene{
  constructor(){this.canvas=$('slotField');this.ctx=this.canvas.getContext('2d');this.chips=Array.from({length:TOKEN_RADIUS*2+1},()=>{const el=document.createElement('div');el.className='token near';$('tokenRow').append(el);return el});this.packets=Array.from({length:8},()=>{const el=document.createElement('div');el.className='packet';$('packetLayer').append(el);return el});this.cache=new Map();this.playing=true;this.hovered=false;this.hoverTimer=null;this.fastSeek=null;this.hoveredChip=null;this.time=0;this.committed=0;this.known=new Float32Array(1024);this.blue=new Float32Array(1024);this.purple=new Float32Array(1024);this.layout=null;this.lastToken=-1;this.attach();this.choose('niah_single_3','niah_single_3_050',12,5)}
  options(task,exampleId,layer,head){const examples=DATA.examples.filter(e=>e.task===task).sort((a,b)=>a.needle_range[0]-b.needle_range[0]);$('task').value=task;for(const button of document.querySelectorAll('.task-switch button'))button.setAttribute('aria-pressed',String(button.dataset.task===task));$('example').replaceChildren(...examples.map(e=>new Option(`${(e.tokens.length/1024).toFixed(1)}K (${e.tokens.length}) · N ${e.needle_range[0]}–${e.needle_range[1]-1} (${Math.round(e.needle_range[0]/e.tokens.length*100)}%)`,e.example_id)));$('example').value=exampleId||examples[0].example_id;const heads=[...new Set(DATA.traces.filter(t=>t.task===task).map(t=>`${t.layer}:${t.head}`))].sort((a,b)=>{const score=k=>DATA.traces.filter(t=>t.task===task&&`${t.layer}:${t.head}`===k).reduce((v,t)=>{const c=t.answer_source_coefficients;return v+t.separation_tv*c.needle_value*(1-c.noise_before-c.noise_after)},0);return score(b)-score(a)});$('head').replaceChildren(...heads.map(k=>{const [l,h]=k.split(':');return new Option(`L${l} · H${h}`,k)}));$('head').value=layer===undefined?heads[0]:`${layer}:${head}`}
  choose(task,exampleId,layer,head,keepIndex=null,keepPart=0){clearTimeout(this.hoverTimer);this.hoverTimer=null;this.fastSeek=null;this.hoveredChip=null;this.options(task,exampleId,layer,head);this.example=DATA.examples.find(e=>e.example_id===$('example').value);this.promptLength=this.example.prompt_token_count;this.trace=DATA.traces.find(t=>t.example_id===this.example.example_id&&`${t.layer}:${t.head}`===$('head').value);this.map=MAPS.heads.find(m=>m.task===task&&m.layer===this.trace.layer&&m.head===this.trace.head);this.displayToSlot=this.map.display_to_slot;this.slotToDisplay=this.map.slot_to_display;$('slotTip').classList.add('hidden');const key=this.example.example_id+':'+this.trace.layer+':'+this.trace.head;if(!this.cache.has(key))this.cache.set(key,writeWords(this.trace.prompt_writes_u16_b64));this.writes=this.cache.get(key);this.roles=roleBytes(this.example.roles_b64);this.resetState();this.buildTiming();this.time=keepIndex===null?0:this.cumulative[Math.min(keepIndex,this.durations.length-1)]+keepPart*this.durations[Math.min(keepIndex,this.durations.length-1)];this.lastToken=-1;this.drawBands();this.resize();this.render()}
- buildTiming(){const count=this.promptLength+this.trace.reads.length;this.durations=new Float64Array(count);this.cumulative=new Float64Array(count+1);for(let i=0;i<count;i++){const needle=i<this.promptLength&&this.roles[i]===0,answer=i>=this.promptLength&&this.trace.reads[i-this.promptLength].predicts_answer;this.durations[i]=(needle?cfg.needleMs:answer?cfg.readMs:cfg.fastMs)/1000;this.cumulative[i+1]=this.cumulative[i]+this.durations[i]}this.total=this.cumulative[count];scope.setCycleDuration?.(this.total)}
+ buildTiming(){
+  const count=this.promptLength+this.trace.reads.length;
+  this.durations=new Float64Array(count);this.cumulative=new Float64Array(count+1);
+  for(let i=0;i<count;i++){
+   const needle=i<this.promptLength&&this.roles[i]===0,answer=i>=this.promptLength&&this.trace.reads[i-this.promptLength].predicts_answer;
+   this.durations[i]=needle?cfg.needleWeight:answer?cfg.readWeight:1;
+   this.cumulative[i+1]=this.cumulative[i]+this.durations[i];
+  }
+  this.total=cfg.cycleSeconds;
+  const scale=this.total/this.cumulative[count];
+  for(let i=0;i<count;i++){this.durations[i]*=scale;this.cumulative[i+1]*=scale}
+  scope.setCycleDuration?.(this.total);
+ }
  currentIndex(){let lo=0,hi=this.durations.length;while(lo<hi){const mid=(lo+hi)>>1;if(this.cumulative[mid+1]<=this.time)lo=mid+1;else hi=mid}return Math.min(lo,this.durations.length-1)}
  part(){const i=this.currentIndex();return clamp((this.time-this.cumulative[i])/this.durations[i],0,1)}
  seekIndex(index,part=0){clearTimeout(this.hoverTimer);this.hoverTimer=null;this.fastSeek=null;index=clamp(index,0,this.durations.length-1);this.time=this.cumulative[index]+this.durations[index]*clamp(part,0,.999999);this.render()}
