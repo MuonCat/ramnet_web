@@ -126,7 +126,7 @@ window.RamnetChinese = {
     'View A': '视图 A',
     'View B': '视图 B',
     'Active state · 340M Top-8': '活跃状态 · 340M Top-8',
-    '26.2M total state elements': '状态总量 26.2M 个元素',
+    '26.6M total state elements': '状态总量 26.6M 个元素',
     'S-NIAH average · 340M Top-32': 'S-NIAH 均分 · 340M Top-32',
     'Three tasks · 1K–16K contexts': '三项任务 · 1K–16K 上下文',
     'Wiki. perplexity · 1.3B Top-16': 'Wiki. 困惑度 · 1.3B Top-16',
@@ -137,7 +137,7 @@ window.RamnetChinese = {
     'Language Modeling and Reasoning': '语言建模与推理',
     'S-NIAH: Retrieval Across Context Lengths': 'S-NIAH：不同上下文长度下的检索',
     'Real-World Recall': '真实场景召回',
-    '↓ Lower is better. ↑ Higher is better. State sizes are in millions of elements.': '↓ 越低越好，↑ 越高越好。状态规模以百万个元素为单位。',
+    '↓ Lower is better. ↑ Higher is better. State sizes are in millions of elements. Active state is measured per step, at 2,048 tokens of context for Transformer++.': '↓ 越低越好，↑ 越高越好。状态规模以百万个元素为单位。活跃状态为单步访问量，Transformer++ 在 2,048 个词元的上下文长度下测量。',
     'Bold marks the best value; underlining marks the second-best distinct value within each model size, including ties.': '同一模型规模内，粗体标示最优值，下划线标示次优的不同数值；并列结果使用相同标记。',
     'All scores use ↑ higher is better. Columns within each task give the context length.': '所有分数均为 ↑ 越高越好；各任务下的列表示上下文长度。',
     '↑ Higher is better. FDA, SWDE, and NQ are evaluated at context lengths of 512 and 1K; the remaining tasks use the full document.': '↑ 越高越好。FDA、SWDE 与 NQ 在 512 与 1K 的上下文长度下评测，其余任务使用完整文档。',
@@ -385,22 +385,22 @@ window.RamnetChinese = {
       '这两个阶段用于组织训练与预填充中的整段序列。自回归解码则逐词元推进，每一步只访问当前词元选中的槽位。'
     ],
     '.results-intro p': [
-      '这些表格将 RAM-Net 与 Transformer++ <a class="cite" href="#ref-4">[4]</a> 以及循环模型基线 Mamba2 <a class="cite" href="#ref-5">[5]</a>、Gated DeltaNet <a class="cite" href="#ref-6">[6]</a>、GLA <a class="cite" href="#ref-7">[7]</a>、GSA <a class="cite" href="#ref-8">[8]</a> 进行比较，涵盖语言建模、长上下文检索、真实场景召回，以及每步访问的状态量。'
+      '这些表格将 RAM-Net 与 Transformer++ <a class="cite" href="#ref-4">[4]</a> 以及循环模型基线 Gated DeltaNet <a class="cite" href="#ref-6">[6]</a>、DeltaNet <a class="cite" href="#ref-12">[12]</a>、Mamba2 <a class="cite" href="#ref-5">[5]</a>、GLA <a class="cite" href="#ref-7">[7]</a>、GSA <a class="cite" href="#ref-8">[8]</a> 和 MoM <a class="cite" href="#ref-13">[13]</a> 进行比较，涵盖语言建模、长上下文检索、真实场景召回以及单步状态访问量。'
     ],
     '#experiment-language > p:not(.experiment-key)': [
-      'RAM-Net 在<strong class="text-highlight">两种规模下都取得了最低的 WikiText 困惑度</strong>：340M 时 Top-32 为 25.87，1.3B 时 Top-16 为 15.90，略低于 Mamba2 的 15.96。常识推理方面同样具有竞争力：340M 时平均准确率最高（Top-32 为 50.9），1.3B 时与 Mamba2 并列（57.8）。增大 Top-K 会同时改善困惑度和平均准确率，说明每步访问更多槽位有助于语言建模。'
+      '在 340M 规模下，RAM-Net Top-32 同时取得了<strong class="text-highlight">最低的 WikiText 困惑度（25.87）和最高的推理平均准确率（50.9）</strong>。在 1.3B 规模下，Top-16 的困惑度为 15.90，接近 Gated DeltaNet 的 15.85。Top-32 的推理平均准确率为 58.1，仅次于 Gated DeltaNet 的 58.7。在两种规模下，增大 Top-K 都提高了推理平均准确率。'
     ],
     '#experiment-sniah > p:not(.experiment-key)': [
-      'S-NIAH 是 RULER <a class="cite" href="#ref-9">[9]</a> 中的单针检索任务，测试长度为 1K–16K，最长为 4K 训练长度的四倍。RAM-Net 在<strong class="text-highlight">两种规模下都取得了最高的平均分</strong>：340M 时 Top-32 为 72.9，最强基线为 51.3；1.3B 时 Top-16 为 70.1，最强基线为 62.4。在 S-NIAH-1 上，所有 RAM-Net 设置直到 16K 都接近满分；Transformer++ 超出训练长度后失效，其他循环模型随上下文变长而下降。S-NIAH-2 与 S-NIAH-3 使用多样的自然文本作为干扰内容，难度更高：1.3B 时，Transformer++ 在训练长度内领先，超出训练长度后 Top-16 表现最好，但所有模型在 16K 时都较弱。增大 Top-K 会在两种规模下持续提高平均分。'
+      'S-NIAH 是 RULER <a class="cite" href="#ref-9">[9]</a> 中的单针检索任务，测试长度为 1K–16K，最长为 4K 训练长度的四倍。RAM-Net 在<strong class="text-highlight">两种规模下都取得了最高的平均分</strong>。340M 的 Top-32 得分为 72.9，最强基线 DeltaNet 为 54.5。1.3B 的 Top-16 得分为 70.1，最强基线 Mamba2 为 62.4。在 S-NIAH-1 上，所有 RAM-Net 设置直到 16K 都接近满分。S-NIAH-2 和 S-NIAH-3 使用多样的自然文本作为干扰，难度更高。在 1.3B 规模下，Top-16 在这两项任务的 8K 和 16K 测试中均领先，总平均分也高于 Top-32 的 67.0。'
     ],
     '#experiment-tasks > p:not(.experiment-key)': [
-      '这些召回密集型任务 <a class="cite" href="#ref-10">[10]</a> 要求从真实文档中提取信息。Transformer++ 在两种规模下平均分都最高，因为它的 KV 缓存保留了上下文中的每个词元。在循环模型中，RAM-Net 在<strong class="text-highlight">两种规模下平均分都最高</strong>：340M 时 Top-32 为 32.0，1.3B 时 Top-8 为 40.6。在 340M 规模下，它与 Transformer++ 的差距从最强基线的 8.2 分缩小到 <strong class="text-highlight">3.1 分</strong>。'
+      '这些召回密集型任务 <a class="cite" href="#ref-10">[10]</a> 要求从真实文档中提取信息。Transformer++ 的 KV 缓存保留了上下文中的每个词元，因此在两种规模下的平均分都最高。在循环模型中，RAM-Net Top-32 在<strong class="text-highlight">两种规模下均排名第一</strong>，340M 得分为 32.0，1.3B 得分为 42.7。在 340M 规模下，它与 Transformer++ 的差距从最强基线的 8.2 分缩小到 <strong class="text-highlight">3.1 分</strong>。'
     ],
     '#results > .prose:not(.results-intro):not(.results-discussion) p': [
-      '340M Top-8 每步只访问 <strong class="text-highlight">26.2M 个状态元素中的 0.4M</strong>，约占总状态的 1.5%。即使是访问最多的设置，即 340M Top-32 与 1.3B Top-16，每步也只访问 1.6M 个元素，分别不超过同规模 Gated DeltaNet 的五分之一和 Mamba2 的八分之一。'
+      '340M Top-8 每步只访问 <strong class="text-highlight">26.6M 个状态元素中的 0.4M</strong>，约占总状态的 1.5%。1.3B Top-8 每步访问 53.2M 个元素中的 0.8M，占比同样约为 1.5%。'
     ],
     '.results-discussion p': [
-      '在 340M 模型中，Top-K 从 8 增至 32，活跃状态由 0.4M 增至 1.6M，总状态保持 26.2M。Wiki. 困惑度从 26.89 降至 25.87，S-NIAH 均分从 64.7 升至 72.9，真实场景召回均分从 23.2 升至 32.0。这体现了<strong class="text-highlight">更好的结果与更高的每词元访问成本</strong>之间的权衡。',
+      '在 340M 模型中，Top-K 从 8 增至 32，活跃状态由 0.4M 增至 1.7M，总状态保持 26.6M。WikiText 困惑度从 26.89 降至 25.87，S-NIAH 均分从 64.7 升至 72.9，真实场景召回均分从 23.2 升至 32.0。在 1.3B 模型中，最佳设置取决于任务。Top-16 的 WikiText 困惑度和 S-NIAH 均分在 RAM-Net 的各设置中最优，Top-32 则在推理平均准确率和真实场景召回上领先。',
       '在合成的多查询关联召回（MQAR）任务 <a class="cite" href="#ref-11">[11]</a> 上，RAM-Net 在相近总状态规模下具有领先的准确率；与准确率相当的基线相比，它每步访问的状态约为其十分之一。',
       '我们在单张 NVIDIA RTX 3060 上测试 340M 循环模型的自回归解码吞吐量。每个解码步骤通过 CUDA Graph 执行，排除 Python 与逐内核启动开销对比较的影响。批大小（batch size）为 1 时，读取模型权重占主导，各模型速度接近；随着批大小增大，<strong class="text-highlight">循环状态的读取与更新成为瓶颈</strong>。',
       '在批大小为 64 时，RAM-Net Top-8 的吞吐量达到<strong class="text-highlight">所比较基线中最快者的 2.0×</strong>，尽管它的总状态在这些循环模型中最大。它每步访问的状态量最少，从而<strong class="text-highlight">将解码速度与总状态规模解耦</strong>：大容量记忆支撑较强的 S-NIAH 检索，稀疏访问则保持较快解码。增大 <span class="math"><i>K</i></span> 可以提高精度，但会降低吞吐量。'

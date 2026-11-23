@@ -13,13 +13,13 @@
     if (location.hash) history.replaceState(history.state, '', location.pathname + location.search);
   </script>
   <script src="assets/palette.js?v=logo-grid-20261028" data-palette="data/palette.json?v=sec3-cyan-20261002"></script>
-  <script defer src="assets/translations-zh.js?v=product-softmax-intro-20261029"></script><script defer src="assets/i18n.js?v=literal-examples-20261029"></script>
+  <script defer src="assets/translations-zh.js?v=camera-ready-20261123"></script><script defer src="assets/i18n.js?v=literal-examples-20261029"></script>
   <script defer src="assets/animation-runtime.js?v=i18n-20261008"></script><script defer src="assets/exhibit-markup.js?v=log-normal-20261028"></script>
   <script defer src="data/probes/niah_traces.js"></script><script defer src="data/probes/niah_slot_maps.js"></script><script defer src="data/probes/head_traces.js"></script>
   <script defer src="assets/stage-timeline.js?v=i18n-20261008"></script>
   <script defer src="animations/hardware.js?v=fixed-input-cadence-20261029"></script>
   <script defer src="animations/attn_cmp.js?v=i18n-20261008"></script><script defer src="animations/ramnet_arch.js?v=i18n-20261008"></script><script defer src="animations/product_softmax.js?v=i18n-20261008"></script><script defer src="animations/cape.js?v=i18n-20261008"></script><script defer src="animations/gsu.js?v=update-mass-interaction-20261115"></script><script defer src="animations/cal_pipeline.js?v=i18n-20261008"></script><script defer src="animations/niah_probe.js?v=cycle-20s-20261028"></script><script defer src="animations/head_probe.js?v=head-controls-20261016"></script>
-  <script defer src="animations/slot_usage.js?v=log-normal-20261028"></script><script defer src="assets/exhibit-host.js?v=i18n-20261008"></script><script defer src="assets/site.js?v=section-name-align-20261004"></script><script defer src="assets/hero.js"></script><script defer src="assets/section-scroll.js?v=i18n-20261008"></script><script defer src="data/experiments.js?v=paper-v2-20261020"></script><script defer src="assets/experiments.js?v=paper-v2-20261020"></script><script defer src="assets/reading-position.js?v=section-alignment-20260930"></script>
+  <script defer src="animations/slot_usage.js?v=log-normal-20261028"></script><script defer src="assets/exhibit-host.js?v=i18n-20261008"></script><script defer src="assets/site.js?v=section-name-align-20261004"></script><script defer src="assets/hero.js"></script><script defer src="assets/section-scroll.js?v=i18n-20261008"></script><script defer src="data/experiments.js?v=camera-ready-20261123"></script><script defer src="assets/experiments.js?v=camera-ready-20261123"></script><script defer src="assets/reading-position.js?v=section-alignment-20260930"></script>
 </head>
 <body id="top">
 <a class="skip-link" href="#memory">Skip to the paper</a>
@@ -247,11 +247,11 @@ Each read contributes to its token's output. Slots without events are skipped, s
 </div></section>
 <section class="paper-section" id="results" data-cycle-ms="12000" aria-labelledby="heading-results"><div class="section-heading"><div class="section-kicker"><span class="section-number">07</span><span class="section-name"><span class="section-name-text">Results</span></span></div><div><h2 id="heading-results">Quality and State Access</h2><p class="section-subtitle">Evidence &amp; trade-offs</p></div></div>
 <div class="metric-grid" aria-label="Selected experimental results">
-<div class="metric"><strong>0.4<span class="metric-unit">M</span></strong><span>Active state · 340M Top-8</span><small>26.2M total state elements</small></div>
+<div class="metric"><strong>0.4<span class="metric-unit">M</span></strong><span>Active state · 340M Top-8</span><small>26.6M total state elements</small></div>
 <div class="metric"><strong>72.9</strong><span>S-NIAH average · 340M Top-32</span><small>Three tasks · 1K–16K contexts</small></div>
 <div class="metric"><strong>15.90</strong><span>Wiki. perplexity · 1.3B Top-16</span><small>Lower is better</small></div>
 </div>
-<div class="prose results-intro"><p>These tables compare RAM-Net with Transformer++ <a class="cite" href="#ref-4">[4]</a> and the recurrent baselines Mamba2 <a class="cite" href="#ref-5">[5]</a>, Gated DeltaNet <a class="cite" href="#ref-6">[6]</a>, GLA <a class="cite" href="#ref-7">[7]</a>, and GSA <a class="cite" href="#ref-8">[8]</a> on language modeling, long-context retrieval, real-world recall, and per-step state access.</p></div>
+<div class="prose results-intro"><p>These tables compare RAM-Net with Transformer++ <a class="cite" href="#ref-4">[4]</a> and the recurrent baselines Gated DeltaNet <a class="cite" href="#ref-6">[6]</a>, DeltaNet <a class="cite" href="#ref-12">[12]</a>, Mamba2 <a class="cite" href="#ref-5">[5]</a>, GLA <a class="cite" href="#ref-7">[7]</a>, GSA <a class="cite" href="#ref-8">[8]</a>, and MoM <a class="cite" href="#ref-13">[13]</a> on language modeling, long-context retrieval, real-world recall, and per-step state access.</p></div>
 <div class="experiment-tabs" role="tablist" aria-label="Experiment results" hidden>
 <button type="button" role="tab" id="tab-language" aria-controls="experiment-language" aria-selected="true">Language &amp; reasoning</button>
 <button type="button" role="tab" id="tab-sniah" aria-controls="experiment-sniah" aria-selected="false" tabindex="-1">S-NIAH retrieval</button>
@@ -262,9 +262,9 @@ Each read contributes to its token's output. Slots without events are skipped, s
 <div class="experiment-scroll" role="region" aria-label="Language Modeling and Reasoning data table" tabindex="0">
 <table class="experiment-table" data-benchmark="language"><caption>Language Modeling and Reasoning — 340M and 1.3B models</caption><thead></thead>
 </table></div>
-<p class="experiment-key">↓ Lower is better. ↑ Higher is better. State sizes are in millions of elements.</p>
+<p class="experiment-key">↓ Lower is better. ↑ Higher is better. State sizes are in millions of elements. Active state is measured per step, at 2,048 tokens of context for Transformer++.</p>
 <p class="experiment-key">Bold marks the best value; underlining marks the second-best distinct value within each model size, including ties.</p>
-<p>RAM-Net achieves <strong class="text-highlight">the lowest WikiText perplexity at both scales</strong>: 25.87 with Top-32 at 340M, and 15.90 with Top-16 at 1.3B, just below the 15.96 of Mamba2. Its commonsense reasoning remains competitive, with the highest average accuracy at 340M (50.9 for Top-32) and a tie with Mamba2 at 1.3B (57.8). Increasing Top-K consistently improves both perplexity and average accuracy, suggesting that accessing more slots per step strengthens language modeling.</p>
+<p>At 340M, RAM-Net Top-32 achieves <strong class="text-highlight">the lowest WikiText perplexity (25.87) and the highest average reasoning accuracy (50.9)</strong>. At 1.3B, Top-16 reaches 15.90 perplexity, close to Gated DeltaNet’s 15.85, and Top-32 ranks second in average reasoning accuracy at 58.1, behind Gated DeltaNet’s 58.7. Increasing Top-K improves average reasoning accuracy at both scales.</p>
 </article>
 <article class="experiment-panel" id="experiment-sniah" aria-labelledby="title-sniah">
 <h3 id="title-sniah">S-NIAH: Retrieval Across Context Lengths</h3>
@@ -273,7 +273,7 @@ Each read contributes to its token's output. Slots without events are skipped, s
 </table></div>
 <p class="experiment-key">All scores use ↑ higher is better. Columns within each task give the context length.</p>
 <p class="experiment-key">Bold marks the best value; underlining marks the second-best distinct value within each model size, including ties.</p>
-<p>The single-needle S-NIAH tasks from RULER <a class="cite" href="#ref-9">[9]</a> span 1K–16K tokens, up to four times the 4K training length. RAM-Net achieves <strong class="text-highlight">the highest average at both scales</strong>: 72.9 with Top-32 at 340M, against 51.3 for the best baseline, and 70.1 with Top-16 at 1.3B, against 62.4. On S-NIAH-1, all RAM-Net variants stay near-perfect up to 16K, whereas Transformer++ fails beyond its training length and the recurrent baselines degrade as the context grows. S-NIAH-2 and S-NIAH-3 use diverse natural text as filler and are harder: at 1.3B, Transformer++ leads within its training length, while Top-16 performs best beyond it, although all models remain weak at 16K. Increasing Top-K consistently raises the average at both scales.</p>
+<p>The single-needle S-NIAH tasks from RULER <a class="cite" href="#ref-9">[9]</a> span 1K–16K tokens, up to four times the 4K training length. RAM-Net achieves <strong class="text-highlight">the highest average at both scales</strong>, with Top-32 scoring 72.9 at 340M (DeltaNet reaches 54.5) and Top-16 scoring 70.1 at 1.3B (Mamba2 reaches 62.4). All RAM-Net variants stay near-perfect through 16K on S-NIAH-1. S-NIAH-2 and S-NIAH-3 use diverse natural text as filler. At 1.3B, Top-16 leads both of these harder tasks at 8K and 16K, and has a higher overall average than Top-32 (67.0).</p>
 </article>
 <article class="experiment-panel" id="experiment-tasks" aria-labelledby="title-tasks">
 <h3 id="title-tasks">Real-World Recall</h3>
@@ -282,12 +282,12 @@ Each read contributes to its token's output. Slots without events are skipped, s
 </table></div>
 <p class="experiment-key">↑ Higher is better. FDA, SWDE, and NQ are evaluated at context lengths of 512 and 1K; the remaining tasks use the full document.</p>
 <p class="experiment-key">Bold marks the best value; underlining marks the second-best distinct value within each model size, including ties.</p>
-<p>These recall-intensive tasks <a class="cite" href="#ref-10">[10]</a> require extracting information from real documents. Transformer++ achieves the highest average at both scales, since its KV cache keeps every context token. Among recurrent models, RAM-Net attains <strong class="text-highlight">the highest average at both scales</strong>: 32.0 with Top-32 at 340M and 40.6 with Top-8 at 1.3B. At 340M, it narrows the gap to Transformer++ from 8.2 points for the best baseline to <strong class="text-highlight">3.1 points</strong>.</p>
+<p>These recall-intensive tasks <a class="cite" href="#ref-10">[10]</a> require extracting information from real documents. Transformer++ achieves the highest average at both scales, since its KV cache keeps every context token. Among recurrent models, RAM-Net Top-32 achieves <strong class="text-highlight">the highest average at both scales</strong>, with 32.0 at 340M and 42.7 at 1.3B. At 340M, it narrows the gap to Transformer++ from 8.2 points for the best baseline to <strong class="text-highlight">3.1 points</strong>.</p>
 </article>
-<div class="prose"><p>At 340M, Top-8 accesses <strong class="text-highlight">0.4M of 26.2M state elements</strong> per step, about 1.5% of its total state. Even the largest settings, 340M Top-32 and 1.3B Top-16, access only 1.6M elements per step: at most one-fifth as much state as Gated DeltaNet and one-eighth as much as Mamba2 at the same scale.</p></div>
+<div class="prose"><p>At 340M, Top-8 accesses <strong class="text-highlight">0.4M of 26.6M state elements</strong> per step, about 1.5% of its total state. At 1.3B, Top-8 accesses 0.8M of 53.2M elements per step, also about 1.5%.</p></div>
 
 <div class="prose results-discussion"><h3>Accuracy, State Access, and Speed</h3>
-<p>At 340M, moving from Top-8 to Top-32 increases active state from 0.4M to 1.6M elements while total state stays at 26.2M. Wiki. perplexity drops from 26.89 to 25.87, the S-NIAH average rises from 64.7 to 72.9, and the real-world recall average from 23.2 to 32.0. The trade-off is <strong class="text-highlight">better results at a higher per-token access cost</strong>.</p>
+<p>At 340M, moving from Top-8 to Top-32 increases active state from 0.4M to 1.7M elements while total state stays at 26.6M. WikiText perplexity drops from 26.89 to 25.87, the S-NIAH average rises from 64.7 to 72.9, and the real-world recall average from 23.2 to 32.0. At 1.3B, the best setting depends on the task. Top-16 leads the RAM-Net variants on WikiText perplexity and S-NIAH, while Top-32 leads on average reasoning accuracy and real-world recall.</p>
 <p>On the synthetic multi-query associative recall (MQAR) benchmark <a class="cite" href="#ref-11">[11]</a>, RAM-Net achieves leading accuracy for its total state size, while accessing about one-tenth as much state per step as baselines with comparable accuracy.</p>
 <p>We benchmark autoregressive decoding of the 340M recurrent models on a single NVIDIA RTX 3060. Each step is captured in a CUDA graph to exclude Python and per-kernel launch overhead from the comparison. At batch size 1, reading model weights dominates, so the models run at similar speed. As the batch grows, <strong class="text-highlight">recurrent-state reads and updates become the bottleneck</strong>.</p>
 <p>At batch size 64, RAM-Net Top-8 achieves <strong class="text-highlight">2.0× the throughput of the fastest compared baseline</strong>, despite having the largest total state among the compared recurrent models. It accesses the least state per step, <strong class="text-highlight">decoupling decoding speed from total state size</strong>: a large memory supports strong S-NIAH retrieval, while sparse access keeps decoding fast. Increasing <span class="math"><i>K</i></span> trades throughput for higher accuracy.</p>
@@ -347,6 +347,7 @@ Each read contributes to its token's output. Slots without events are skipped, s
 <li id="ref-10">Arora et al. <a href="https://arxiv.org/abs/2407.05483" target="_blank" rel="noopener noreferrer">Just Read Twice: Closing the Recall Gap for Recurrent Language Models</a>. <span class="reference-venue">arXiv, 2024.</span></li>
 <li id="ref-11">Arora et al. <a href="https://arxiv.org/abs/2312.04927" target="_blank" rel="noopener noreferrer">Zoology: Measuring and Improving Recall in Efficient Language Models</a>. <span class="reference-venue">ICLR, 2024.</span></li>
 <li id="ref-12">Schlag, Irie, and Schmidhuber. <a href="https://arxiv.org/abs/2102.11174" target="_blank" rel="noopener noreferrer">Linear Transformers Are Secretly Fast Weight Programmers</a>. <span class="reference-venue">ICML, 2021.</span></li>
+<li id="ref-13">Du et al. <a href="https://arxiv.org/abs/2502.13685" target="_blank" rel="noopener noreferrer">MoM: Linear Sequence Modeling with Mixture-of-Memories</a>. <span class="reference-venue">arXiv, 2025.</span></li>
 </ol>
 </div></section>
 <section class="paper-section closing" id="closing" data-cycle-ms="3000" aria-labelledby="heading-closing"><div class="section-heading"><div><span class="micro">RAM-Net</span><h2 id="heading-closing">More room to remember. Less to access.</h2></div></div></section>
