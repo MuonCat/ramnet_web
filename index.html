@@ -6,20 +6,20 @@
   <title>RAM-Net — Linear-Time Sequence Modeling with Sparsely Addressable State</title>
   <meta name="description" content="Explore RAM-Net: a larger recurrent memory with sparse read and write access. An interactive explanation of Product Softmax, CAPE, Gated Sparse Update and the CUDA execution pipeline.">
   <link rel="icon" href="assets/favicon.svg?v=logo-grid-20261028" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/site.css?v=highlight-math-20261029">
+  <link rel="stylesheet" href="assets/site.css?v=results-fit-20261125">
   <script>
     history.scrollRestoration = 'manual';
     window.ramnetInitialHash = location.hash === '#top' ? '' : location.hash;
     if (location.hash) history.replaceState(history.state, '', location.pathname + location.search);
   </script>
   <script src="assets/palette.js?v=logo-grid-20261028" data-palette="data/palette.json?v=sec3-cyan-20261002"></script>
-  <script defer src="assets/translations-zh.js?v=camera-ready-20261123"></script><script defer src="assets/i18n.js?v=literal-examples-20261029"></script>
-  <script defer src="assets/animation-runtime.js?v=i18n-20261008"></script><script defer src="assets/exhibit-markup.js?v=log-normal-20261028"></script>
+  <script defer src="assets/translations-zh.js?v=results-fit-20261125"></script><script defer src="assets/i18n.js?v=literal-examples-20261029"></script>
+  <script defer src="assets/animation-runtime.js?v=i18n-20261008"></script><script defer src="assets/exhibit-markup.js?v=results-fit-20261125"></script>
   <script defer src="data/probes/niah_traces.js"></script><script defer src="data/probes/niah_slot_maps.js"></script><script defer src="data/probes/head_traces.js"></script>
   <script defer src="assets/stage-timeline.js?v=i18n-20261008"></script>
   <script defer src="animations/hardware.js?v=fixed-input-cadence-20261029"></script>
-  <script defer src="animations/attn_cmp.js?v=i18n-20261008"></script><script defer src="animations/ramnet_arch.js?v=i18n-20261008"></script><script defer src="animations/product_softmax.js?v=i18n-20261008"></script><script defer src="animations/cape.js?v=i18n-20261008"></script><script defer src="animations/gsu.js?v=update-mass-interaction-20261115"></script><script defer src="animations/cal_pipeline.js?v=i18n-20261008"></script><script defer src="animations/niah_probe.js?v=cycle-20s-20261028"></script><script defer src="animations/head_probe.js?v=head-controls-20261016"></script>
-  <script defer src="animations/slot_usage.js?v=log-normal-20261028"></script><script defer src="assets/exhibit-host.js?v=i18n-20261008"></script><script defer src="assets/site.js?v=section-name-align-20261004"></script><script defer src="assets/hero.js"></script><script defer src="assets/section-scroll.js?v=i18n-20261008"></script><script defer src="data/experiments.js?v=camera-ready-20261123"></script><script defer src="assets/experiments.js?v=camera-ready-20261123"></script><script defer src="assets/reading-position.js?v=section-alignment-20260930"></script>
+  <script defer src="animations/attn_cmp.js?v=i18n-20261008"></script><script defer src="animations/ramnet_arch.js?v=i18n-20261008"></script><script defer src="animations/product_softmax.js?v=i18n-20261008"></script><script defer src="animations/cape.js?v=i18n-20261008"></script><script defer src="animations/gsu.js?v=update-mass-interaction-20261115"></script><script defer src="animations/cal_pipeline.js?v=results-fit-20261125"></script><script defer src="animations/niah_probe.js?v=cycle-20s-20261028"></script><script defer src="animations/head_probe.js?v=head-controls-20261016"></script>
+  <script defer src="animations/slot_usage.js?v=log-normal-20261028"></script><script defer src="assets/exhibit-host.js?v=i18n-20261008"></script><script defer src="assets/site.js?v=section-name-align-20261004"></script><script defer src="assets/hero.js"></script><script defer src="assets/section-scroll.js?v=i18n-20261008"></script><script defer src="data/experiments.js?v=results-fit-20261125"></script><script defer src="assets/experiments.js?v=results-fit-20261125"></script><script defer src="assets/reading-position.js?v=section-alignment-20260930"></script>
 </head>
 <body id="top">
 <a class="skip-link" href="#memory">Skip to the paper</a>
@@ -259,8 +259,8 @@ Each read contributes to its token's output. Slots without events are skipped, s
 </div>
 <article class="experiment-panel" id="experiment-language" aria-labelledby="title-language">
 <h3 id="title-language">Language Modeling and Reasoning</h3>
-<div class="experiment-scroll" role="region" aria-label="Language Modeling and Reasoning data table" tabindex="0">
-<table class="experiment-table" data-benchmark="language"><caption>Language Modeling and Reasoning — 340M and 1.3B models</caption><thead></thead>
+<div class="experiment-scroll experiment-fit is-wide" role="region" aria-label="Language Modeling and Reasoning data table">
+<table class="experiment-table" data-benchmark="language" role="table"><caption>Language Modeling and Reasoning — 340M and 1.3B models</caption><thead></thead>
 </table></div>
 <p class="experiment-key">↓ Lower is better. ↑ Higher is better. State sizes are in millions of elements. Active state is measured per step, at 2,048 tokens of context for Transformer++.</p>
 <p class="experiment-key">Bold marks the best value; underlining marks the second-best distinct value within each model size, including ties.</p>
@@ -271,7 +271,7 @@ Each read contributes to its token's output. Slots without events are skipped, s
 <div class="experiment-scroll" role="region" aria-label="S-NIAH: Retrieval Across Context Lengths data table" tabindex="0">
 <table class="experiment-table" data-benchmark="sniah"><caption>S-NIAH: Retrieval Across Context Lengths — 340M and 1.3B models</caption><thead></thead>
 </table></div>
-<p class="experiment-key">All scores use ↑ higher is better. Columns within each task give the context length.</p>
+<p class="experiment-key">↑ Higher is better for all scores. Columns within each task give the context length.</p>
 <p class="experiment-key">Bold marks the best value; underlining marks the second-best distinct value within each model size, including ties.</p>
 <p>The single-needle S-NIAH tasks from RULER <a class="cite" href="#ref-9">[9]</a> span 1K–16K tokens, up to four times the 4K training length. RAM-Net achieves <strong class="text-highlight">the highest average at both scales</strong>, with Top-32 scoring 72.9 at 340M (DeltaNet reaches 54.5) and Top-16 scoring 70.1 at 1.3B (Mamba2 reaches 62.4). All RAM-Net variants stay near-perfect through 16K on S-NIAH-1. S-NIAH-2 and S-NIAH-3 use diverse natural text as filler. At 1.3B, Top-16 leads both of these harder tasks at 8K and 16K, and has a higher overall average than Top-32 (67.0).</p>
 </article>

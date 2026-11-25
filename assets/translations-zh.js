@@ -139,7 +139,7 @@ window.RamnetChinese = {
     'Real-World Recall': '真实场景召回',
     '↓ Lower is better. ↑ Higher is better. State sizes are in millions of elements. Active state is measured per step, at 2,048 tokens of context for Transformer++.': '↓ 越低越好，↑ 越高越好。状态规模以百万个元素为单位。活跃状态为单步访问量，Transformer++ 在 2,048 个词元的上下文长度下测量。',
     'Bold marks the best value; underlining marks the second-best distinct value within each model size, including ties.': '同一模型规模内，粗体标示最优值，下划线标示次优的不同数值；并列结果使用相同标记。',
-    'All scores use ↑ higher is better. Columns within each task give the context length.': '所有分数均为 ↑ 越高越好；各任务下的列表示上下文长度。',
+    '↑ Higher is better for all scores. Columns within each task give the context length.': '↑ 表示分数越高越好。各任务下的列表示上下文长度。',
     '↑ Higher is better. FDA, SWDE, and NQ are evaluated at context lengths of 512 and 1K; the remaining tasks use the full document.': '↑ 越高越好。FDA、SWDE 与 NQ 在 512 与 1K 的上下文长度下评测，其余任务使用完整文档。',
     'Accuracy, State Access, and Speed': '精度、状态访问与速度',
     'Model': '模型',
@@ -194,7 +194,7 @@ window.RamnetChinese = {
     'address decode': '地址解码',
     'group segments': '按槽位归组事件',
     'sort segments': '按长度排列事件段',
-    'parallel cross segments': '在事件段间并行执行',
+    'Parallel execution across segments': '在事件段间并行执行',
     'Project the token into gate, γ, v, q and k.': '将词元投影为 gate、γ、v、q 与 k。',
     'Decode the key into write addresses.': '将 key 解码为写入地址。',
     'Retain the highest-weight write addresses.': '保留权重最高的写入地址。',
@@ -412,7 +412,7 @@ window.RamnetChinese = {
     ],
     '#head-probes .prose p': [
       '槽位级轨迹提供了<strong class="text-highlight">观察网络关联的精细化探针</strong>：哪些词元相关、信息存在哪里、后一个词元如何读到它。两组例子呈现出词片段重组与成对标点联系这两种可辨认的模式。',
-      '在词片段例子中，tokenizer 将 <em translate="no">“tokenization”</em> 拆为 <em translate="no">“token”</em> 与 <em translate="no">“ization”</em>。在图示的注意力头中，后一个片段读取前一个片段写入的槽位，表现出<strong class="text-highlight">通过记忆将同一词的片段重新关联起来</strong>。',
+      '在词片段例子中，tokenizer 将 <em translate="no">“tokenization”</em> 拆为 <em translate="no">“token”</em> 与 <em translate="no">“ization”</em>。在图示的注意力头中，后一个片段读取前一个片段写入的槽位，<strong class="text-highlight">通过记忆将同一词的片段重新关联起来</strong>。',
       '在 <em translate="no">“（white bird）”</em> 的例子中，两端的标点虽然隔着其他词语，闭合标点仍会读回开标点留下的信息，呈现出<strong class="text-highlight">对成对标点关系的关注</strong>。我们能同时看到这对词元的关联，以及维系这一关联的具体槽位。'
     ],
     '#slot-usage .prose p': [

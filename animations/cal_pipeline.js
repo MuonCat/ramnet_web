@@ -74,7 +74,8 @@ function layoutData(){
 function buildStages(){
  stages=[{key:'project',name:'project r',weight:cfg.projectionTime},{key:'lower_r',name:'project w',weight:cfg.projectionTime},{key:'split',name:'address decode',weight:cfg.splitTime}];
  for(let d=0;d<cfg.u;d++)stages.push({key:'merge',digit:d,name:'address decode',weight:cfg.mergeTime});
- stages.push({key:'flatten',name:'group segments',weight:cfg.flattenTime},{key:'sort',name:'group segments',weight:cfg.sortTime},{key:'segment',name:'group segments',weight:cfg.segmentTime},{key:'length',name:'sort segments',weight:cfg.lengthTime},{key:'values',name:'parallel cross segments',weight:cfg.valuesTime},{key:'execute',name:'parallel cross segments',weight:cfg.executeTime},{key:'finish',name:'parallel cross segments',weight:cfg.finishTime});
+ const parallelExecution='Parallel execution across segments';
+ stages.push({key:'flatten',name:'group segments',weight:cfg.flattenTime},{key:'sort',name:'group segments',weight:cfg.sortTime},{key:'segment',name:'group segments',weight:cfg.segmentTime},{key:'length',name:'sort segments',weight:cfg.lengthTime},{key:'values',name:parallelExecution,weight:cfg.valuesTime},{key:'execute',name:parallelExecution,weight:cfg.executeTime},{key:'finish',name:parallelExecution,weight:cfg.finishTime});
  totalWeight=stages.reduce((sum,s)=>{s.start=sum;return sum+s.weight;},0);
  cfg.duration=Number(totalWeight.toFixed(6));
  actionGroups=[];

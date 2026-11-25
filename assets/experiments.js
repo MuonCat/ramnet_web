@@ -4,7 +4,7 @@
   let data = window.ramnetExperiments;
   if (location.protocol !== 'file:') {
     try {
-      const response = await fetch('data/experiments.json?v=camera-ready-20261123');
+      const response = await fetch('data/experiments.json?v=results-fit-20261125');
       if (!response.ok) throw Error(`Experiment data: ${response.status}`);
       data = await response.json();
     } catch (error) { console.warn('Using bundled experiment data.', error); }
@@ -85,6 +85,8 @@
   [list, ...panels].forEach(panel => observer.observe(panel));
 
   document.querySelectorAll('.experiment-table').forEach(table => {
+    const scroll = table.closest('.experiment-scroll');
+    const fitTable = scroll.classList.contains('experiment-fit');
     const columns = data.columns[table.dataset.benchmark];
     const grouped = columns.some(column => column.group);
     const top = table.tHead.insertRow();
@@ -170,6 +172,13 @@
           if (values[index] === ranked[0]) { const best = document.createElement('strong'); best.append(...value.childNodes); value.append(best); }
           else if (values[index] === ranked[1]) { const second = document.createElement('span'); second.className = 'runner-up'; second.append(...value.childNodes); value.append(second); }
           cell.append(value);
+          if (fitTable) {
+            const label = document.createElement('span');
+            label.className = 'experiment-cell-label';
+            label.setAttribute('aria-hidden', 'true');
+            label.textContent = t(columns[column - 1].label);
+            cell.append(label);
+          }
           if (!Number.isFinite(values[index])) return;
           const better = values.filter(other => direction * other > direction * values[index]).length;
           const worse = values.filter(other => direction * other < direction * values[index]).length;
@@ -204,32 +213,41 @@
       cell.setAttribute('aria-label', heading);
       cell.replaceChildren(wrapper);
     }
+    if (fitTable) {
+      // Keep table semantics in browsers that infer roles from CSS display.
+      const roles = {thead: 'rowgroup', tbody: 'rowgroup', tr: 'row', td: 'cell'};
+      table.querySelectorAll('thead, tbody, tr, th, td').forEach(element => {
+        element.setAttribute('role', roles[element.localName] ||
+          (element.scope === 'col' ? 'columnheader' : 'rowheader'));
+      });
+    }
     let activeCell = null, highlighted = [];
     function clear() {
       for (const node of highlighted) node.classList.remove('is-row', 'is-column', 'is-cell');
       highlighted = [];
       activeCell = null;
     }
-    const scroll = table.closest('.experiment-scroll');
-    scroll.classList.add('is-scrollable');
-    let fullTableWidth = 0;
-    function updateTableMode() {
-      if (!scroll.clientWidth) return;
-      if (!fullTableWidth) {
-        table.style.minWidth = '0';
-        fullTableWidth = table.getBoundingClientRect().width;
-        table.style.removeProperty('min-width');
+    if (!fitTable) {
+      scroll.classList.add('is-scrollable');
+      let fullTableWidth = 0;
+      function updateTableMode() {
+        if (!scroll.clientWidth) return;
+        if (!fullTableWidth) {
+          table.style.minWidth = '0';
+          fullTableWidth = table.getBoundingClientRect().width;
+          table.style.removeProperty('min-width');
+        }
+        scroll.classList.toggle('is-wide', scroll.parentElement.clientWidth + 1 < fullTableWidth);
+        const scrolling = scroll.clientWidth + 1 < fullTableWidth;
+        if (scroll.classList.contains('is-scrollable') === scrolling) return;
+        scroll.classList.toggle('is-scrollable', scrolling);
+        if (scrolling) clear();
       }
-      scroll.classList.toggle('is-wide', scroll.parentElement.clientWidth + 1 < fullTableWidth);
-      const scrolling = scroll.clientWidth + 1 < fullTableWidth;
-      if (scroll.classList.contains('is-scrollable') === scrolling) return;
-      scroll.classList.toggle('is-scrollable', scrolling);
-      if (scrolling) clear();
+      const tableObserver = new ResizeObserver(updateTableMode);
+      tableObserver.observe(scroll);
+      tableObserver.observe(scroll.parentElement);
+      updateTableMode();
     }
-    const tableObserver = new ResizeObserver(updateTableMode);
-    tableObserver.observe(scroll);
-    tableObserver.observe(scroll.parentElement);
-    updateTableMode();
     function mark(node, name) { node.classList.add(name); highlighted.push(node); }
     table.addEventListener('pointerover', event => {
       if (scroll.classList.contains('is-scrollable') || event.pointerType === 'touch') return;
