@@ -4,11 +4,11 @@
   const chapterNav = document.querySelector('.chapter-nav');
   const hero = document.querySelector('.hero');
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  const desktopSnap = matchMedia('(hover: hover) and (pointer: fine)');
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   let targets = [], snapTimer = 0, snapFrame = 0, hashTimer = 0, snapping = false, lastScrollY = scrollY, expectedY = null;
   let cooldownSection = null, cooldownUntil = 0;
-  let touching = false, draggingScrollbar = false, autoplay = false, snapArmed = false;
-  let touchStartX = 0, touchStartY = 0, touchScrollIntent = false;
+  let draggingScrollbar = false, autoplay = false, snapArmed = false;
   let alignedSection = null, historyFrame = 0;
   let readingSection = null, resizeSection, resizeTimer = 0;
 
@@ -118,7 +118,7 @@
     snapFrame = requestAnimationFrame(step);
   }
   function snap() {
-    if (!snapArmed || touching || draggingScrollbar) return;
+    if (!desktopSnap.matches || !snapArmed || draggingScrollbar) return;
     const target = targetAt(scrollY);
     if (!target) { clearCooldown(); return; }
     if (cooldownSection !== target.section) clearCooldown();
@@ -127,7 +127,7 @@
   }
   function scheduleSnap() {
     clearTimeout(snapTimer);
-    if (!snapArmed || autoplay || touching || draggingScrollbar || snapping || resizeSection !== undefined) return;
+    if (!desktopSnap.matches || !snapArmed || autoplay || draggingScrollbar || snapping || resizeSection !== undefined) return;
     const remaining = cooldownUntil - performance.now();
     snapTimer = setTimeout(snap, Math.max(120, remaining + 1));
   }
@@ -153,26 +153,11 @@
     updateCooldown(event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? innerHeight : 1), performance.now());
     scheduleSnap();
   }, {passive: true});
-  window.addEventListener('touchstart', event => {
+  window.addEventListener('touchstart', () => {
     releaseResizeSection();
-    touching = true;
-    touchScrollIntent = false;
-    touchStartX = event.touches[0]?.clientX ?? 0;
-    touchStartY = event.touches[0]?.clientY ?? 0;
+    snapArmed = false;
     stopSnap();
   }, {passive: true});
-  window.addEventListener('touchmove', event => {
-    const touch = event.touches[0];
-    if (!touch) return;
-    const dx = Math.abs(touch.clientX - touchStartX), dy = Math.abs(touch.clientY - touchStartY);
-    if (dy > 8 && dy > dx && !interactive(event)) touchScrollIntent = true;
-  }, {passive: true});
-  function endTouch() {
-    touching = false;
-    scheduleSnap();
-  }
-  window.addEventListener('touchend', endTouch, {passive: true});
-  window.addEventListener('touchcancel', endTouch, {passive: true});
   window.addEventListener('scroll', () => {
     if (autoplay) { lastScrollY = scrollY; return; }
     if (resizeSection !== undefined || innerWidth !== viewportWidth || devicePixelRatio !== viewportScale) {
@@ -184,7 +169,6 @@
     const ownScroll = snapping || expectedY !== null && scrollY === expectedY;
     lastScrollY = scrollY;
     expectedY = null;
-    if ((touching || touchScrollIntent) && delta) snapArmed = true;
     if (delta) scheduleHashUpdate();
     if (ownScroll || !delta) return;
     readingSection = visibleSection();
@@ -302,13 +286,13 @@
     cancelAnimationFrame(historyFrame);
     historyFrame = requestAnimationFrame(() => {
       stopAutoplay();
-      snapArmed = touchScrollIntent = false;
+      snapArmed = false;
       navigateHash(location.hash);
     });
   }
   window.addEventListener('popstate', historyNavigation);
   window.addEventListener('hashchange', historyNavigation);
-  window.addEventListener('pageshow', () => { clearTimeout(hashTimer); snapArmed = touchScrollIntent = touching = false; stopSnap(); clearCooldown(); refreshTargets(); readingSection = visibleSection(); });
+  window.addEventListener('pageshow', () => { clearTimeout(hashTimer); snapArmed = false; stopSnap(); clearCooldown(); refreshTargets(); readingSection = visibleSection(); });
   reducedMotion.addEventListener('change', () => { if (reducedMotion.matches) { stopSnap(); scheduleSnap(); } });
   const closing = document.querySelector('.closing');
   const closingHeading = closing.querySelector('.section-heading');
@@ -332,13 +316,13 @@
   let viewportWidth = innerWidth, viewportScale = devicePixelRatio;
   window.addEventListener('resize', () => {
     if (innerWidth !== viewportWidth || devicePixelRatio !== viewportScale) {
-      if (resizeSection === undefined) resizeSection = readingSection;
+      // Touch browsers can preserve the reading position while the page reflows.
+      if (desktopSnap.matches && resizeSection === undefined) resizeSection = readingSection;
       viewportWidth = innerWidth;
       viewportScale = devicePixelRatio;
       stopAutoplay();
       stopSnap();
       snapArmed = false;
-      touchScrollIntent = false;
       clearCooldown();
       clearTimeout(hashTimer);
     }
