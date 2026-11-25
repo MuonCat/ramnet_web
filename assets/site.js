@@ -5,6 +5,7 @@
   const addressingExhibit = exhibits.find(exhibit => exhibit.dataset.exhibit === 'product_softmax');
   const article = document.querySelector('main.article');
   const compactLayout = window.RamnetRuntime.compactLayout;
+  const touchViewport = matchMedia('(pointer: coarse)');
   const sectionNames = [...document.querySelectorAll('.section-name')].map(box => ({box, text: box.firstElementChild, name: box.textContent.trim()}));
   const nameMeasure = document.createElement('canvas').getContext('2d');
   function textInkOffset(element) {
@@ -37,6 +38,7 @@
     }
   }
   let compactWidth = window.innerWidth;
+  let viewportWidth = window.innerWidth, viewportHeight = window.innerHeight, resizeTimer = 0;
   let compactScales = new WeakMap();
   let addressingLayout = null;
   let addressingMetrics = null;
@@ -70,10 +72,11 @@
   }
   function fitFigures() {
     if (window.innerWidth !== compactWidth) { compactWidth = window.innerWidth; compactScales = new WeakMap(); }
+    const fitHeight = touchViewport.matches ? viewportHeight : window.innerHeight;
     document.documentElement.classList.remove('compact-layout', 'compact-interactions');
     article.classList.remove('compact-interactions');
     const navHeight = document.querySelector('.chapter-nav').getBoundingClientRect().height;
-    const compactSpacing = window.innerHeight <= 850;
+    const compactSpacing = fitHeight <= 850;
     const gutter = desktopAddressingMetrics ? desktopAddressingMetrics.tabWidth + 16 : 0;
     const reservedGutter = window.innerWidth <= 1024 ? 0 : gutter;
     const pageMargin = Math.max(40, Math.min(88, window.innerWidth * .07));
@@ -89,12 +92,12 @@
       const articleWidth = article.getBoundingClientRect().width;
       const ratio = firstScreenRatio(articleWidth, navHeight, compactSpacing || reflow, desktopBudget);
       const minimumWidth = reflow ? articleWidth * .88 : Math.min(560, articleWidth);
-      return Math.min(articleWidth, Math.max(minimumWidth, ratio ? window.innerHeight / ratio : articleWidth));
+      return Math.min(articleWidth, Math.max(minimumWidth, ratio ? fitHeight / ratio : articleWidth));
     }
     const desktopWidth = fittedWidth(reservedGutter, Boolean(gutter));
     article.style.setProperty('--article-width-limit', `${Math.floor(desktopWidth)}px`);
     const desktopInset = document.querySelector('#addressing .prose').getBoundingClientRect().left - article.getBoundingClientRect().left;
-    const aspect = window.innerWidth / window.innerHeight;
+    const aspect = window.innerWidth / fitHeight;
     const contentWidth = desktopWidth - 2 * desktopInset;
     const tabFootprint = Math.min(gutter, window.innerWidth <= 1024 ? 124 : Infinity);
     const sceneWidth = Math.min(contentWidth, addressingExhibit.clientWidth - tabFootprint);
@@ -112,7 +115,7 @@
       const exhibit = stage?.querySelector('.embedded-exhibit');
       if (!exhibit) return;
       const offset = stage.getBoundingClientRect().top - section.getBoundingClientRect().top;
-      const available = window.innerHeight - navHeight - offset - 14;
+      const available = fitHeight - navHeight - offset - 14;
       const height = exhibit.offsetHeight;
       let scale = Math.min(1, Math.max(compactLayout.matches ? .68 : .55, available / height));
       // The full desktop view determines the shared width; compact controls may still need height fitting.
@@ -152,9 +155,9 @@
   }
   const fitObserver = new ResizeObserver(scheduleFit);
   sections.forEach(section => fitObserver.observe(section.querySelector('.section-heading')));
-  let viewportWidth = window.innerWidth, viewportHeight = window.innerHeight, resizeTimer = 0;
   window.addEventListener('resize', () => {
-    if (window.innerWidth === viewportWidth && window.innerHeight === viewportHeight) return;
+    // Mobile browser toolbars change the visible height during ordinary scrolling.
+    if (window.innerWidth === viewportWidth && (touchViewport.matches || window.innerHeight === viewportHeight)) return;
     viewportWidth = window.innerWidth;
     viewportHeight = window.innerHeight;
     if (!compactLayout.matches || viewportWidth !== compactWidth) scheduleFit();
