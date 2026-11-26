@@ -982,5 +982,43 @@
         ]
       }
     ]
+  },
+  "decoding": {
+    "note": "Approximate values read from Figure 5 of the paper: 340M models, single NVIDIA RTX 3060.",
+    "batches": [1, 8, 16, 32, 64],
+    "series": [
+      {
+        "model": "RAM-Net Top-8",
+        "values": [380, 1910, 3550, 6560, 10980]
+      },
+      {
+        "model": "RAM-Net Top-16",
+        "values": [360, 1600, 3010, 5120, 7830]
+      },
+      {
+        "model": "RAM-Net Top-32",
+        "values": [200, 1070, 1370, 1990, 2510]
+      },
+      {
+        "model": "GSA",
+        "values": [360, 1600, 2710, 4260, 5510]
+      },
+      {
+        "model": "GLA",
+        "values": [340, 1570, 2680, 4130, 5420]
+      },
+      {
+        "model": "DeltaNet",
+        "values": [380, 1570, 2720, 4190, 5350]
+      },
+      {
+        "model": "Gated DeltaNet",
+        "values": [350, 1520, 2520, 3720, 4830]
+      },
+      {
+        "model": "Mamba2",
+        "values": [330, 1410, 2210, 2900, 3640]
+      }
+    ]
   }
 }

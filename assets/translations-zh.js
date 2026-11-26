@@ -116,7 +116,7 @@ window.RamnetChinese = {
     'A few selected slots': '少量选中的槽位',
     'Definition and Calculation': '定义与计算',
     'Product Softmax equations': 'Product Softmax 公式',
-    'Product Softmax equations: per-digit softmax, address probabilities, and Kronecker product': 'Product Softmax 公式：逐位 softmax、地址概率与 Kronecker 积',
+    'Product Softmax equations: per-digit softmax, address probabilities, and Top-K truncation': 'Product Softmax 公式：逐位 softmax、地址概率与 Top-K 截断',
     '1. Parallel Address Decoding': '1. 并行地址解码',
     '2. Slot-Parallel Execution': '2. 按槽位并行执行',
     'Soft Radix Address': '软进制地址',
@@ -143,7 +143,13 @@ window.RamnetChinese = {
     'Within each model size, bold marks the best value in each column and underlining marks the next-best distinct value. Tied values receive the same mark.': '在同一模型规模内，每列用粗体标示最优值，用下划线标示次优的不同数值。并列项使用相同标记。',
     '↑ Higher is better for all scores. Columns within each task give the context length.': '↑ 表示分数越高越好。各任务下的列表示上下文长度。',
     '↑ Higher is better. FDA, SWDE, and NQ are evaluated at context lengths of 512 and 1K; the remaining tasks use the full document.': '↑ 越高越好。FDA、SWDE 与 NQ 在 512 与 1K 的上下文长度下评测，其余任务使用完整文档。',
-    'Accuracy, State Access, and Speed': '准确率、状态访问与速度',
+    'Accuracy and State Access': '准确率与状态访问',
+    'Decoding speed': '解码速度',
+    'Decoding Throughput': '解码吞吐量',
+    'Batch size': '批大小',
+    'Throughput (tokens/s)': '吞吐量（词元/秒）',
+    'Values are approximate, read from Figure 5 of the paper.': '数值为近似值，读取自论文图 5。',
+    'Decoding throughput of the 340M models at batch sizes 1 to 64. At batch size 64, RAM-Net Top-8 reaches about 11K tokens per second, 2.0 times the fastest baseline.': '340M 模型在批大小 1 到 64 下的解码吞吐量。批大小为 64 时，RAM-Net Top-8 约为每秒 11K 个词元，是最快基线的 2.0 倍。',
     'Model': '模型',
     'Total state': '总状态',
     'Active state': '活跃状态',
@@ -353,8 +359,8 @@ window.RamnetChinese = {
     ],
     '#addressing .stage-list li': [
       '<strong class="text-highlight">逐位归一化：</strong>对每个子向量应用 softmax，得到对应地址位的分布。温度 <span class="math">τ &gt; 0</span> 控制各地址位的概率分布有多集中。',
-      '<strong class="text-highlight">逐位相乘：</strong>每个槽位的概率等于各地址位取值概率的乘积，完整分布是各地址位分布的 Kronecker 积。',
-      '<strong class="text-highlight">仅保留 Top-K：</strong>截断算子 <span class="math">𝒯<sub><i>K</i></sub></span> 保留最大的 <span class="math"><i>K</i></span> 个概率，其余置零，不对保留的权重重新归一化。键产生写入权重，查询产生读取权重。'
+      '<strong class="text-highlight">逐位相乘：</strong>每个槽位的概率等于各地址位取值概率的乘积。',
+      '<strong class="text-highlight">仅保留 Top-K：</strong>截断算子 <span class="math">𝒯<sub><i>K</i></sub></span> 保留最大的 <span class="math"><i>K</i></span> 个概率，其余置零，不对保留的权重重新归一化。结果 <span class="math">𝒟<sub><i>K</i>,<i>U</i></sub>(<b>k</b><sub><i>t</i></sub>)</span> 就是由键解码出的稀疏地址；查询以同样的方式解码为读取地址。'
     ],
     '#position .prose p': [
       '不施加位置平移时，Product Softmax 会把相同的键或查询映射到相同的绝对槽位地址。环形地址位置嵌入（CAPE）使<strong class="text-highlight">读写匹配也取决于相对位置</strong>，因此读取可以区分不同距离处的相同内容。',
@@ -403,7 +409,9 @@ window.RamnetChinese = {
     ],
     '.results-discussion p': [
       '在 340M 模型中，Top-K 从 8 增至 32，活跃状态由 0.4M 增至 1.7M，总状态保持 26.6M。WikiText 困惑度从 26.89 降至 25.87，S-NIAH 均分从 64.7 升至 72.9，真实场景召回均分从 23.2 升至 32.0。在 1.3B 模型中，最佳设置取决于任务。Top-16 的 WikiText 困惑度和 S-NIAH 均分在 RAM-Net 的各设置中最优，Top-32 则在推理平均准确率和真实场景召回上领先。',
-      '在合成的多查询关联召回（MQAR）任务<a class="cite" href="#ref-11">[11]</a>上，RAM-Net 用比大多数线性循环基线更小的总状态取得较高准确率。准确率相当时，它每步访问的状态量约为基线的十分之一。',
+      '在合成的多查询关联召回（MQAR）任务<a class="cite" href="#ref-11">[11]</a>上，RAM-Net 用比大多数线性循环基线更小的总状态取得较高准确率。准确率相当时，它每步访问的状态量约为基线的十分之一。'
+    ],
+    '#experiment-decoding > p:not(.experiment-key)': [
       '我们在单张 NVIDIA RTX 3060 上测试 340M 循环模型的自回归解码吞吐量。每个解码步骤通过 CUDA Graph 执行，排除 Python 与逐内核启动开销对比较的影响。批大小（batch size）为 1 时，读取模型权重占主导，各模型速度接近；随着批大小增大，<strong class="text-highlight">循环状态的读取与更新成为瓶颈</strong>。',
       '在批大小为 64 时，RAM-Net Top-8 的吞吐量是<strong class="text-highlight">最快基线的 2.0 倍</strong>，尽管它的总状态在这些循环模型中最大。它每步访问的状态量最少，从而<strong class="text-highlight">将解码速度与总状态规模解耦</strong>：大容量记忆支撑较强的 S-NIAH 检索，稀疏访问则保持较快解码。增大 <span class="math"><i>K</i></span> 可以提高准确率，但会降低吞吐量。'
     ],

@@ -6,20 +6,20 @@
   <title>RAM-Net — Linear-Time Sequence Modeling with Sparsely Addressable State</title>
   <meta name="description" content="Explore RAM-Net: a larger recurrent memory with sparse read and write access. An interactive explanation of Product Softmax, CAPE, Gated Sparse Update and the CUDA execution pipeline.">
   <link rel="icon" href="assets/favicon.svg?v=logo-grid-20261028" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/site.css?v=math-layout-20261126">
+  <link rel="stylesheet" href="assets/site.css?v=decoding-20261126">
   <script>
     history.scrollRestoration = 'manual';
     window.ramnetInitialHash = location.hash === '#top' ? '' : location.hash;
     if (location.hash) history.replaceState(history.state, '', location.pathname + location.search);
   </script>
-  <script src="assets/palette.js?v=logo-grid-20261028" data-palette="data/palette.json?v=sec3-cyan-20261002"></script>
-  <script defer src="assets/translations-zh.js?v=math-layout-20261126"></script><script defer src="assets/i18n.js?v=copy-review-20261126"></script>
+  <script src="assets/palette.js?v=logo-grid-20261028" data-palette="data/palette.json?v=decoding-20261126"></script>
+  <script defer src="assets/translations-zh.js?v=decoding-20261126"></script><script defer src="assets/i18n.js?v=copy-review-20261126"></script>
   <script defer src="assets/animation-runtime.js?v=i18n-20261008"></script><script defer src="assets/exhibit-markup.js?v=copy-review-20261126b"></script>
   <script defer src="data/probes/niah_traces.js"></script><script defer src="data/probes/niah_slot_maps.js"></script><script defer src="data/probes/head_traces.js"></script>
   <script defer src="assets/stage-timeline.js?v=i18n-20261008"></script>
   <script defer src="animations/hardware.js?v=fixed-input-cadence-20261029"></script>
   <script defer src="animations/attn_cmp.js?v=copy-review-20261126b"></script><script defer src="animations/ramnet_arch.js?v=i18n-20261008"></script><script defer src="animations/product_softmax.js?v=i18n-20261008"></script><script defer src="animations/cape.js?v=i18n-20261008"></script><script defer src="animations/gsu.js?v=copy-review-20261126b"></script><script defer src="animations/cal_pipeline.js?v=results-fit-20261125"></script><script defer src="animations/niah_probe.js?v=cycle-20s-20261028"></script><script defer src="animations/head_probe.js?v=head-controls-20261016"></script>
-  <script defer src="animations/slot_usage.js?v=log-normal-20261028"></script><script defer src="assets/exhibit-host.js?v=i18n-20261008"></script><script defer src="assets/site.js?v=stable-touch-layout-20261125"></script><script defer src="assets/hero.js"></script><script defer src="assets/section-scroll.js?v=touch-reading-20261125"></script><script defer src="data/experiments.js?v=results-fit-20261125"></script><script defer src="assets/experiments.js?v=results-fit-20261125"></script><script defer src="assets/reading-position.js?v=section-alignment-20260930"></script>
+  <script defer src="animations/slot_usage.js?v=log-normal-20261028"></script><script defer src="assets/exhibit-host.js?v=i18n-20261008"></script><script defer src="assets/site.js?v=stable-touch-layout-20261125"></script><script defer src="assets/hero.js"></script><script defer src="assets/section-scroll.js?v=touch-reading-20261125"></script><script defer src="data/experiments.js?v=decoding-20261126"></script><script defer src="assets/experiments.js?v=decoding-20261126"></script><script defer src="assets/reading-position.js?v=section-alignment-20260930"></script>
 </head>
 <body id="top">
 <a class="skip-link" href="#memory">Skip to the paper</a>
@@ -136,13 +136,13 @@ Split it into <span class="math"><i>U</i></span> sub-vectors <span class="math">
 Each sub-vector supplies <strong class="text-highlight">scores for one address digit</strong> <span class="math"><i>a</i><sup>(<i>u</i>)</sup></span>, one score for each possible value.
 The computation below normalizes the scores within each group to produce digit distributions. Their product gives the slot weights. The query is decoded in the same way.</p>
 <div class="equation product-softmax-equations" role="group" aria-label="Product Softmax equations">
-<img class="equation-image equation-wide" style="width:34.8em" src="assets/figures/product-softmax-equation.svg?v=single-row-20261028" alt="Product Softmax equations: per-digit softmax, address probabilities, and Kronecker product">
-<img class="equation-image equation-stacked" style="width:13.1em" src="assets/figures/product-softmax-equation-stacked.svg" alt="Product Softmax equations: per-digit softmax, address probabilities, and Kronecker product">
+<img class="equation-image equation-wide" style="width:34.3em" src="assets/figures/product-softmax-equation.svg?v=topk-20261126" alt="Product Softmax equations: per-digit softmax, address probabilities, and Top-K truncation">
+<img class="equation-image equation-stacked" style="width:12.7em" src="assets/figures/product-softmax-equation-stacked.svg?v=topk-20261126" alt="Product Softmax equations: per-digit softmax, address probabilities, and Top-K truncation">
 </div>
 <ol class="stage-list">
 <li><strong class="text-highlight">Normalize each digit:</strong> apply a softmax to each sub-vector to obtain its digit distribution. The temperature <span class="math">τ &gt; 0</span> controls how sharply each digit selects among its possible values.</li>
-<li><strong class="text-highlight">Multiply across digits:</strong> a slot's probability is the product of the probabilities of its digits. The complete distribution is the Kronecker product of the digit distributions.</li>
-<li><strong class="text-highlight">Keep only Top-K:</strong> the truncation operator <span class="math">𝒯<sub><i>K</i></sub></span> retains the <span class="math"><i>K</i></span> largest probabilities and sets all others to zero, without renormalizing the retained weights. The key produces write weights; the query produces read weights.</li>
+<li><strong class="text-highlight">Multiply across digits:</strong> a slot's probability is the product of the probabilities of its digits.</li>
+<li><strong class="text-highlight">Keep only Top-K:</strong> the truncation operator <span class="math">𝒯<sub><i>K</i></sub></span> retains the <span class="math"><i>K</i></span> largest probabilities and sets all others to zero, without renormalizing the retained weights. The result <span class="math">𝒟<sub><i>K</i>,<i>U</i></sub>(<b>k</b><sub><i>t</i></sub>)</span> is the sparse address decoded from the key; the query is decoded into a read address in the same way.</li>
 </ol>
 <p>The slot count <span class="math">|𝒜| = <i>d<sub>p</sub></i><sup><i>U</i></sup></span> grows exponentially with the number of digits <span class="math"><i>U</i></span>, while the key and query dimension <span class="math"><i>d<sub>k</sub></i> = <i>U d<sub>p</sub></i></span> grows only linearly, so <strong class="text-highlight"><span class="math"><i>U d<sub>p</sub></i></span> scores suffice to address all <span class="math">|𝒜|</span> slots</strong>.
 For example, <span class="math">|𝒜| = 1024 = 4<sup>5</sup></span> slots require only 20 scores.
@@ -246,7 +246,7 @@ Different slots, and the vector dimensions within each slot, run in parallel; ev
 Each read contributes to its token's output. Slots without events are skipped, so state-update work follows the actual accesses rather than the full memory capacity.</p>
 <p>These two stages organize training and prefill over a whole sequence. Autoregressive decoding handles one token at a time and accesses only that token's selected slots.</p>
 </div></section>
-<section class="paper-section" id="results" data-cycle-ms="12000" aria-labelledby="heading-results"><div class="section-heading"><div class="section-kicker"><span class="section-number">07</span><span class="section-name"><span class="section-name-text">Results</span></span></div><div><h2 id="heading-results">Quality and State Access</h2><p class="section-subtitle">Evidence &amp; trade-offs</p></div></div>
+<section class="paper-section" id="results" data-cycle-ms="16000" aria-labelledby="heading-results"><div class="section-heading"><div class="section-kicker"><span class="section-number">07</span><span class="section-name"><span class="section-name-text">Results</span></span></div><div><h2 id="heading-results">Quality and State Access</h2><p class="section-subtitle">Evidence &amp; trade-offs</p></div></div>
 <div class="metric-grid" aria-label="Selected experimental results">
 <div class="metric"><strong>0.4<span class="metric-unit">M</span></strong><span>Active state · 340M Top-8</span><small>26.6M total state elements</small></div>
 <div class="metric"><strong>72.9</strong><span>S-NIAH average · 340M Top-32</span><small>Three tasks · 1K–16K contexts</small></div>
@@ -257,6 +257,7 @@ Each read contributes to its token's output. Slots without events are skipped, s
 <button type="button" role="tab" id="tab-language" aria-controls="experiment-language" aria-selected="true">Language &amp; reasoning</button>
 <button type="button" role="tab" id="tab-sniah" aria-controls="experiment-sniah" aria-selected="false" tabindex="-1">S-NIAH retrieval</button>
 <button type="button" role="tab" id="tab-tasks" aria-controls="experiment-tasks" aria-selected="false" tabindex="-1">Real-world recall</button>
+<button type="button" role="tab" id="tab-decoding" aria-controls="experiment-decoding" aria-selected="false" tabindex="-1">Decoding speed</button>
 </div>
 <article class="experiment-panel" id="experiment-language" aria-labelledby="title-language">
 <h3 id="title-language">Language Modeling and Reasoning</h3>
@@ -285,13 +286,20 @@ Each read contributes to its token's output. Slots without events are skipped, s
 <p class="experiment-key">Within each model size, bold marks the best value in each column and underlining marks the next-best distinct value. Tied values receive the same mark.</p>
 <p>These recall-intensive tasks <a class="cite" href="#ref-10">[10]</a> require extracting information from real documents. Transformer++ achieves the highest average at both scales, since its KV cache keeps every context token. Among recurrent models, RAM-Net Top-32 achieves <strong class="text-highlight">the highest average at both scales</strong>, with 32.0 at 340M and 42.7 at 1.3B. At 340M, RAM-Net trails Transformer++ by <strong class="text-highlight">3.1 points</strong>, compared with an 8.2-point gap for Mamba2, the best recurrent baseline at that scale.</p>
 </article>
-<div class="prose"><p>At 340M, Top-8 accesses <strong class="text-highlight">0.4M of 26.6M state elements</strong> per step, about 1.5% of its total state. At 1.3B, Top-8 accesses 0.8M of 53.2M elements per step, also about 1.5%.</p></div>
-
-<div class="prose results-discussion"><h3>Accuracy, State Access, and Speed</h3>
-<p>At 340M, moving from Top-8 to Top-32 increases active state from 0.4M to 1.7M elements while total state stays at 26.6M. WikiText perplexity drops from 26.89 to 25.87, the S-NIAH average rises from 64.7 to 72.9, and the real-world recall average from 23.2 to 32.0. At 1.3B, the best setting depends on the task. Top-16 leads the RAM-Net variants on WikiText perplexity and S-NIAH, while Top-32 leads on average reasoning accuracy and real-world recall.</p>
-<p>On the synthetic multi-query associative recall (MQAR) benchmark <a class="cite" href="#ref-11">[11]</a>, RAM-Net reaches high accuracy with a smaller total state than most linear recurrent baselines. At comparable accuracy, it accesses about one-tenth as much state per step as those baselines.</p>
+<article class="experiment-panel" id="experiment-decoding" aria-labelledby="title-decoding">
+<h3 id="title-decoding">Decoding Throughput</h3>
+<figure class="decoding-figure">
+<div class="decoding-chart" role="img" aria-label="Decoding throughput of the 340M models at batch sizes 1 to 64. At batch size 64, RAM-Net Top-8 reaches about 11K tokens per second, 2.0 times the fastest baseline."></div>
+</figure>
 <p>We benchmark autoregressive decoding of the 340M recurrent models on a single NVIDIA RTX 3060. Each step is captured in a CUDA graph to exclude Python and per-kernel launch overhead from the comparison. At batch size 1, reading model weights dominates, so the models run at similar speed. As the batch grows, <strong class="text-highlight">recurrent-state reads and updates become the bottleneck</strong>.</p>
 <p>At batch size 64, RAM-Net Top-8 achieves <strong class="text-highlight">2.0× the throughput of the fastest baseline</strong>, despite having the largest total state among the compared recurrent models. It accesses the least state per step, <strong class="text-highlight">decoupling decoding speed from total state size</strong>: a large memory supports strong S-NIAH retrieval, while sparse access keeps decoding fast. Increasing <span class="math"><i>K</i></span> trades throughput for higher accuracy.</p>
+<p class="experiment-key">Values are approximate, read from Figure 5 of the paper.</p>
+</article>
+<div class="prose"><p>At 340M, Top-8 accesses <strong class="text-highlight">0.4M of 26.6M state elements</strong> per step, about 1.5% of its total state. At 1.3B, Top-8 accesses 0.8M of 53.2M elements per step, also about 1.5%.</p></div>
+
+<div class="prose results-discussion"><h3>Accuracy and State Access</h3>
+<p>At 340M, moving from Top-8 to Top-32 increases active state from 0.4M to 1.7M elements while total state stays at 26.6M. WikiText perplexity drops from 26.89 to 25.87, the S-NIAH average rises from 64.7 to 72.9, and the real-world recall average from 23.2 to 32.0. At 1.3B, the best setting depends on the task. Top-16 leads the RAM-Net variants on WikiText perplexity and S-NIAH, while Top-32 leads on average reasoning accuracy and real-world recall.</p>
+<p>On the synthetic multi-query associative recall (MQAR) benchmark <a class="cite" href="#ref-11">[11]</a>, RAM-Net reaches high accuracy with a smaller total state than most linear recurrent baselines. At comparable accuracy, it accesses about one-tenth as much state per step as those baselines.</p>
 </div><div class="results-note">Retrieval still depends on <strong class="text-highlight">reliable address selection</strong>. Only selected slots contribute to the current read. Adding slots increases capacity, while raising Top-K increases the number of slots accessed per step. The benefit of each change depends on the task.</div></section>
 <section class="paper-section" id="retrieval-probe" aria-labelledby="heading-retrieval-probe"><div class="section-opening">
 <div class="section-heading"><div class="section-kicker"><span class="section-number">08</span><span class="section-name"><span class="section-name-text">Retrieval Traces</span></span></div><div><h2 id="heading-retrieval-probe">Following a Needle Through Memory</h2><p class="section-subtitle">Interpretability · Token–slot–token paths</p></div></div>

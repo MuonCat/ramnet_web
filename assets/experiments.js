@@ -267,7 +267,141 @@
     });
     table.addEventListener('pointerleave', clear);
   });
+  const decodingChart = document.querySelector('.decoding-chart');
+  if (decodingChart && data.decoding) drawDecoding(decodingChart, data.decoding);
   select(0);
   list.hidden = false;
   window.dispatchEvent(new Event('ramnet:results-layout'));
+
+  function drawDecoding(container, decoding) {
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const styles = {
+      'RAM-Net Top-8': {color: 'var(--color-chartTop8)', ramnet: true},
+      'RAM-Net Top-16': {color: 'var(--color-chartTop16)', ramnet: true},
+      'RAM-Net Top-32': {color: 'var(--color-chartTop32)', ramnet: true},
+      GSA: {marker: 'circle', dash: '9 4'},
+      GLA: {marker: 'square', dash: '2 3'},
+      DeltaNet: {marker: 'triangle', dash: '6 3'},
+      'Gated DeltaNet': {marker: 'triangle-down', dash: '12 3'},
+      Mamba2: {marker: 'diamond', dash: '8 3 2 3'}
+    };
+    const series = decoding.series.map(item => ({...item, ...styles[item.model]}));
+    const legend = document.createElement('ul');
+    legend.className = 'decoding-legend';
+    legend.setAttribute('aria-hidden', 'true');
+    for (const item of series) {
+      const entry = document.createElement('li');
+      const key = document.createElementNS(svgNS, 'svg');
+      key.setAttribute('viewBox', '0 0 26 12');
+      key.append(node('line', {x1: 1, y1: 6, x2: 25, y2: 6, class: item.ramnet ? 'decoding-line is-ramnet' : 'decoding-line', style: lineStyle(item)}),
+        marker(item, 13, 6));
+      entry.append(key, item.model);
+      legend.append(entry);
+    }
+    container.before(legend);
+    let width = 0;
+    new ResizeObserver(() => {
+      const next = Math.round(container.clientWidth);
+      if (!next || next === width) return;
+      width = next;
+      render();
+    }).observe(container);
+
+    function node(name, attributes = {}, text) {
+      const element = document.createElementNS(svgNS, name);
+      for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, value);
+      if (text !== undefined) element.textContent = text;
+      return element;
+    }
+    function lineStyle(item) {
+      return `stroke:${item.color || 'var(--color-chartBaseline)'}` + (item.dash ? `;stroke-dasharray:${item.dash}` : '');
+    }
+    function marker(item, x, y) {
+      const fill = item.color || 'var(--color-chartBaseline)', r = 4.2;
+      const shapes = {
+        square: `M${x - r * .85} ${y - r * .85}h${r * 1.7}v${r * 1.7}h${-r * 1.7}z`,
+        triangle: `M${x} ${y - r * 1.1}L${x + r} ${y + r * .75}H${x - r}z`,
+        'triangle-down': `M${x} ${y + r * 1.1}L${x + r} ${y - r * .75}H${x - r}z`,
+        diamond: `M${x} ${y - r * 1.2}L${x + r * 1.05} ${y}L${x} ${y + r * 1.2}L${x - r * 1.05} ${y}z`
+      };
+      return item.marker && shapes[item.marker] ?
+        node('path', {d: shapes[item.marker], class: 'decoding-marker', style: `fill:${fill}`}) :
+        node('circle', {cx: x, cy: y, r, class: 'decoding-marker', style: `fill:${fill}`});
+    }
+    function render() {
+      const compact = width < 560;
+      const margin = {top: 30, right: compact ? 116 : 156, bottom: 46, left: compact ? 38 : 48};
+      const height = compact ? 300 : 360;
+      const plotWidth = width - margin.left - margin.right, plotHeight = height - margin.top - margin.bottom;
+      const batches = decoding.batches, yMax = 12000;
+      const x = batch => margin.left + (batch - batches[0]) / (batches.at(-1) - batches[0]) * plotWidth;
+      const y = value => margin.top + (1 - value / yMax) * plotHeight;
+      const svg = node('svg', {width, height, viewBox: `0 0 ${width} ${height}`, 'aria-hidden': 'true'});
+      const grid = node('g', {class: 'decoding-grid'});
+      for (let value = 0; value <= yMax; value += 2000) {
+        grid.append(node('line', {x1: margin.left, x2: margin.left + plotWidth, y1: y(value), y2: y(value), class: value ? '' : 'is-baseline'}));
+        grid.append(node('text', {x: margin.left - 8, y: y(value), class: 'decoding-tick', 'text-anchor': 'end', 'dominant-baseline': 'middle'}, value ? `${value / 1000}K` : '0'));
+      }
+      for (const batch of batches) {
+        grid.append(node('text', {x: x(batch), y: margin.top + plotHeight + 18, class: 'decoding-tick', 'text-anchor': 'middle'}, batch));
+      }
+      grid.append(node('text', {x: margin.left + plotWidth / 2, y: height - 6, class: 'decoding-axis-title', 'text-anchor': 'middle'}, t('Batch size')));
+      grid.append(node('text', {x: margin.left - (compact ? 30 : 40), y: 12, class: 'decoding-axis-title'}, t('Throughput (tokens/s)')));
+      svg.append(grid);
+
+      // Baselines sit behind the RAM-Net lines; markers are drawn after every line.
+      const ordered = [...series.filter(item => !item.ramnet), ...series.filter(item => item.ramnet).reverse()];
+      const lines = node('g'), markers = node('g');
+      for (const item of ordered) {
+        const points = item.values.map((value, index) => [x(batches[index]), y(value)]);
+        lines.append(node('path', {d: 'M' + points.map(point => point.join(' ')).join('L'),
+          class: item.ramnet ? 'decoding-line is-ramnet' : 'decoding-line', style: lineStyle(item), ...(item.ramnet && {pathLength: 1})}));
+        for (const [px, py] of points) markers.append(marker(item, px, py));
+      }
+      svg.append(lines, markers);
+
+      const top8 = series.find(item => item.model === 'RAM-Net Top-8');
+      const fastest = series.filter(item => !item.ramnet).reduce((best, item) => item.values.at(-1) > best.values.at(-1) ? item : best);
+      const bracketX = x(batches.at(-1)) - (compact ? 14 : 18), high = y(top8.values.at(-1)) + 8, low = y(fastest.values.at(-1)) - 8;
+      const bracket = node('g', {class: 'decoding-bracket'});
+      bracket.append(node('path', {d: `M${bracketX + 5} ${high}H${bracketX}V${low}H${bracketX + 5}`}),
+        node('text', {x: bracketX - 7, y: (high + low) / 2, 'text-anchor': 'end', 'dominant-baseline': 'middle', class: 'decoding-ratio'},
+          `${(top8.values.at(-1) / fastest.values.at(-1)).toFixed(1)}×`));
+      svg.append(bracket);
+
+      // End labels: merge names whose lines end together, then push the rest apart.
+      const lineHeight = compact ? 14 : 15, endX = x(batches.at(-1));
+      let labels = series.map(item => ({names: [item.model], target: y(item.values.at(-1))})).sort((a, b) => a.target - b.target);
+      labels = labels.reduce((merged, label) => {
+        const previous = merged.at(-1);
+        if (previous && label.target - previous.target < 5) {
+          previous.names.push(...label.names);
+          previous.target = (previous.target * (previous.names.length - 1) + label.target) / previous.names.length;
+        } else merged.push({...label});
+        return merged;
+      }, []);
+      labels.forEach(label => {
+        label.y = label.target;
+        label.lines = compact ? label.names.map(name => name.replace('RAM-Net ', '')) : [label.names.join(' / ')];
+      });
+      for (let pass = 0; pass < 40; pass++) {
+        for (let index = 1; index < labels.length; index++) {
+          const previous = labels[index - 1], label = labels[index];
+          const overlap = previous.y + (previous.lines.length + label.lines.length) * lineHeight / 2 - label.y;
+          if (overlap > 0) { previous.y -= overlap / 2; label.y += overlap / 2; }
+        }
+      }
+      const labelGroup = node('g', {class: 'decoding-labels'});
+      for (const label of labels) {
+        const textX = endX + (compact ? 16 : 20);
+        if (Math.abs(label.y - label.target) > 2) labelGroup.append(node('path', {d: `M${endX + 7} ${label.target}L${textX - 4} ${label.y}`, class: 'decoding-leader'}));
+        const ramnet = label.names[0].startsWith('RAM-Net');
+        const text = node('text', {x: textX, y: label.y - (label.lines.length - 1) * lineHeight / 2, 'dominant-baseline': 'middle', class: ramnet ? 'decoding-label is-ramnet' : 'decoding-label'});
+        label.lines.forEach((line, index) => text.append(node('tspan', {x: textX, dy: index ? lineHeight : 0}, line)));
+        labelGroup.append(text);
+      }
+      svg.append(labelGroup);
+      container.replaceChildren(svg);
+    }
+  }
 })();

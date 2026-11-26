@@ -10,7 +10,11 @@
                    "resultGoldInk":  "#614c2c",
                    "resultGoldBorder":  "#947346",
                    "sectionNumber":  "#94a9c6",
-                   "eyebrowInk":  "#587393"
+                   "eyebrowInk":  "#587393",
+                   "chartTop8":  "#224d86",
+                   "chartTop16":  "#4a79b8",
+                   "chartTop32":  "#7aa1d4",
+                   "chartBaseline":  "#767676"
                },
     "tones":  {
                   "red":  [

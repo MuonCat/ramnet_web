@@ -149,6 +149,26 @@ tr:last-child td:first-child { color: var(--accent-ink); }
 .experiment-panel p { margin: 0 0 18px; color: var(--body); font-size: 15px; line-height: 1.85; }
 .experiment-panel .experiment-key { margin: 4px 0; font-size: 12px; line-height: 1.6; color: var(--muted); }
 .experiment-panel .experiment-key + p:not(.experiment-key) { margin-top: 16px; }
+.decoding-figure { margin: 10px 0 20px; }
+.decoding-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0 0 12px; padding: 0; list-style: none; color: var(--body); font-size: 12px; line-height: 1.4; }
+.decoding-legend li { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.decoding-legend svg { width: 26px; height: 12px; overflow: visible; }
+.decoding-chart { width: 100%; min-height: 300px; }
+.decoding-chart svg { display: block; overflow: visible; font-family: var(--sans); }
+.decoding-grid line { stroke: color-mix(in srgb, var(--line) 70%, transparent); stroke-width: 1; }
+.decoding-grid line.is-baseline { stroke: var(--muted); }
+.decoding-tick { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.decoding-axis-title { fill: var(--muted); font-size: 11px; }
+.decoding-line { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.decoding-line:not(.is-ramnet) { stroke-width: 1.6; }
+.decoding-marker { stroke: var(--paper); stroke-width: 2; paint-order: stroke; }
+.decoding-bracket path { fill: none; stroke: var(--muted); stroke-width: 1; }
+.decoding-ratio { fill: var(--ink); font-size: 15px; font-weight: 650; }
+.decoding-label { fill: var(--body); font-size: 12px; }
+.decoding-label.is-ramnet { fill: var(--ink); font-weight: 600; }
+.decoding-leader { fill: none; stroke: var(--muted); stroke-width: 1; }
+.experiment-panel:not([hidden]) .decoding-chart .is-ramnet { stroke-dasharray: 1; animation: decoding-draw 900ms cubic-bezier(.3, .7, .3, 1) 120ms backwards; }
+@keyframes decoding-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
 .experiment-scroll { margin: 18px 0 8px; }
 .experiment-scroll.is-wide { width: calc(100% + 2 * var(--text-inset)); margin-left: calc(0px - var(--text-inset)); }
 .experiment-table { min-width: 0; table-layout: fixed; font-size: 13px; line-height: 1.5; font-variant-numeric: tabular-nums; }
@@ -327,7 +347,7 @@ html.compact-layout {
   main.article, html.compact-layout main.article { --section-top-gap: 36px; --section-heading-gap: 22px; }
 }
 .compact-interactions .fine-interaction-hint { display: none; }
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .experiment-panel:not([hidden]) { animation: none; } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .experiment-panel:not([hidden]), .experiment-panel:not([hidden]) .decoding-chart .is-ramnet { animation: none; } }
 @media print {
   .chapter-nav, .hero-actions, .closing { display: none; }
   body { background: var(--neutral-16); }
