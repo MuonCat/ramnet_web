@@ -15,13 +15,13 @@
     if (location.hash) history.replaceState(history.state, '', location.pathname + location.search);
   </script>
   <script src="assets/palette.js?v=logo-grid-20261028" data-palette="data/palette.json?v=decoding-20261126"></script>
-  <script defer src="assets/translations-zh.js?v=editorial-20261126"></script><script defer src="assets/i18n.js?v=copy-review-20261126"></script>
+  <script defer src="assets/translations-zh.js?v=commonsense-20261126"></script><script defer src="assets/i18n.js?v=copy-review-20261126"></script>
   <script defer src="assets/animation-runtime.js?v=section-fit-20261126"></script><script defer src="assets/exhibit-markup.js?v=section-fit-20261126"></script>
   <script defer src="data/probes/niah_traces.js"></script><script defer src="data/probes/niah_slot_maps.js"></script><script defer src="data/probes/head_traces.js"></script>
   <script defer src="assets/stage-timeline.js?v=i18n-20261008"></script>
   <script defer src="animations/hardware.js?v=fixed-input-cadence-20261029"></script>
   <script defer src="animations/attn_cmp.js?v=copy-review-20261126b"></script><script defer src="animations/ramnet_arch.js?v=section-fit-20261126"></script><script defer src="animations/product_softmax.js?v=section-fit-20261126"></script><script defer src="animations/cape.js?v=i18n-20261008"></script><script defer src="animations/gsu.js?v=section-fit-20261126"></script><script defer src="animations/cal_pipeline.js?v=section-fit-20261126"></script><script defer src="animations/niah_probe.js?v=section-fit-20261126"></script><script defer src="animations/head_probe.js?v=section-fit-20261126"></script>
-  <script defer src="animations/slot_usage.js?v=section-fit-20261126"></script><script defer src="assets/exhibit-host.js?v=section-fit-20261126"></script><script defer src="assets/site.js?v=results-table-20261126"></script><script defer src="assets/hero.js"></script><script defer src="assets/section-scroll.js?v=section-fit-20261126"></script><script defer src="data/experiments.js?v=metric-labels-20261126"></script><script defer src="assets/experiments.js?v=results-table-20261126"></script><script defer src="assets/reading-position.js?v=section-fit-20261126"></script>
+  <script defer src="animations/slot_usage.js?v=section-fit-20261126"></script><script defer src="assets/exhibit-host.js?v=section-fit-20261126"></script><script defer src="assets/site.js?v=results-table-20261126"></script><script defer src="assets/hero.js"></script><script defer src="assets/section-scroll.js?v=section-fit-20261126"></script><script defer src="data/experiments.js?v=commonsense-20261126"></script><script defer src="assets/experiments.js?v=commonsense-20261126"></script><script defer src="assets/reading-position.js?v=section-fit-20261126"></script>
 </head>
 <body id="top">
 <a class="skip-link" href="#memory">Skip to the paper</a>
@@ -256,19 +256,19 @@ Each read contributes to its token’s output. Slots without events are skipped,
 </div>
 <div class="prose results-intro"><p>These tables compare RAM-Net with Transformer++ <a class="cite" href="#ref-4">[4]</a> and the recurrent baselines Gated DeltaNet <a class="cite" href="#ref-6">[6]</a>, DeltaNet <a class="cite" href="#ref-12">[12]</a>, Mamba2 <a class="cite" href="#ref-5">[5]</a>, GLA <a class="cite" href="#ref-7">[7]</a>, GSA <a class="cite" href="#ref-8">[8]</a>, and MoM <a class="cite" href="#ref-13">[13]</a> on language modeling, long-context retrieval, real-world recall, and per-step state access.</p></div>
 <div class="experiment-tabs" role="tablist" aria-label="Experiment results" hidden>
-<button type="button" role="tab" id="tab-language" aria-controls="experiment-language" aria-selected="true">Language &amp; reasoning</button>
+<button type="button" role="tab" id="tab-language" aria-controls="experiment-language" aria-selected="true">Language &amp; commonsense</button>
 <button type="button" role="tab" id="tab-sniah" aria-controls="experiment-sniah" aria-selected="false" tabindex="-1">S-NIAH retrieval</button>
 <button type="button" role="tab" id="tab-tasks" aria-controls="experiment-tasks" aria-selected="false" tabindex="-1">Real-world recall</button>
 <button type="button" role="tab" id="tab-decoding" aria-controls="experiment-decoding" aria-selected="false" tabindex="-1">Decoding speed</button>
 </div>
 <article class="experiment-panel" id="experiment-language" aria-labelledby="title-language">
-<h3 id="title-language">Language Modeling and Reasoning</h3>
-<div class="experiment-scroll" role="region" aria-label="Language Modeling and Reasoning data table" tabindex="0">
-<table class="experiment-table" data-benchmark="language"><caption>Language Modeling and Reasoning — 340M and 1.3B models</caption><thead></thead>
+<h3 id="title-language">Language Modeling and Commonsense Reasoning</h3>
+<div class="experiment-scroll" role="region" aria-label="Language Modeling and Commonsense Reasoning data table" tabindex="0">
+<table class="experiment-table" data-benchmark="language"><caption>Language Modeling and Commonsense Reasoning — 340M and 1.3B models</caption><thead></thead>
 </table></div>
-<p class="experiment-key">↓ Lower is better. ↑ Higher is better. State sizes are in millions of elements. Active state counts the state elements accessed per step. Transformer++ state sizes are reported for a 2,048-token context. The reasoning average covers the ten tasks from MMLU through Wino.</p>
+<p class="experiment-key">↓ Lower is better. ↑ Higher is better. State sizes are in millions of elements. Active state counts the state elements accessed per step. Transformer++ state sizes are reported for a 2,048-token context. Commonsense Avg. is the mean accuracy across the ten tasks from MMLU through Wino.</p>
 <p class="experiment-key">Within each model size, bold marks the best value in each column and underlining marks the next-best distinct value. Tied values receive the same mark.</p>
-<p>At 340M, RAM-Net Top-32 achieves <strong class="text-highlight">the lowest WikiText perplexity (25.87) and the highest average reasoning accuracy (50.9)</strong>. At 1.3B, Top-16 reaches a WikiText perplexity of 15.90, close to Gated DeltaNet’s 15.85, and Top-32 ranks second in average reasoning accuracy at 58.1, behind Gated DeltaNet’s 58.7. Increasing Top-K improves average reasoning accuracy at both scales.</p>
+<p>At 340M, RAM-Net Top-32 achieves <strong class="text-highlight">the lowest WikiText perplexity (25.87) and the highest mean accuracy on the commonsense tasks (50.9%)</strong>. At 1.3B, Top-16 reaches a WikiText perplexity of 15.90, close to Gated DeltaNet’s 15.85, and Top-32 ranks second on the commonsense tasks (58.1%), behind Gated DeltaNet (58.7%). This average rises with Top-K at both model sizes.</p>
 </article>
 <article class="experiment-panel" id="experiment-sniah" aria-labelledby="title-sniah">
 <h3 id="title-sniah">S-NIAH: Retrieval Across Context Lengths</h3>
@@ -300,7 +300,7 @@ Each read contributes to its token’s output. Slots without events are skipped,
 <div class="prose"><p>At 340M, Top-8 accesses <strong class="text-highlight">0.4M of 26.6M state elements</strong> per step, about 1.5% of its total state. At 1.3B, Top-8 accesses 0.8M of 53.2M elements per step, also about 1.5%.</p></div>
 
 <div class="prose results-discussion"><h3>Accuracy and State Access</h3>
-<p>At 340M, moving from Top-8 to Top-32 increases active state from 0.4M to 1.7M elements while total state stays at 26.6M. WikiText perplexity drops from 26.89 to 25.87, the S-NIAH average rises from 64.7 to 72.9, and the real-world recall average from 23.2 to 32.0. At 1.3B, the best setting depends on the task. Top-16 leads the RAM-Net variants on WikiText perplexity and S-NIAH, while Top-32 leads on average reasoning accuracy and real-world recall.</p>
+<p>At 340M, moving from Top-8 to Top-32 increases active state from 0.4M to 1.7M elements while total state stays at 26.6M. WikiText perplexity drops from 26.89 to 25.87, the S-NIAH average rises from 64.7 to 72.9, and the real-world recall average from 23.2 to 32.0. At 1.3B, the best setting depends on the task. Top-16 leads the RAM-Net variants on WikiText perplexity and S-NIAH, while Top-32 leads on the commonsense and real-world recall tasks.</p>
 <p>On the synthetic multi-query associative recall (MQAR) benchmark <a class="cite" href="#ref-11">[11]</a>, RAM-Net reaches high accuracy with a smaller total state than most linear recurrent baselines. At comparable accuracy, it accesses about one-tenth as much state per step as those baselines.</p>
 </div><div class="results-note">Retrieval still depends on <strong class="text-highlight">reliable address selection</strong>. Only selected slots contribute to the current read. Adding slots increases capacity, while raising Top-K increases the number of slots accessed per step. The benefit of each change depends on the task.</div></section>
 <section class="paper-section" id="retrieval-probe" aria-labelledby="heading-retrieval-probe"><div class="section-opening">

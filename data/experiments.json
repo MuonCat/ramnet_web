@@ -14,7 +14,7 @@
       {"label": "PIQA", "better": "higher"},
       {"label": "Hella", "better": "higher"},
       {"label": "Wino", "better": "higher"},
-      {"label": "Reasoning avg.", "lines": ["Reasoning", "Avg."], "better": "higher"},
+      {"label": "Commonsense Avg.", "lines": ["Commonsense", "Avg."], "better": "higher"},
       {"label": "Active state", "lines": ["Active", "state"], "better": "lower"},
       {"label": "Total state", "lines": ["Total", "state"], "better": "lower"}
     ],
