@@ -111,7 +111,7 @@ tr:last-child td:first-child { color: var(--accent-ink); }
 .equation-image { display: block; width: 16em; max-width: 100%; height: auto; }
 .product-softmax-equations .equation-stacked { display: none; }
 .compact-layout .product-softmax-equations .equation-wide { display: none; }
-.compact-layout .product-softmax-equations .equation-stacked { display: block; }
+.compact-layout .product-softmax-equations .equation-stacked { display: block; margin-inline: auto; }
 :is(.equation-notes, .stage-list) { margin: 20px 0 25px; padding-left: 1.4em; }
 :is(.equation-notes, .stage-list) li { padding-left: .25em; }
 :is(.equation-notes, .stage-list) li + li { margin-top: 10px; }

@@ -370,10 +370,10 @@ window.RamnetChinese = {
       '因此，GSU 具有三个性质：'
     ],
     '.equation-notes li': [
-      '<strong class="text-highlight">保留系数（λ）：</strong>以 <span class="math">1 − <i>w</i><sub><i>t</i></sub>[<i>a</i>]</span> 为基准。写入越强，旧惯性质量的保留比例越小。输入相关的调节量 <span class="math">γ<sub><i>t</i></sub></span> 在 logit 空间调整这一基准，γ 越大，遗忘越多。可学习投影为每个词元、每个头生成一个 γ，由各槽位共用。',
-      '<strong class="text-highlight">槽位惯性质量（m）：</strong>将旧的惯性质量乘以保留系数 <span class="math">λ<sub><i>t</i></sub>[<i>a</i>]</span>，再加上本次写入权重。遗忘削弱历史写入的影响，使槽位能更快接纳新内容。',
-      '<strong class="text-highlight">学习率（η）：</strong>分子是当前写入权重，分母是更新后的惯性质量加上用于数值稳定的小常数 <span class="math">ε</span>。写入越强，步长越大。保留的历史权重越多，步长越小。',
-      '<strong class="text-highlight">内容（s）：</strong>沿当前内容指向 <span class="math"><b>v</b><sub><i>t</i></sub></span> 的方向移动，步长为两者差距的 η 倍。η 小则保留历史，η 接近 1 则新值占主导。'
+      '<strong class="text-highlight">保留系数（<span class="math">λ</span>）：</strong>以 <span class="math">1 − <i>w</i><sub><i>t</i></sub>[<i>a</i>]</span> 为基准。写入越强，旧惯性质量的保留比例越小。输入相关的调节量 <span class="math">γ<sub><i>t</i></sub></span> 在 logit 空间调整这一基准，<span class="math">γ</span> 越大，遗忘越多。可学习投影为每个词元、每个头生成一个 <span class="math">γ</span>，由各槽位共用。',
+      '<strong class="text-highlight">槽位惯性质量（<span class="math"><i>m</i></span>）：</strong>将旧的惯性质量乘以保留系数 <span class="math">λ<sub><i>t</i></sub>[<i>a</i>]</span>，再加上本次写入权重。遗忘削弱历史写入的影响，使槽位能更快接纳新内容。',
+      '<strong class="text-highlight">学习率（<span class="math">η</span>）：</strong>分子是当前写入权重，分母是更新后的惯性质量加上用于数值稳定的小常数 <span class="math">ε</span>。写入越强，步长越大。保留的历史权重越多，步长越小。',
+      '<strong class="text-highlight">内容（<span class="math">s</span>）：</strong>沿当前内容指向 <span class="math"><b>v</b><sub><i>t</i></sub></span> 的方向移动，步长为两者差距的 <span class="math">η</span> 倍。<span class="math">η</span> 小则保留历史，<span class="math">η</span> 接近 1 则新值占主导。'
     ],
     '#update .stage-list li': [
       '<strong class="text-highlight">精确稀疏：</strong>对于未选中写入的槽位，写入权重为 <span class="math"><i>w</i><sub><i>t</i></sub>[<i>a</i>] = 0</span>，因此 <span class="math">λ<sub><i>t</i></sub>[<i>a</i>] = 1</span>、<span class="math">η<sub><i>t</i></sub>[<i>a</i>] = 0</span>，内容与惯性质量均保持不变。不同词元的写入只在它们共同寻址的槽位上相互影响。',

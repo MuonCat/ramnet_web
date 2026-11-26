@@ -6,14 +6,14 @@
   <title>RAM-Net — Linear-Time Sequence Modeling with Sparsely Addressable State</title>
   <meta name="description" content="Explore RAM-Net: a larger recurrent memory with sparse read and write access. An interactive explanation of Product Softmax, CAPE, Gated Sparse Update and the CUDA execution pipeline.">
   <link rel="icon" href="assets/favicon.svg?v=logo-grid-20261028" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/site.css?v=stable-touch-layout-20261125">
+  <link rel="stylesheet" href="assets/site.css?v=math-layout-20261126">
   <script>
     history.scrollRestoration = 'manual';
     window.ramnetInitialHash = location.hash === '#top' ? '' : location.hash;
     if (location.hash) history.replaceState(history.state, '', location.pathname + location.search);
   </script>
   <script src="assets/palette.js?v=logo-grid-20261028" data-palette="data/palette.json?v=sec3-cyan-20261002"></script>
-  <script defer src="assets/translations-zh.js?v=copy-review-20261126b"></script><script defer src="assets/i18n.js?v=copy-review-20261126"></script>
+  <script defer src="assets/translations-zh.js?v=math-layout-20261126"></script><script defer src="assets/i18n.js?v=copy-review-20261126"></script>
   <script defer src="assets/animation-runtime.js?v=i18n-20261008"></script><script defer src="assets/exhibit-markup.js?v=copy-review-20261126b"></script>
   <script defer src="data/probes/niah_traces.js"></script><script defer src="data/probes/niah_slot_maps.js"></script><script defer src="data/probes/head_traces.js"></script>
   <script defer src="assets/stage-timeline.js?v=i18n-20261008"></script>
@@ -215,10 +215,10 @@ Given the current write weight <span class="math"><i>w</i><sub><i>t</i></sub>[<i
 </div>
 <p>Read the equations from top to bottom, in the same order as the animation:</p>
 <ul class="equation-notes">
-<li><strong class="text-highlight">Retention (λ):</strong> starts from <span class="math">1 − <i>w</i><sub><i>t</i></sub>[<i>a</i>]</span>, so a stronger write retains less historical mass. The input-dependent modulator <span class="math">γ<sub><i>t</i></sub></span> adjusts this baseline in logit space: a larger γ means more forgetting. A learned projection produces one γ per token and head, shared across slots.</li>
-<li><strong class="text-highlight">Slot mass (m):</strong> keep a fraction <span class="math">λ<sub><i>t</i></sub>[<i>a</i>]</span> of the previous mass, then add the current write weight. Forgetting reduces the slot's inertia, allowing it to learn new content faster.</li>
-<li><strong class="text-highlight">Learning rate (η):</strong> divide the current write weight by the sum of the updated slot mass and a small <span class="math">ε</span> for numerical stability. A stronger write increases the step, while more retained history reduces it.</li>
-<li><strong class="text-highlight">Content (s):</strong> move an η fraction of the way from the current content toward <span class="math"><b>v</b><sub><i>t</i></sub></span>. A small η preserves history; an η near 1 lets the new value dominate.</li>
+<li><strong class="text-highlight">Retention (<span class="math">λ</span>):</strong> starts from <span class="math">1 − <i>w</i><sub><i>t</i></sub>[<i>a</i>]</span>, so a stronger write retains less historical mass. The input-dependent modulator <span class="math">γ<sub><i>t</i></sub></span> adjusts this baseline in logit space: a larger <span class="math">γ</span> means more forgetting. A learned projection produces one <span class="math">γ</span> per token and head, shared across slots.</li>
+<li><strong class="text-highlight">Slot mass (<span class="math"><i>m</i></span>):</strong> keep a fraction <span class="math">λ<sub><i>t</i></sub>[<i>a</i>]</span> of the previous mass, then add the current write weight. Forgetting reduces the slot's inertia, allowing it to learn new content faster.</li>
+<li><strong class="text-highlight">Learning rate (<span class="math">η</span>):</strong> divide the current write weight by the sum of the updated slot mass and a small <span class="math">ε</span> for numerical stability. A stronger write increases the step, while more retained history reduces it.</li>
+<li><strong class="text-highlight">Content (<span class="math">s</span>):</strong> move an <span class="math">η</span> fraction of the way from the current content toward <span class="math"><b>v</b><sub><i>t</i></sub></span>. A small <span class="math">η</span> preserves history; an <span class="math">η</span> near 1 lets the new value dominate.</li>
 </ul>
 <p>As a result, GSU has three properties:</p>
 <ol class="stage-list">
