@@ -12,7 +12,7 @@ let sceneOffset=0,sceneHeight=contentHeight;
 const slotPrepareSpan=.38*(.5-Math.sin(Math.asin(1-2*.22)/3)),slotPrepareDelay=slotPrepareSpan*.5;
 const minimumDurations=config=>[1,2.95,0,3,3,0,1+2.5*(1+slotPrepareDelay),4.2,2.5].map((factor,i)=>Math.max(1,Math.ceil((i===5?config.fadeDuration+etaMoveSeconds+etaHoldSeconds:factor*config.fadeDuration)*10-1e-9)/10));
 function fitDurations(config){const minimum=minimumDurations(config);config.durations=config.durations.map((value,i)=>Math.max(value,minimum[i]));}
-const progressGroups=[{name:'calculate λ',color:'alpha',start:0,end:3},{name:'update mass',color:'mass',start:3,end:5,stop:2/3},{name:'calculate η',color:'eta',start:5,end:6},{name:'update slot',color:'state',start:6,end:9,stopAction:7}];
+const progressGroups=[{name:'calculate λ',color:'alpha',start:0,end:3},{name:'update slot mass',color:'mass',start:3,end:5,stop:2/3},{name:'calculate η',color:'eta',start:5,end:6},{name:'update slot',color:'state',start:6,end:9,stopAction:7}];
 const params={colors:{...colors},n:8,initialMass:0.8,epsilon:0.0001,concentration:0.5,gammaRange:3.5,aspectRatio:1.95,retainedGap:200,columnSpacing:0.55,slotGap:7,cellRadius:6,panelRadius:22,spacing:20,lineWidth:2.2,vectorScale:0.94,fadeDuration:1.2,interactionExitDelay:3,canvasExitDelay:1,durations:[1.5,3.6,4,3.6,3.6,3.4,4.4,5.1,3]};
 let elapsed=0,playing=true,lastFrame=0,activeAction=-1,roundData,gammaOverride=null;
 let sceneWidth=sceneHeight*params.aspectRatio;

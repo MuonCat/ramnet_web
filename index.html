@@ -13,12 +13,12 @@
     if (location.hash) history.replaceState(history.state, '', location.pathname + location.search);
   </script>
   <script src="assets/palette.js?v=logo-grid-20261028" data-palette="data/palette.json?v=sec3-cyan-20261002"></script>
-  <script defer src="assets/translations-zh.js?v=copy-review-20261126"></script><script defer src="assets/i18n.js?v=copy-review-20261126"></script>
-  <script defer src="assets/animation-runtime.js?v=i18n-20261008"></script><script defer src="assets/exhibit-markup.js?v=results-fit-20261125"></script>
+  <script defer src="assets/translations-zh.js?v=copy-review-20261126b"></script><script defer src="assets/i18n.js?v=copy-review-20261126"></script>
+  <script defer src="assets/animation-runtime.js?v=i18n-20261008"></script><script defer src="assets/exhibit-markup.js?v=copy-review-20261126b"></script>
   <script defer src="data/probes/niah_traces.js"></script><script defer src="data/probes/niah_slot_maps.js"></script><script defer src="data/probes/head_traces.js"></script>
   <script defer src="assets/stage-timeline.js?v=i18n-20261008"></script>
   <script defer src="animations/hardware.js?v=fixed-input-cadence-20261029"></script>
-  <script defer src="animations/attn_cmp.js?v=i18n-20261008"></script><script defer src="animations/ramnet_arch.js?v=i18n-20261008"></script><script defer src="animations/product_softmax.js?v=i18n-20261008"></script><script defer src="animations/cape.js?v=i18n-20261008"></script><script defer src="animations/gsu.js?v=update-mass-interaction-20261115"></script><script defer src="animations/cal_pipeline.js?v=results-fit-20261125"></script><script defer src="animations/niah_probe.js?v=cycle-20s-20261028"></script><script defer src="animations/head_probe.js?v=head-controls-20261016"></script>
+  <script defer src="animations/attn_cmp.js?v=copy-review-20261126b"></script><script defer src="animations/ramnet_arch.js?v=i18n-20261008"></script><script defer src="animations/product_softmax.js?v=i18n-20261008"></script><script defer src="animations/cape.js?v=i18n-20261008"></script><script defer src="animations/gsu.js?v=copy-review-20261126b"></script><script defer src="animations/cal_pipeline.js?v=results-fit-20261125"></script><script defer src="animations/niah_probe.js?v=cycle-20s-20261028"></script><script defer src="animations/head_probe.js?v=head-controls-20261016"></script>
   <script defer src="animations/slot_usage.js?v=log-normal-20261028"></script><script defer src="assets/exhibit-host.js?v=i18n-20261008"></script><script defer src="assets/site.js?v=stable-touch-layout-20261125"></script><script defer src="assets/hero.js"></script><script defer src="assets/section-scroll.js?v=touch-reading-20261125"></script><script defer src="data/experiments.js?v=results-fit-20261125"></script><script defer src="assets/experiments.js?v=results-fit-20261125"></script><script defer src="assets/reading-position.js?v=section-alignment-20260930"></script>
 </head>
 <body id="top">
@@ -73,16 +73,17 @@
 <p>A sequence model keeps information from past tokens in a memory state and retrieves what it needs at each step.
 Its efficiency depends on both the space needed to store that history and the amount accessed per step.</p>
 <p>Full attention <a class="cite" href="#ref-1">[1]</a> keeps one key–value entry per token and compares each query against all of them, so both costs grow with sequence length.
-KV compression and sparse attention reduce per-step access, but the cache typically keeps growing.</p>
+KV compression, such as KV cache quantization and MLA, reduces cache storage per token. Sparse attention reads fewer positions per step. In both cases, the cache typically grows with sequence length.</p>
 <p>Mainstream linear attention <a class="cite" href="#ref-2">[2]</a> compresses history into a fixed-size state.
 Each step still reads and writes the entire state, so tokens interfere within the same state, and increasing its size also increases per-step access.</p>
 <p>RAM-Net divides this fixed-size state into many addressable slots, and each step reads and writes only a few selected ones.
-Tokens interfere only when they select the same slots, so the state can grow without increasing per-step access.</p>
+Tokens interfere only where their slot accesses overlap. With the same Top-K, adding slots increases capacity without increasing per-step access.</p>
 </div><div class="comparison-table" role="region" aria-label="Comparison of memory mechanisms" tabindex="0"><table>
 <thead><tr><th scope="col">Method</th><th scope="col">How history is stored</th><th scope="col">What each step accesses</th></tr></thead>
 <tbody>
 <tr><td>Full attention</td><td>One key–value entry per token</td><td>All entries</td></tr>
-<tr><td>KV quantization / MLA</td><td>One compressed entry per token</td><td>All compressed entries</td></tr>
+<tr><td>KV cache quantization</td><td>One low-precision key–value entry per token</td><td>All cached positions</td></tr>
+<tr><td>Multi-head Latent Attention (MLA)</td><td>One compressed latent representation per token</td><td>All cached positions</td></tr>
 <tr><td>Sparse attention</td><td>One entry per token in most methods</td><td>A selected group of entries</td></tr>
 <tr><td>Linear attention</td><td>A single fixed-size state</td><td>The entire state in most designs</td></tr>
 <tr><td>RAM-Net</td><td>A fixed-size array of slots</td><td>A few selected slots</td></tr>
@@ -96,7 +97,7 @@ Tokens interfere only when they select the same slots, so the state can grow wit
 </div>
 <div class="prose">
 <p>RAM-Net separates <strong class="text-highlight">address-based access</strong> from <strong class="text-highlight">localized slot updates</strong>.
-The Address Decoder selects sparse read and write addresses; positional encoding then adjusts them for token position.
+The Address Decoder selects sparse read and write addresses. CAPE then shifts them according to token position.
 Gated Sparse Update (GSU) controls how each selected write slot retains its history and incorporates new information.
 These components operate on a fixed-size array of <span class="math">|𝒜|</span> slots, each storing a vector at an integer address.</p>
 <p>For each token, learned projections produce three vectors: a <strong>key</strong> to select write slots, a <strong>query</strong> to select read slots, and a <strong>value</strong> to store.
@@ -128,12 +129,12 @@ Neither grows with sequence length, so storage and per-token cost stay constant 
 The challenge is to make <strong class="text-highlight">address selection itself efficient</strong> as memory grows, while keeping the key and query compact.</p>
 <p><strong class="text-highlight">Product Softmax</strong> combines several low-dimensional distributions to assign weights to a much larger set of slots.</p>
 <h3>Definition and Calculation</h3>
-<p>First, write each integer slot address <span class="math"><i>a</i></span> as <span class="math"><i>U</i></span> base-<span class="math"><i>d<sub>p</sub></i></span> digits, giving <span class="math">|𝒜| = <i>d<sub>p</sub></i><sup><i>U</i></sup></span> possible addresses.
+<p>First, write each integer slot address <span class="math"><i>a</i></span> as <span class="math"><i>U</i></span> digits in base <span class="math"><i>d<sub>p</sub></i></span>, giving <span class="math">|𝒜| = <i>d<sub>p</sub></i><sup><i>U</i></sup></span> possible addresses.
 Here, <span class="math"><i>a</i><sup>(<i>u</i>)</sup></span> denotes <strong>the value at digit position <span class="math"><i>u</i></span></strong>, one of <span class="math">0, …, <i>d<sub>p</sub></i> − 1</span>; <span class="math"><i>u</i> = 0</span> is the least significant digit.</p>
 <p>The key <span class="math"><b>k</b><sub><i>t</i></sub></span> has <span class="math"><i>d<sub>k</sub></i> = <i>U d<sub>p</sub></i></span> dimensions.
 Split it into <span class="math"><i>U</i></span> sub-vectors <span class="math"><b>k</b><sub><i>t</i></sub><sup>(<i>u</i>)</sup></span>, each with <span class="math"><i>d<sub>p</sub></i></span> entries.
 Each sub-vector supplies <strong class="text-highlight">scores for one address digit</strong> <span class="math"><i>a</i><sup>(<i>u</i>)</sup></span>, one score for each possible value.
-The computation below turns each group into a digit distribution and combines them into slot weights. The query is decoded in the same way.</p>
+The computation below normalizes the scores within each group to produce digit distributions. Their product gives the slot weights. The query is decoded in the same way.</p>
 <div class="equation product-softmax-equations" role="group" aria-label="Product Softmax equations">
 <img class="equation-image equation-wide" style="width:34.8em" src="assets/figures/product-softmax-equation.svg?v=single-row-20261028" alt="Product Softmax equations: per-digit softmax, address probabilities, and Kronecker product">
 <img class="equation-image equation-stacked" style="width:13.1em" src="assets/figures/product-softmax-equation-stacked.svg" alt="Product Softmax equations: per-digit softmax, address probabilities, and Kronecker product">
@@ -184,8 +185,8 @@ The waveform view explains <strong class="text-highlight">CAPE's shift equivalen
 </figure>
 </div>
 <div class="prose">
-<p>Before positional shifts, Product Softmax maps identical keys or queries to the same absolute slot addresses.
-Cyclic Address Positional Embedding (CAPE) turns this into <strong class="text-highlight">relative-position-aware addressing</strong>, so a read can distinguish the same content at different distances.</p>
+<p>Without a position-dependent shift, Product Softmax maps identical keys or queries to the same absolute slot addresses.
+Cyclic Address Positional Embedding (CAPE) makes <strong class="text-highlight">read–write matching depend on relative position</strong> as well as content. This lets a read distinguish the same content at different distances.</p>
 <p>At token position <span class="math"><i>t</i></span>, CAPE shifts each decoded address by <span class="math">−<i>t</i></span>, keeping its weight unchanged.
 It shifts the read and write indices, not the stored content. The modulo operation wraps addresses around the finite slot array.</p>
 <p>A write at position <span class="math"><i>s</i></span> is shifted by <span class="math">−<i>s</i></span>, while a read at <span class="math"><i>t</i></span> is shifted by <span class="math">−<i>t</i></span>.
@@ -207,7 +208,7 @@ Both keep the same sparse access budget.</p>
 Its local objective is <span class="math">ℓ<sub><i>t</i></sub>(<b>s</b>) = ½‖<b>s</b> − <b>v</b><sub><i>t</i></sub>‖<sup>2</sup></span>, with a learning rate adapted to the slot's history and the current input.</p>
 <p>A forgetting gate over the entire state would touch every slot at every step, defeating sparse access.
 GSU instead forgets and learns only at the selected slots, leaving all others exactly unchanged. Each slot balances retaining its own history against adopting new information.</p>
-<p>Each slot <span class="math"><i>a</i></span> maintains a content vector <span class="math"><b>s</b><sub><i>t</i></sub>[<i>a</i>]</span> and a scalar <strong class="text-highlight">slot mass</strong> <span class="math"><i>m</i><sub><i>t</i></sub>[<i>a</i>]</span>. The mass is the accumulated write weight the slot has retained. It gives the slot inertia. For the same incoming write weight, a slot with more mass changes less.
+<p>Each slot <span class="math"><i>a</i></span> maintains a content vector <span class="math"><b>s</b><sub><i>t</i></sub>[<i>a</i>]</span> and a scalar <strong class="text-highlight">slot mass</strong> <span class="math"><i>m</i><sub><i>t</i></sub>[<i>a</i>]</span>. The mass is the accumulated write weight the slot has retained. For the same incoming write weight, greater mass lowers the learning rate and moves the stored content less toward the new value.
 Given the current write weight <span class="math"><i>w</i><sub><i>t</i></sub>[<i>a</i>]</span> and value <span class="math"><b>v</b><sub><i>t</i></sub></span>, the complete update is:</p>
 <div class="equation" role="group" aria-label="Gated sparse update equations">
 <img class="equation-image" src="assets/figures/gsu-equation.svg" alt="Gated sparse update equations">
@@ -216,7 +217,7 @@ Given the current write weight <span class="math"><i>w</i><sub><i>t</i></sub>[<i
 <ul class="equation-notes">
 <li><strong class="text-highlight">Retention (λ):</strong> starts from <span class="math">1 − <i>w</i><sub><i>t</i></sub>[<i>a</i>]</span>, so a stronger write retains less historical mass. The input-dependent modulator <span class="math">γ<sub><i>t</i></sub></span> adjusts this baseline in logit space: a larger γ means more forgetting. A learned projection produces one γ per token and head, shared across slots.</li>
 <li><strong class="text-highlight">Slot mass (m):</strong> keep a fraction <span class="math">λ<sub><i>t</i></sub>[<i>a</i>]</span> of the previous mass, then add the current write weight. Forgetting reduces the slot's inertia, allowing it to learn new content faster.</li>
-<li><strong class="text-highlight">Learning rate (η):</strong> divide the current write weight by the updated mass, with a small <span class="math">ε</span> for numerical stability. A stronger write increases the step; more retained history suppresses it.</li>
+<li><strong class="text-highlight">Learning rate (η):</strong> divide the current write weight by the sum of the updated slot mass and a small <span class="math">ε</span> for numerical stability. A stronger write increases the step, while more retained history reduces it.</li>
 <li><strong class="text-highlight">Content (s):</strong> move an η fraction of the way from the current content toward <span class="math"><b>v</b><sub><i>t</i></sub></span>. A small η preserves history; an η near 1 lets the new value dominate.</li>
 </ul>
 <p>As a result, GSU has three properties:</p>
@@ -273,7 +274,7 @@ Each read contributes to its token's output. Slots without events are skipped, s
 </table></div>
 <p class="experiment-key">↑ Higher is better for all scores. Columns within each task give the context length.</p>
 <p class="experiment-key">Within each model size, bold marks the best value in each column and underlining marks the next-best distinct value. Tied values receive the same mark.</p>
-<p>The single-needle S-NIAH tasks from RULER <a class="cite" href="#ref-9">[9]</a> span 1K–16K tokens, up to four times the 4K training length. RAM-Net achieves <strong class="text-highlight">the highest average at both scales</strong>, with Top-32 scoring 72.9 at 340M (DeltaNet reaches 54.5) and Top-16 scoring 70.1 at 1.3B (Mamba2 reaches 62.4). All RAM-Net variants stay near-perfect through 16K on S-NIAH-1. S-NIAH-2 and S-NIAH-3 use diverse natural text as filler. At 1.3B, Top-16 leads both harder tasks at 8K and 16K. Its overall average of 70.1 is higher than the 67.0 scored by Top-32.</p>
+<p>The single-needle S-NIAH tasks from RULER <a class="cite" href="#ref-9">[9]</a> span 1K–16K tokens, up to four times the training context length. RAM-Net achieves <strong class="text-highlight">the highest average at both scales</strong>, with Top-32 scoring 72.9 at 340M (DeltaNet reaches 54.5) and Top-16 scoring 70.1 at 1.3B (Mamba2 reaches 62.4). All RAM-Net variants stay near-perfect through 16K on S-NIAH-1. S-NIAH-2 and S-NIAH-3 use diverse natural text as filler. At 1.3B, Top-16 leads both harder tasks at 8K and 16K. Its overall average of 70.1 is higher than the 67.0 scored by Top-32.</p>
 </article>
 <article class="experiment-panel" id="experiment-tasks" aria-labelledby="title-tasks">
 <h3 id="title-tasks">Real-World Recall</h3>
@@ -282,7 +283,7 @@ Each read contributes to its token's output. Slots without events are skipped, s
 </table></div>
 <p class="experiment-key">↑ Higher is better. FDA, SWDE, and NQ are evaluated at context lengths of 512 and 1K; the remaining tasks use the full document.</p>
 <p class="experiment-key">Within each model size, bold marks the best value in each column and underlining marks the next-best distinct value. Tied values receive the same mark.</p>
-<p>These recall-intensive tasks <a class="cite" href="#ref-10">[10]</a> require extracting information from real documents. Transformer++ achieves the highest average at both scales, since its KV cache keeps every context token. Among recurrent models, RAM-Net Top-32 achieves <strong class="text-highlight">the highest average at both scales</strong>, with 32.0 at 340M and 42.7 at 1.3B. At 340M, it narrows the gap to Transformer++ from 8.2 points for the best baseline to <strong class="text-highlight">3.1 points</strong>.</p>
+<p>These recall-intensive tasks <a class="cite" href="#ref-10">[10]</a> require extracting information from real documents. Transformer++ achieves the highest average at both scales, since its KV cache keeps every context token. Among recurrent models, RAM-Net Top-32 achieves <strong class="text-highlight">the highest average at both scales</strong>, with 32.0 at 340M and 42.7 at 1.3B. At 340M, RAM-Net trails Transformer++ by <strong class="text-highlight">3.1 points</strong>, compared with an 8.2-point gap for Mamba2, the best recurrent baseline at that scale.</p>
 </article>
 <div class="prose"><p>At 340M, Top-8 accesses <strong class="text-highlight">0.4M of 26.6M state elements</strong> per step, about 1.5% of its total state. At 1.3B, Top-8 accesses 0.8M of 53.2M elements per step, also about 1.5%.</p></div>
 
@@ -290,7 +291,7 @@ Each read contributes to its token's output. Slots without events are skipped, s
 <p>At 340M, moving from Top-8 to Top-32 increases active state from 0.4M to 1.7M elements while total state stays at 26.6M. WikiText perplexity drops from 26.89 to 25.87, the S-NIAH average rises from 64.7 to 72.9, and the real-world recall average from 23.2 to 32.0. At 1.3B, the best setting depends on the task. Top-16 leads the RAM-Net variants on WikiText perplexity and S-NIAH, while Top-32 leads on average reasoning accuracy and real-world recall.</p>
 <p>On the synthetic multi-query associative recall (MQAR) benchmark <a class="cite" href="#ref-11">[11]</a>, RAM-Net reaches high accuracy with a smaller total state than most linear recurrent baselines. At comparable accuracy, it accesses about one-tenth as much state per step as those baselines.</p>
 <p>We benchmark autoregressive decoding of the 340M recurrent models on a single NVIDIA RTX 3060. Each step is captured in a CUDA graph to exclude Python and per-kernel launch overhead from the comparison. At batch size 1, reading model weights dominates, so the models run at similar speed. As the batch grows, <strong class="text-highlight">recurrent-state reads and updates become the bottleneck</strong>.</p>
-<p>At batch size 64, RAM-Net Top-8 achieves <strong class="text-highlight">2.0× the throughput of the fastest compared baseline</strong>, despite having the largest total state among the compared recurrent models. It accesses the least state per step, <strong class="text-highlight">decoupling decoding speed from total state size</strong>: a large memory supports strong S-NIAH retrieval, while sparse access keeps decoding fast. Increasing <span class="math"><i>K</i></span> trades throughput for higher accuracy.</p>
+<p>At batch size 64, RAM-Net Top-8 achieves <strong class="text-highlight">2.0× the throughput of the fastest baseline</strong>, despite having the largest total state among the compared recurrent models. It accesses the least state per step, <strong class="text-highlight">decoupling decoding speed from total state size</strong>: a large memory supports strong S-NIAH retrieval, while sparse access keeps decoding fast. Increasing <span class="math"><i>K</i></span> trades throughput for higher accuracy.</p>
 </div><div class="results-note">Retrieval still depends on <strong class="text-highlight">reliable address selection</strong>. Only selected slots contribute to the current read. Adding slots increases capacity, while raising Top-K increases the number of slots accessed per step. The benefit of each change depends on the task.</div></section>
 <section class="paper-section" id="retrieval-probe" aria-labelledby="heading-retrieval-probe"><div class="section-opening">
 <div class="section-heading"><div class="section-kicker"><span class="section-number">08</span><span class="section-name"><span class="section-name-text">Retrieval Traces</span></span></div><div><h2 id="heading-retrieval-probe">Following a Needle Through Memory</h2><p class="section-subtitle">Interpretability · Token–slot–token paths</p></div></div>
@@ -319,7 +320,7 @@ Each read contributes to its token's output. Slots without events are skipped, s
 </figure>
 </div><div class="prose">
 <p>The network's content-dependent reads and writes <strong class="text-highlight">spontaneously form hotspots</strong>: many visits converge on a small set of learned content addresses, while many other addresses are visited less often, forming a long tail. Sparse access limits how many slots each step touches; this concentration reflects where the model chooses to route the input content.</p>
-<p>Computers show a familiar pattern of <strong class="text-highlight">hot data and a long tail of infrequent accesses</strong>. Seeing a similar pattern emerge in learned addressing suggests that <strong class="text-highlight">concentrated reuse may be a common feature of computation</strong>: a broad memory serves diverse needs, while a small subset supplies much of the repeated work.</p>
+<p>Computer memory accesses often concentrate on <strong class="text-highlight">hot data, with a long tail of rarely accessed locations</strong>. Seeing a similar pattern emerge in learned addressing suggests that <strong class="text-highlight">concentrated reuse may be a common feature of computation</strong>: a broad memory serves diverse needs, while a small subset supplies much of the repeated work.</p>
 <p>This concentration creates an <strong class="text-highlight">opportunity for acceleration through reuse</strong>. Keeping frequently visited state near the execution units can let a small fast memory serve a large share of accesses. A larger, slower backing memory can then provide capacity without serving every operation.</p>
 </div></section>
 <section class="paper-section" id="hardware" aria-labelledby="heading-hardware"><div class="section-opening">

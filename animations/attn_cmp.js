@@ -79,7 +79,7 @@ const diagram=window.ramnetDiagramTheme;
       const y=outer+titleHeight,outputY=y+h+params.outputGap,cacheY=outputY+outputH+params.distance;
       const panels=[
         {scale:1,base:params.fullColor,name:'Full cache',label:'Full Attention',description:['Stores every token in the cache.','Each query reads the full history.']},
-        {scale:params.compressionRatio,base:params.compressedColor,name:'Compressed cache',label:'KV Quant / MLA',description:['Compresses historical entries.','The cache still grows with context.']},
+        {scale:params.compressionRatio,base:params.compressedColor,name:'Compressed cache',label:'KV Compression',description:['Compresses historical entries.','The cache still grows with context.']},
         {scale:1,base:params.sparseColor,name:'Sparse cache',label:'Sparse Attention',description:['Reads selected historical positions','from a growing KV cache.'],sparse:true},
         {scale:1,base:params.linearColor,name:'Linear cache',label:'Linear Attention',description:['Summarizes history in a fixed state.','Reads and writes the state densely.'],linear:true},
         {scale:1,base:params.ramnetColor,name:'RAM-Net cache',label:'RAM-Net',description:['Keeps a fixed array of memory slots.','Reads and writes only a selected few.'],linear:true,ramnet:true}
