@@ -29,7 +29,7 @@
   document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
   translate(document);
   if (lang === 'zh') {
-    document.querySelector('meta[name="description"]').content = '探索 RAM-Net：以少量槽位读写更大的递归记忆。通过交互动画理解 Product Softmax、CAPE、门控稀疏更新与 CUDA 执行流程。';
+    document.querySelector('meta[name="description"]').content = '探索 RAM-Net 如何通过稀疏读写支持更大的循环状态。通过交互动画理解 Product Softmax、CAPE、门控稀疏更新与 CUDA 执行流程。';
   }
   document.querySelectorAll('[data-language]').forEach(button => {
     button.setAttribute('aria-pressed', String(button.dataset.language === lang));

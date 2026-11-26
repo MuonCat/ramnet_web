@@ -13,7 +13,7 @@
     if (location.hash) history.replaceState(history.state, '', location.pathname + location.search);
   </script>
   <script src="assets/palette.js?v=logo-grid-20261028" data-palette="data/palette.json?v=sec3-cyan-20261002"></script>
-  <script defer src="assets/translations-zh.js?v=results-fit-20261125"></script><script defer src="assets/i18n.js?v=literal-examples-20261029"></script>
+  <script defer src="assets/translations-zh.js?v=copy-review-20261126"></script><script defer src="assets/i18n.js?v=copy-review-20261126"></script>
   <script defer src="assets/animation-runtime.js?v=i18n-20261008"></script><script defer src="assets/exhibit-markup.js?v=results-fit-20261125"></script>
   <script defer src="data/probes/niah_traces.js"></script><script defer src="data/probes/niah_slot_maps.js"></script><script defer src="data/probes/head_traces.js"></script>
   <script defer src="assets/stage-timeline.js?v=i18n-20261008"></script>
@@ -207,7 +207,7 @@ Both keep the same sparse access budget.</p>
 Its local objective is <span class="math">ℓ<sub><i>t</i></sub>(<b>s</b>) = ½‖<b>s</b> − <b>v</b><sub><i>t</i></sub>‖<sup>2</sup></span>, with a learning rate adapted to the slot's history and the current input.</p>
 <p>A forgetting gate over the entire state would touch every slot at every step, defeating sparse access.
 GSU instead forgets and learns only at the selected slots, leaving all others exactly unchanged. Each slot balances retaining its own history against adopting new information.</p>
-<p>Each slot <span class="math"><i>a</i></span> maintains a content vector <span class="math"><b>s</b><sub><i>t</i></sub>[<i>a</i>]</span> and a scalar <strong class="text-highlight">mass</strong> <span class="math"><i>m</i><sub><i>t</i></sub>[<i>a</i>]</span>: the accumulated write weight retained from earlier updates. This mass acts as inertia against new writes.
+<p>Each slot <span class="math"><i>a</i></span> maintains a content vector <span class="math"><b>s</b><sub><i>t</i></sub>[<i>a</i>]</span> and a scalar <strong class="text-highlight">slot mass</strong> <span class="math"><i>m</i><sub><i>t</i></sub>[<i>a</i>]</span>. The mass is the accumulated write weight the slot has retained. It gives the slot inertia. For the same incoming write weight, a slot with more mass changes less.
 Given the current write weight <span class="math"><i>w</i><sub><i>t</i></sub>[<i>a</i>]</span> and value <span class="math"><b>v</b><sub><i>t</i></sub></span>, the complete update is:</p>
 <div class="equation" role="group" aria-label="Gated sparse update equations">
 <img class="equation-image" src="assets/figures/gsu-equation.svg" alt="Gated sparse update equations">
@@ -215,7 +215,7 @@ Given the current write weight <span class="math"><i>w</i><sub><i>t</i></sub>[<i
 <p>Read the equations from top to bottom, in the same order as the animation:</p>
 <ul class="equation-notes">
 <li><strong class="text-highlight">Retention (λ):</strong> starts from <span class="math">1 − <i>w</i><sub><i>t</i></sub>[<i>a</i>]</span>, so a stronger write retains less historical mass. The input-dependent modulator <span class="math">γ<sub><i>t</i></sub></span> adjusts this baseline in logit space: a larger γ means more forgetting. A learned projection produces one γ per token and head, shared across slots.</li>
-<li><strong class="text-highlight">Mass (m):</strong> keep a fraction <span class="math">λ<sub><i>t</i></sub>[<i>a</i>]</span> of the previous mass, then add the current write weight. Forgetting reduces the slot's inertia, allowing it to learn new content faster.</li>
+<li><strong class="text-highlight">Slot mass (m):</strong> keep a fraction <span class="math">λ<sub><i>t</i></sub>[<i>a</i>]</span> of the previous mass, then add the current write weight. Forgetting reduces the slot's inertia, allowing it to learn new content faster.</li>
 <li><strong class="text-highlight">Learning rate (η):</strong> divide the current write weight by the updated mass, with a small <span class="math">ε</span> for numerical stability. A stronger write increases the step; more retained history suppresses it.</li>
 <li><strong class="text-highlight">Content (s):</strong> move an η fraction of the way from the current content toward <span class="math"><b>v</b><sub><i>t</i></sub></span>. A small η preserves history; an η near 1 lets the new value dominate.</li>
 </ul>
@@ -263,7 +263,7 @@ Each read contributes to its token's output. Slots without events are skipped, s
 <table class="experiment-table" data-benchmark="language" role="table"><caption>Language Modeling and Reasoning — 340M and 1.3B models</caption><thead></thead>
 </table></div>
 <p class="experiment-key">↓ Lower is better. ↑ Higher is better. State sizes are in millions of elements. Active state is measured per step, at 2,048 tokens of context for Transformer++.</p>
-<p class="experiment-key">Bold marks the best value; underlining marks the second-best distinct value within each model size, including ties.</p>
+<p class="experiment-key">Within each model size, bold marks the best value in each column and underlining marks the next-best distinct value. Tied values receive the same mark.</p>
 <p>At 340M, RAM-Net Top-32 achieves <strong class="text-highlight">the lowest WikiText perplexity (25.87) and the highest average reasoning accuracy (50.9)</strong>. At 1.3B, Top-16 reaches 15.90 perplexity, close to Gated DeltaNet’s 15.85, and Top-32 ranks second in average reasoning accuracy at 58.1, behind Gated DeltaNet’s 58.7. Increasing Top-K improves average reasoning accuracy at both scales.</p>
 </article>
 <article class="experiment-panel" id="experiment-sniah" aria-labelledby="title-sniah">
@@ -272,8 +272,8 @@ Each read contributes to its token's output. Slots without events are skipped, s
 <table class="experiment-table" data-benchmark="sniah"><caption>S-NIAH: Retrieval Across Context Lengths — 340M and 1.3B models</caption><thead></thead>
 </table></div>
 <p class="experiment-key">↑ Higher is better for all scores. Columns within each task give the context length.</p>
-<p class="experiment-key">Bold marks the best value; underlining marks the second-best distinct value within each model size, including ties.</p>
-<p>The single-needle S-NIAH tasks from RULER <a class="cite" href="#ref-9">[9]</a> span 1K–16K tokens, up to four times the 4K training length. RAM-Net achieves <strong class="text-highlight">the highest average at both scales</strong>, with Top-32 scoring 72.9 at 340M (DeltaNet reaches 54.5) and Top-16 scoring 70.1 at 1.3B (Mamba2 reaches 62.4). All RAM-Net variants stay near-perfect through 16K on S-NIAH-1. S-NIAH-2 and S-NIAH-3 use diverse natural text as filler. At 1.3B, Top-16 leads both of these harder tasks at 8K and 16K, and has a higher overall average than Top-32 (67.0).</p>
+<p class="experiment-key">Within each model size, bold marks the best value in each column and underlining marks the next-best distinct value. Tied values receive the same mark.</p>
+<p>The single-needle S-NIAH tasks from RULER <a class="cite" href="#ref-9">[9]</a> span 1K–16K tokens, up to four times the 4K training length. RAM-Net achieves <strong class="text-highlight">the highest average at both scales</strong>, with Top-32 scoring 72.9 at 340M (DeltaNet reaches 54.5) and Top-16 scoring 70.1 at 1.3B (Mamba2 reaches 62.4). All RAM-Net variants stay near-perfect through 16K on S-NIAH-1. S-NIAH-2 and S-NIAH-3 use diverse natural text as filler. At 1.3B, Top-16 leads both harder tasks at 8K and 16K. Its overall average of 70.1 is higher than the 67.0 scored by Top-32.</p>
 </article>
 <article class="experiment-panel" id="experiment-tasks" aria-labelledby="title-tasks">
 <h3 id="title-tasks">Real-World Recall</h3>
@@ -281,17 +281,17 @@ Each read contributes to its token's output. Slots without events are skipped, s
 <table class="experiment-table" data-benchmark="tasks"><caption>Real-World Recall — 340M and 1.3B models</caption><thead></thead>
 </table></div>
 <p class="experiment-key">↑ Higher is better. FDA, SWDE, and NQ are evaluated at context lengths of 512 and 1K; the remaining tasks use the full document.</p>
-<p class="experiment-key">Bold marks the best value; underlining marks the second-best distinct value within each model size, including ties.</p>
+<p class="experiment-key">Within each model size, bold marks the best value in each column and underlining marks the next-best distinct value. Tied values receive the same mark.</p>
 <p>These recall-intensive tasks <a class="cite" href="#ref-10">[10]</a> require extracting information from real documents. Transformer++ achieves the highest average at both scales, since its KV cache keeps every context token. Among recurrent models, RAM-Net Top-32 achieves <strong class="text-highlight">the highest average at both scales</strong>, with 32.0 at 340M and 42.7 at 1.3B. At 340M, it narrows the gap to Transformer++ from 8.2 points for the best baseline to <strong class="text-highlight">3.1 points</strong>.</p>
 </article>
 <div class="prose"><p>At 340M, Top-8 accesses <strong class="text-highlight">0.4M of 26.6M state elements</strong> per step, about 1.5% of its total state. At 1.3B, Top-8 accesses 0.8M of 53.2M elements per step, also about 1.5%.</p></div>
 
 <div class="prose results-discussion"><h3>Accuracy, State Access, and Speed</h3>
 <p>At 340M, moving from Top-8 to Top-32 increases active state from 0.4M to 1.7M elements while total state stays at 26.6M. WikiText perplexity drops from 26.89 to 25.87, the S-NIAH average rises from 64.7 to 72.9, and the real-world recall average from 23.2 to 32.0. At 1.3B, the best setting depends on the task. Top-16 leads the RAM-Net variants on WikiText perplexity and S-NIAH, while Top-32 leads on average reasoning accuracy and real-world recall.</p>
-<p>On the synthetic multi-query associative recall (MQAR) benchmark <a class="cite" href="#ref-11">[11]</a>, RAM-Net achieves leading accuracy for its total state size, while accessing about one-tenth as much state per step as baselines with comparable accuracy.</p>
+<p>On the synthetic multi-query associative recall (MQAR) benchmark <a class="cite" href="#ref-11">[11]</a>, RAM-Net reaches high accuracy with a smaller total state than most linear recurrent baselines. At comparable accuracy, it accesses about one-tenth as much state per step as those baselines.</p>
 <p>We benchmark autoregressive decoding of the 340M recurrent models on a single NVIDIA RTX 3060. Each step is captured in a CUDA graph to exclude Python and per-kernel launch overhead from the comparison. At batch size 1, reading model weights dominates, so the models run at similar speed. As the batch grows, <strong class="text-highlight">recurrent-state reads and updates become the bottleneck</strong>.</p>
 <p>At batch size 64, RAM-Net Top-8 achieves <strong class="text-highlight">2.0× the throughput of the fastest compared baseline</strong>, despite having the largest total state among the compared recurrent models. It accesses the least state per step, <strong class="text-highlight">decoupling decoding speed from total state size</strong>: a large memory supports strong S-NIAH retrieval, while sparse access keeps decoding fast. Increasing <span class="math"><i>K</i></span> trades throughput for higher accuracy.</p>
-</div><div class="results-note">Retrieval still depends on <strong class="text-highlight">reliable address selection</strong>: an unselected slot cannot contribute to the current read. More slots increase capacity; a larger Top-K increases access. Their benefits depend on the task.</div></section>
+</div><div class="results-note">Retrieval still depends on <strong class="text-highlight">reliable address selection</strong>. Only selected slots contribute to the current read. Adding slots increases capacity, while raising Top-K increases the number of slots accessed per step. The benefit of each change depends on the task.</div></section>
 <section class="paper-section" id="retrieval-probe" aria-labelledby="heading-retrieval-probe"><div class="section-opening">
 <div class="section-heading"><div class="section-kicker"><span class="section-number">08</span><span class="section-name"><span class="section-name-text">Retrieval Traces</span></span></div><div><h2 id="heading-retrieval-probe">Following a Needle Through Memory</h2><p class="section-subtitle">Interpretability · Token–slot–token paths</p></div></div>
 <figure class="exhibit-figure" id="figure-8">
@@ -309,7 +309,7 @@ Each read contributes to its token's output. Slots without events are skipped, s
 </div><div class="prose">
 <p>Slot-level traces provide a <strong class="text-highlight">fine-grained probe of learned token relationships</strong>: which tokens connect, where their information is stored, and how a later token retrieves it. The two examples reveal recognizable patterns of word-piece recombination and punctuation pairing.</p>
 <p>The tokenizer splits <em translate="no">“tokenization”</em> into <em translate="no">“token”</em> and <em translate="no">“ization”</em>. In the displayed head, the later piece reads from slots written by the earlier piece, <strong class="text-highlight">reconnecting fragments of the same word through memory</strong>.</p>
-<p>In <em translate="no">“（white bird）”</em>, the closing mark retrieves information left by the opening mark, despite the words in between. This suggests the head is <strong class="text-highlight">tracking a punctuation pair through memory</strong>. The trace reveals both the token relationship and the specific slots that carry it.</p>
+<p>In the parenthesis example, the words <em translate="no">“white bird”</em> separate the opening and closing marks. The closing parenthesis reads from slots written by the opening parenthesis. The trace shows <strong class="text-highlight">how the head tracks paired punctuation through memory</strong> and identifies the slots that carry the association.</p>
 </div></section>
 <section class="paper-section" id="slot-usage" aria-labelledby="heading-slot-usage"><div class="section-opening">
 <div class="section-heading"><div class="section-kicker"><span class="section-number">10</span><span class="section-name"><span class="section-name-text">Access Patterns</span></span></div><div><h2 id="heading-slot-usage">Emergent Hotspots in Content Access</h2><p class="section-subtitle">Emergent reuse · Hotspots and a long tail</p></div></div>

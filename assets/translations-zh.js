@@ -81,7 +81,7 @@ window.RamnetChinese = {
     'Efficient Sparse Addressing': '高效的稀疏寻址',
     'Position-Aware Addressing': '感知相对位置的寻址',
     'Relative position': '相对位置',
-    'Balancing Retention and New Information': '保留历史，接纳新信息',
+    'Balancing Retention and New Information': '在保留历史与接纳新信息之间取得平衡',
     'Updating slots': '槽位更新',
     'Parallel Work Across Memory Slots': '在记忆槽位间并行执行',
     'CUDA · Sparse access on the GPU': 'CUDA · GPU 上的稀疏访问',
@@ -138,10 +138,10 @@ window.RamnetChinese = {
     'S-NIAH: Retrieval Across Context Lengths': 'S-NIAH：不同上下文长度下的检索',
     'Real-World Recall': '真实场景召回',
     '↓ Lower is better. ↑ Higher is better. State sizes are in millions of elements. Active state is measured per step, at 2,048 tokens of context for Transformer++.': '↓ 越低越好，↑ 越高越好。状态规模以百万个元素为单位。活跃状态为单步访问量，Transformer++ 在 2,048 个词元的上下文长度下测量。',
-    'Bold marks the best value; underlining marks the second-best distinct value within each model size, including ties.': '同一模型规模内，粗体标示最优值，下划线标示次优的不同数值；并列结果使用相同标记。',
+    'Within each model size, bold marks the best value in each column and underlining marks the next-best distinct value. Tied values receive the same mark.': '同一模型规模内，每列按不同数值排名。粗体标示最优值，下划线标示次优值。并列项使用相同标记。',
     '↑ Higher is better for all scores. Columns within each task give the context length.': '↑ 表示分数越高越好。各任务下的列表示上下文长度。',
     '↑ Higher is better. FDA, SWDE, and NQ are evaluated at context lengths of 512 and 1K; the remaining tasks use the full document.': '↑ 越高越好。FDA、SWDE 与 NQ 在 512 与 1K 的上下文长度下评测，其余任务使用完整文档。',
-    'Accuracy, State Access, and Speed': '精度、状态访问与速度',
+    'Accuracy, State Access, and Speed': '准确率、状态访问与速度',
     'Model': '模型',
     'Total state': '总状态',
     'Active state': '活跃状态',
@@ -228,7 +228,7 @@ window.RamnetChinese = {
     'Write': '写入',
     'Read': '读取',
     'calculate λ': '计算 λ',
-    'update mass': '更新质量',
+    'update mass': '更新惯性质量',
     'calculate η': '计算 η',
     'update slot': '更新槽位',
     'Decode': '解码',
@@ -290,7 +290,7 @@ window.RamnetChinese = {
     'Read and write traces for word pieces and paired punctuation': '子词片段与成对标点的读写轨迹',
     'Gated sparse update equations': '门控稀疏更新公式',
     'Retention factor': '保留系数',
-    'Updated write mass': '更新后的写入质量',
+    'Updated write mass': '更新后的槽位惯性质量',
     'Update rate': '更新率',
     'Updated slot content': '更新后的槽位内容',
     'Interactive views of product address distributions.': '乘积地址分布的交互视图。',
@@ -303,8 +303,8 @@ window.RamnetChinese = {
     'GSU stages': 'GSU 更新阶段',
     'RAM-Net processing stages': 'RAM-Net 处理阶段',
     'CUDA execution stages': 'CUDA 执行阶段',
-    'Cyclic positional addressing and overlap between read and write distributions.': '循环位置寻址，以及读写分布的重合。',
-    'Interactive gated sparse update: retention, write mass and slot content.': '门控稀疏更新：保留、写入质量与槽位内容。',
+    'Cyclic positional addressing and overlap between read and write distributions.': '地址沿环形槽位数组平移，展示读写分布的重合。',
+    'Interactive gated sparse update: retention, write mass and slot content.': '交互式门控稀疏更新，展示保留系数、槽位惯性质量和槽位内容。',
     'RAM-Net architecture and animated sparse reads and writes.': 'RAM-Net 网络结构与稀疏读写动画。',
     'CUDA execution: address decoding, grouping and parallel slot operations.': 'CUDA 执行：地址解码、归组与并行槽位操作。',
     'Language Modeling and Reasoning data table': '语言建模与推理数据表',
@@ -326,28 +326,28 @@ window.RamnetChinese = {
     '#architecture .prose p': [
       'RAM-Net 将<strong class="text-highlight">按地址访问</strong>与<strong class="text-highlight">槽位内的局部更新</strong>分开。地址解码器选择稀疏的读写地址，位置编码再根据词元位置调整这些地址；门控稀疏更新（GSU）决定选中写入槽位如何保留历史、接纳新信息。这些组件作用于固定容量的槽位数组，共有 <span class="math">|𝒜|</span> 个槽位，每个槽位在一个整数地址上存储一个向量。',
       '每个词元经过可学习的投影，产生三个向量：<strong>key（键）</strong>用于选择写入槽位，<strong>query（查询）</strong>用于选择读取槽位，<strong>value（值）</strong>提供要存储的内容。以下三个组件将这些输入连接到槽位记忆：',
-      '完成更新后，读取权重将选中槽位的内容组合为输出，再经归一化、门控与投影。地址解码器与 CAPE 决定读写发生在哪里，GSU 决定每个选中的写入槽位保留什么、更新什么。图中以 32 个槽位、Top-4 访问作示意；第 3、4、5 章分别展开三个组件的细节。',
+      '完成更新后，读取权重将选中槽位的内容组合为输出，再经归一化、门控与投影。地址解码器与 CAPE 决定读写发生在哪里，GSU 决定每个选中的写入槽位保留什么、更新什么。图中以 32 个槽位和 Top-4 访问作示意。第 3、4、5 节分别介绍这三个组件。',
       '这些组件共同将记忆容量与每步访问预算解耦。槽位数 <span class="math">|𝒜|</span> 决定<strong class="text-highlight">状态容量</strong>，<span class="math"><i>K</i></span> 决定<strong class="text-highlight">每次读写访问多少槽位</strong>。两者都不随序列长度增长，因此即使上下文变长，存储量和每词元成本仍保持不变。'
     ],
     '#architecture .stage-list li': [
       '<strong>地址解码器：</strong>Product Softmax 根据几组低维评分构造槽位权重。Top-<span class="math"><i>K</i></span> 选出权重最大的 <span class="math"><i>K</i></span> 个槽位，保留其<strong class="text-highlight">整数地址和权重</strong>。key 决定写入访问，query 决定读取访问。',
-      '<strong>循环地址位置嵌入（CAPE）：</strong>按词元位置平移解码后的读写索引，保持权重不变。它应用于部分注意力头，使读写匹配感知<strong class="text-highlight">相对位置</strong>；其余头保留纯内容寻址。',
+      '<strong>环形地址位置编码（CAPE）：</strong>按词元位置平移解码后的读写索引，保持权重不变。它应用于部分注意力头，使读写匹配感知<strong class="text-highlight">相对位置</strong>；其余头保留纯内容寻址。',
       '<strong>门控稀疏更新（GSU）：</strong>接收 value 与写入权重，<strong class="text-highlight">仅在选中的写入槽位上遗忘和更新</strong>。各选中槽位独立更新，其余槽位保持不变。'
     ],
     '#addressing .prose p': [
-      '第 2 章介绍了地址解码器：从大容量记忆中选出少量槽位，并给出对应权重。这里的关键是，让<strong class="text-highlight">地址选择本身也足够高效</strong>，既能扩大记忆容量，又让 key 和 query 保持紧凑。',
+      '第 2 节介绍了地址解码器。它从大容量记忆中选出少量槽位，并给出对应权重。这里的关键是，让<strong class="text-highlight">地址选择本身也足够高效</strong>，既能扩大记忆容量，又让 key 和 query 保持紧凑。',
       '<strong class="text-highlight">Product Softmax</strong> 将多组低维分布组合起来，为更大的槽位空间分配权重。',
-      '先将每个槽位的整数地址 <span class="math"><i>a</i></span> 写成 <span class="math"><i>U</i></span> 位 <span class="math"><i>d<sub>p</sub></i></span> 进制数，共有 <span class="math">|𝒜| = <i>d<sub>p</sub></i><sup><i>U</i></sup></span> 个可能地址。其中，<span class="math"><i>a</i><sup>(<i>u</i>)</sup></span> 表示<strong>地址第 <span class="math"><i>u</i></span> 位的取值</strong>，范围为 <span class="math">0, …, <i>d<sub>p</sub></i> − 1</span>；<span class="math"><i>u</i> = 0</span> 对应最低位。',
+      '先将每个槽位的整数地址 <span class="math"><i>a</i></span> 写成长度为 <span class="math"><i>U</i></span> 的 <span class="math"><i>d<sub>p</sub></i></span> 进制表示，共有 <span class="math">|𝒜| = <i>d<sub>p</sub></i><sup><i>U</i></sup></span> 个可能地址。其中，<span class="math"><i>a</i><sup>(<i>u</i>)</sup></span> 表示<strong>地址第 <span class="math"><i>u</i></span> 位的取值</strong>，范围为 <span class="math">0, …, <i>d<sub>p</sub></i> − 1</span>，<span class="math"><i>u</i> = 0</span> 对应最低位。',
       'key <span class="math"><b>k</b><sub><i>t</i></sub></span> 的维度为 <span class="math"><i>d<sub>k</sub></i> = <i>U d<sub>p</sub></i></span>。将它拆成 <span class="math"><i>U</i></span> 个子向量 <span class="math"><b>k</b><sub><i>t</i></sub><sup>(<i>u</i>)</sup></span>，每个子向量有 <span class="math"><i>d<sub>p</sub></i></span> 个分量。每个分量为<strong class="text-highlight">对应地址位</strong> <span class="math"><i>a</i><sup>(<i>u</i>)</sup></span> 的一种可能取值提供分数。下面的计算先把每组分数转成该位的概率分布，再将各位分布组合成槽位权重。query 采用相同的解码方式。',
       '槽位数 <span class="math">|𝒜| = <i>d<sub>p</sub></i><sup><i>U</i></sup></span> 随位数 <span class="math"><i>U</i></span> 指数增长，而 key 与 query 的维度 <span class="math"><i>d<sub>k</sub></i> = <i>U d<sub>p</sub></i></span> 只线性增长，因此<strong class="text-highlight">只需 <span class="math"><i>U d<sub>p</sub></i></span> 个分数即可寻址全部 <span class="math">|𝒜|</span> 个槽位</strong>。例如，<span class="math">|𝒜| = 1024 = 4<sup>5</sup></span> 个槽位仅需 20 个分数。此外，每位数字的分布由许多槽位共享，一个被选中槽位的学习信号也会更新其他地址共用的因子。',
       '下面从五个不同的角度诠释 Product Softmax。',
       '这就是前面定义与计算采用的视角：每组分数经过 softmax 后，形成<strong class="text-highlight">对一个地址位的软选择</strong>。每位有 <span class="math"><i>d<sub>p</sub></i></span> 个可能取值，从 <span class="math"><i>U</i></span> 组中各取一个值便组成完整地址；这些数字概率的乘积就是该地址的权重。',
       '地址构成一棵<strong class="text-highlight">前缀树（prefix tree）</strong>：每个节点表示一个部分地址，下一位数字带来 <span class="math"><i>d<sub>p</sub></i></span> 条分支。每一层由一组分数提供分支概率，因此<strong class="text-highlight">多个选项可以同时具有权重</strong>。每条完整路径对应一个槽位，其权重是沿途分支概率的乘积。',
-      'Product Softmax 定义了一个<strong class="text-highlight"><span class="math"><i>U</i></span> 维联合分布</strong>，每条轴有 <span class="math"><i>d<sub>p</sub></i></span> 个可能取值。每组归一化分数提供一条轴上的边缘分布，这些独立因子的乘积给出每个格点的概率。一个因子越集中，权重就越集中在对应切片上；多个因子共同作用，则将权重聚集到这些切片的交汇处。图中展示 <span class="math"><i>U</i> = <i>d<sub>p</sub></i> = 4</span> 的情况。',
+      'Product Softmax 定义了一个 <strong class="text-highlight"><span class="math"><i>U</i></span> 维联合分布</strong>，每条轴有 <span class="math"><i>d<sub>p</sub></i></span> 个可能取值。每组归一化分数提供一条轴上的边缘分布，这些独立因子的乘积给出每个格点的概率。一个因子越集中，权重就越集中在对应切片上；多个因子共同作用，则将权重聚集到这些切片的交汇处。图中展示 <span class="math"><i>U</i> = <i>d<sub>p</sub></i> = 4</span> 的情况。',
       '多个数字可以<strong class="text-highlight">联合编码为一个更大的地址位</strong>：一组 <span class="math"><i>m</i></span> 位数字共有 <span class="math"><i>d<sub>p</sub></i><sup><i>m</i></sup></span> 个可能取值，其分布由原有逐位分布相乘得到。因此，分组改变的是地址空间的呈现形状，各槽位权重保持不变。图中将三位四进制数字合为一个具有 64 个取值的地址位，形成同一组槽位的 64 × 4 与 4 × 64 两种视图。',
-      '对于任意展平地址 <span class="math"><i>a</i></span>，槽位权重 <span class="math">ρ<sub><i>U</i></sub>(<b>k</b><sub><i>t</i></sub>)[<i>a</i>]</span> 都是<strong class="text-highlight"><span class="math"><i>U</i></span> 个子函数的逐点乘积</strong>，其中 <span class="math">φ<sup>(<i>u</i>)</sup>(<b>k</b><sub><i>t</i></sub>)[<i>a</i>] = <b>p</b><sub><i>t</i></sub><sup>(<i>u</i>)</sup>[<i>a</i><sup>(<i>u</i>)</sup>]</span>。随着 <span class="math"><i>a</i></span> 沿槽位数组递增，第 <span class="math"><i>u</i></span> 条波在连续 <span class="math"><i>d<sub>p</sub></i><sup><i>u</i></sup></span> 个地址上保持同一取值，每隔 <span class="math"><i>d<sub>p</sub></i><sup><i>u</i> + 1</sup></span> 个地址重复。因此，低位形成短阶梯与快周期，高位形成较长的平台与较慢的包络。',
+      '对于任意展平地址 <span class="math"><i>a</i></span>，槽位权重 <span class="math">ρ<sub><i>U</i></sub>(<b>k</b><sub><i>t</i></sub>)[<i>a</i>]</span> 都是 <strong class="text-highlight"><span class="math"><i>U</i></span> 个子函数的逐点乘积</strong>，其中 <span class="math">φ<sup>(<i>u</i>)</sup>(<b>k</b><sub><i>t</i></sub>)[<i>a</i>] = <b>p</b><sub><i>t</i></sub><sup>(<i>u</i>)</sup>[<i>a</i><sup>(<i>u</i>)</sup>]</span>。随着 <span class="math"><i>a</i></span> 沿槽位数组递增，第 <span class="math"><i>u</i></span> 条波在连续 <span class="math"><i>d<sub>p</sub></i><sup><i>u</i></sup></span> 个地址上保持同一取值，每隔 <span class="math"><i>d<sub>p</sub></i><sup><i>u</i> + 1</sup></span> 个地址重复。因此，低位形成短阶梯与快周期，高位形成较长的平台与较慢的包络。',
       '软进制描述逐位选择，前缀树组织数字的组合，联合分布将其置于 <span class="math"><i>U</i></span> 维空间，重组将多个数字合为更大的坐标，波形则将各因子沿地址轴展开。它们是<strong class="text-highlight">同一个 Product Softmax 分布的五种等价视角</strong>，不同场景下各有更直观的解释方式。',
-      '树的视角适合进行<strong class="text-highlight">精确的 Top-<span class="math"><i>K</i></span> 裁剪</strong>：每层保留权重最大的 <span class="math"><i>K</i></span> 个前缀，至多评估 <span class="math"><i>K d<sub>p</sub></i></span> 个候选，无需构造完整槽位分布。联合分布的视角适合理解<strong class="text-highlight">梯度广播</strong>：一个槽位的学习信号更新各轴上的共享因子，也影响其他使用这些因子的地址。波形的视角则解释<strong class="text-highlight">CAPE 的平移等价性</strong>：将完整分布循环平移，等价于先将各因子波形平移相同距离，再逐点相乘。'
+      '树的视角适合进行<strong class="text-highlight">精确的 Top-<span class="math"><i>K</i></span> 剪枝</strong>。每层保留权重最大的 <span class="math"><i>K</i></span> 个前缀，至多评估 <span class="math"><i>K d<sub>p</sub></i></span> 个候选，无需构造完整槽位分布。联合分布的视角适合理解<strong class="text-highlight">梯度广播</strong>。一个槽位的学习信号更新各轴上的共享因子，也影响其他使用这些因子的地址。波形的视角则解释 <strong class="text-highlight">CAPE 的平移等价性</strong>。将完整分布沿环形地址空间平移，等价于先将各因子波形平移相同距离，再逐点相乘。'
     ],
     '#addressing .stage-list li': [
       '<strong class="text-highlight">逐位归一化：</strong>对每个子向量应用 softmax，得到对应数字的分布。温度 <span class="math">τ &gt; 0</span> 控制每位数字在各个取值之间选择的集中程度。',
@@ -355,28 +355,28 @@ window.RamnetChinese = {
       '<strong class="text-highlight">仅保留 Top-K：</strong>截断算子 <span class="math">𝒯<sub><i>K</i></sub></span> 保留最大的 <span class="math"><i>K</i></span> 个概率，其余置零，不对保留的权重重新归一化。key 产生写入权重，query 产生读取权重。'
     ],
     '#position .prose p': [
-      '在位置平移前，相同的 key 或 query 会被 Product Softmax 映射到相同的绝对槽位地址。循环地址位置嵌入（CAPE）将其转换为<strong class="text-highlight">感知相对位置的寻址</strong>，使读取能区分不同距离处的相同内容。',
-      '在词元位置 <span class="math"><i>t</i></span>，CAPE 将每个解码地址平移 <span class="math">−<i>t</i></span>，保持其权重不变。变化的是读写索引，槽位中存储的内容不搬动。取模使地址在有限的槽位数组中循环回绕。',
+      '在位置平移前，相同的 key 或 query 会被 Product Softmax 映射到相同的绝对槽位地址。环形地址位置编码（CAPE）让寻址<strong class="text-highlight">感知相对位置</strong>，使读取能区分不同距离处的相同内容。',
+      '在词元位置 <span class="math"><i>t</i></span>，CAPE 将每个解码地址平移 <span class="math">−<i>t</i></span>，保持其权重不变。平移仅作用于读写索引，槽位内容留在原处。平移后按槽位数取模，使地址越过一端时从另一端接续。',
       '位置 <span class="math"><i>s</i></span> 的写入平移 <span class="math">−<i>s</i></span>，位置 <span class="math"><i>t</i></span> 的读取平移 <span class="math">−<i>t</i></span>，两者的重合便由内容与<strong class="text-highlight">相对距离 <span class="math"><i>t</i> − <i>s</i></span></strong> 共同决定，而非分别依赖两个绝对位置。与旋转位置编码（RoPE）类似，CAPE 引入相对位置，但采用地址平移，而不是旋转 key 和 query。实际访问的仍是整数槽位地址。',
       '由于这只是索引的置换，每次读写仍只访问 <span class="math"><i>K</i></span> 个槽位。RAM-Net 将捕获相对位置模式的 CAPE 头与不使用位置编码的头（NoPE）结合，后者用于不依赖距离的关联。两者保持相同的稀疏访问预算。'
     ],
     '#update .prose p': [
       '门控稀疏更新（GSU）进行<strong class="text-highlight">逐槽位的测试时训练（TTT）</strong> <a class="cite" href="#ref-3">[3]</a>：把每个被寻址的槽位视为一个在线学习器，通过一步梯度下降，使其内容向新写入的 value 靠近。局部目标为 <span class="math">ℓ<sub><i>t</i></sub>(<b>s</b>) = ½‖<b>s</b> − <b>v</b><sub><i>t</i></sub>‖<sup>2</sup></span>，学习率根据槽位历史与当前输入自适应调整。',
       '如果对整个状态施加遗忘门，每步就必须访问全部槽位，违背稀疏访问的初衷。GSU 仅在选中的槽位上遗忘和学习，其余槽位保持完全不变。每个槽位独立权衡保留自身历史与接纳新信息。',
-      '每个槽位 <span class="math"><i>a</i></span> 维护内容向量 <span class="math"><b>s</b><sub><i>t</i></sub>[<i>a</i>]</span> 与标量<strong class="text-highlight">质量（mass）</strong> <span class="math"><i>m</i><sub><i>t</i></sub>[<i>a</i>]</span>，后者表示保留至今的累计写入权重，可理解为槽位更新时的惯性。给定当前写入权重 <span class="math"><i>w</i><sub><i>t</i></sub>[<i>a</i>]</span> 和 value <span class="math"><b>v</b><sub><i>t</i></sub></span>，完整更新如下：',
+      '每个槽位 <span class="math"><i>a</i></span> 保存内容向量 <span class="math"><b>s</b><sub><i>t</i></sub>[<i>a</i>]</span> 和一个标量 <span class="math"><i>m</i><sub><i>t</i></sub>[<i>a</i>]</span>，称为<strong class="text-highlight">槽位惯性质量（mass）</strong>。它是保留下来的累计写入权重。同样强度的新写入下，惯性质量越大，槽位内容改变得越少。以下公式给出当前写入权重 <span class="math"><i>w</i><sub><i>t</i></sub>[<i>a</i>]</span> 和写入值 <span class="math"><b>v</b><sub><i>t</i></sub></span> 如何更新槽位。',
       '从上到下解读公式，顺序与动画一致：',
       '因此，GSU 具有三个性质：'
     ],
     '.equation-notes li': [
-      '<strong class="text-highlight">保留系数（λ）：</strong>以 <span class="math">1 − <i>w</i><sub><i>t</i></sub>[<i>a</i>]</span> 为基准，写入越强，保留的历史质量越少。输入相关的调节量 <span class="math">γ<sub><i>t</i></sub></span> 在 logit 空间调整这一基准，γ 越大，遗忘越多。可学习投影为每个词元、每个头生成一个 γ，由各槽位共用。',
-      '<strong class="text-highlight">质量（m）：</strong>保留历史质量的 <span class="math">λ<sub><i>t</i></sub>[<i>a</i>]</span> 比例，再加上本次写入权重。遗忘降低槽位的惯性，使其能更快学习新内容。',
-      '<strong class="text-highlight">学习率（η）：</strong>用当前写入权重除以更新后的质量，并加入小常数 <span class="math">ε</span> 保证数值稳定。写入越强，步长越大；保留的历史越多，步长越小。',
+      '<strong class="text-highlight">保留系数（λ）：</strong>以 <span class="math">1 − <i>w</i><sub><i>t</i></sub>[<i>a</i>]</span> 为基准。写入越强，旧惯性质量的保留比例越小。输入相关的调节量 <span class="math">γ<sub><i>t</i></sub></span> 在 logit 空间调整这一基准，γ 越大，遗忘越多。可学习投影为每个词元、每个头生成一个 γ，由各槽位共用。',
+      '<strong class="text-highlight">槽位惯性质量（m）：</strong>将旧的惯性质量乘以保留系数 <span class="math">λ<sub><i>t</i></sub>[<i>a</i>]</span>，再加上本次写入权重。遗忘削弱历史写入的影响，使槽位能更快接纳新内容。',
+      '<strong class="text-highlight">学习率（η）：</strong>分子是当前写入权重，分母是更新后的惯性质量加上用于数值稳定的小常数 <span class="math">ε</span>。写入越强，步长越大。保留的历史权重越多，步长越小。',
       '<strong class="text-highlight">内容（s）：</strong>沿当前内容指向 <span class="math"><b>v</b><sub><i>t</i></sub></span> 的方向移动，步长为两者差距的 η 倍。η 小则保留历史，η 接近 1 则新值占主导。'
     ],
     '#update .stage-list li': [
-      '<strong class="text-highlight">精确稀疏：</strong>未选中的槽位满足 <span class="math"><i>w</i><sub><i>t</i></sub>[<i>a</i>] = 0</span>，因此 <span class="math">λ<sub><i>t</i></sub>[<i>a</i>] = 1</span>、<span class="math">η<sub><i>t</i></sub>[<i>a</i>] = 0</span>，内容与质量均保持不变。不同词元的写入只在它们共同寻址的槽位上相互影响。',
+      '<strong class="text-highlight">精确稀疏：</strong>未选中的槽位满足 <span class="math"><i>w</i><sub><i>t</i></sub>[<i>a</i>] = 0</span>，因此 <span class="math">λ<sub><i>t</i></sub>[<i>a</i>] = 1</span>、<span class="math">η<sub><i>t</i></sub>[<i>a</i>] = 0</span>，内容与惯性质量均保持不变。不同词元的写入只在它们共同寻址的槽位上相互影响。',
       '<strong class="text-highlight">内容有界：</strong>由于 <span class="math">η<sub><i>t</i></sub>[<i>a</i>] ∈ [0, 1)</span>，每次更新都是旧内容与 <span class="math"><b>v</b><sub><i>t</i></sub></span> 的凸组合。因此，无论写入多少次，槽位内容始终保持在输入 value 的数值尺度内。',
-      '<strong class="text-highlight">自适应学习率：</strong>当前写入权重与历史质量决定每个槽位的学习率，<span class="math">γ<sub><i>t</i></sub></span> 则按当前词元和头调整保留程度。<span class="math">γ<sub><i>t</i></sub> → −∞</span> 时，槽位趋近于按写入权重计算的历史 value 加权平均；<span class="math">γ<sub><i>t</i></sub> → +∞</span> 时，每次写入几乎覆盖槽位。模型由此学习何时保留历史、何时快速适应。'
+      '<strong class="text-highlight">自适应学习率：</strong>当前写入权重与槽位惯性质量决定每个槽位的学习率，<span class="math">γ<sub><i>t</i></sub></span> 则按当前词元和头调整保留程度。<span class="math">γ<sub><i>t</i></sub> → −∞</span> 时，槽位趋近于按写入权重计算的历史 value 加权平均；<span class="math">γ<sub><i>t</i></sub> → +∞</span> 时，每次写入几乎覆盖槽位。模型由此学习何时保留历史、何时快速适应。'
     ],
     '#execution .prose p': [
       '稀疏读写分散在记忆的不同位置，直接执行会形成不规则的 GPU 访问。在训练与预填充（首次处理整段提示词）时，RAM-Net 将其组织为<strong class="text-highlight">两个阶段：先解码地址，再按槽位执行</strong>。',
@@ -401,29 +401,29 @@ window.RamnetChinese = {
     ],
     '.results-discussion p': [
       '在 340M 模型中，Top-K 从 8 增至 32，活跃状态由 0.4M 增至 1.7M，总状态保持 26.6M。WikiText 困惑度从 26.89 降至 25.87，S-NIAH 均分从 64.7 升至 72.9，真实场景召回均分从 23.2 升至 32.0。在 1.3B 模型中，最佳设置取决于任务。Top-16 的 WikiText 困惑度和 S-NIAH 均分在 RAM-Net 的各设置中最优，Top-32 则在推理平均准确率和真实场景召回上领先。',
-      '在合成的多查询关联召回（MQAR）任务 <a class="cite" href="#ref-11">[11]</a> 上，RAM-Net 在相近总状态规模下具有领先的准确率；与准确率相当的基线相比，它每步访问的状态约为其十分之一。',
+      '在合成的多查询关联召回（MQAR）任务 <a class="cite" href="#ref-11">[11]</a> 上，RAM-Net 用比大多数线性循环基线更小的总状态取得较高准确率。准确率相当时，它每步访问的状态量约为基线的十分之一。',
       '我们在单张 NVIDIA RTX 3060 上测试 340M 循环模型的自回归解码吞吐量。每个解码步骤通过 CUDA Graph 执行，排除 Python 与逐内核启动开销对比较的影响。批大小（batch size）为 1 时，读取模型权重占主导，各模型速度接近；随着批大小增大，<strong class="text-highlight">循环状态的读取与更新成为瓶颈</strong>。',
-      '在批大小为 64 时，RAM-Net Top-8 的吞吐量达到<strong class="text-highlight">所比较基线中最快者的 2.0×</strong>，尽管它的总状态在这些循环模型中最大。它每步访问的状态量最少，从而<strong class="text-highlight">将解码速度与总状态规模解耦</strong>：大容量记忆支撑较强的 S-NIAH 检索，稀疏访问则保持较快解码。增大 <span class="math"><i>K</i></span> 可以提高精度，但会降低吞吐量。'
+      '在批大小为 64 时，RAM-Net Top-8 的吞吐量达到<strong class="text-highlight">所比较基线中最快者的 2.0×</strong>，尽管它的总状态在这些循环模型中最大。它每步访问的状态量最少，从而<strong class="text-highlight">将解码速度与总状态规模解耦</strong>：大容量记忆支撑较强的 S-NIAH 检索，稀疏访问则保持较快解码。增大 <span class="math"><i>K</i></span> 可以提高准确率，但会降低吞吐量。'
     ],
-    '.results-note': ['稀疏寻址需要<strong class="text-highlight">可靠的地址选择</strong>：没有被选中的槽位无法参与读取。扩大容量和增加 Top-K 分别改善记忆空间与访问范围，其收益取决于具体任务。'],
+    '.results-note': ['检索仍依赖<strong class="text-highlight">可靠的地址选择</strong>。只有选中的槽位才参与当前读取。增加槽位会扩大容量，增大 Top-K 会增加每步访问的槽位数。两种调整的收益取决于具体任务。'],
     '#retrieval-probe .prose p': [
-      'Transformer 与线性注意力模型通常通过 attention map 观察词元之间的交互模式。RAM-Net 增加了一个<strong class="text-highlight">地址层面的分析维度</strong>：既能探索两个词元的关联，还能检查<strong class="text-highlight">它们具体通过哪些槽位实现通信</strong>。显式的读写地址让我们可以追踪“词元—槽位—词元”的信息传递路径。',
+      '在 Transformer 和线性注意力模型中，注意力图（attention map）是观察词元间交互的常用工具。RAM-Net 增加了一个<strong class="text-highlight">地址层面的分析维度</strong>，让我们既能观察两个词元之间的关联，也能确定<strong class="text-highlight">信息具体经过了哪些槽位</strong>。显式的读写地址把这条路径串起来，从词元写入槽位，再由另一个词元读取。',
       '在 S-NIAH 轨迹中，<strong class="text-highlight">待检索的关键信息（needle）与干扰文本的写入主要落在不同的槽位子集</strong>。模型处理后续干扰文本时，关键信息的贡献仍保留在这些槽位中；回答时的读取又回到这些位置。这为成功检索提供了具体解释：相关内容在较少干扰下得以保留，并在需要时通过地址被再次访问。'
     ],
     '#head-probes .prose p': [
-      '槽位级轨迹提供了<strong class="text-highlight">观察网络关联的精细化探针</strong>：哪些词元相关、信息存在哪里、后一个词元如何读到它。两组例子呈现出词片段重组与成对标点联系这两种可辨认的模式。',
-      '在词片段例子中，tokenizer 将 <em translate="no">“tokenization”</em> 拆为 <em translate="no">“token”</em> 与 <em translate="no">“ization”</em>。在图示的注意力头中，后一个片段读取前一个片段写入的槽位，<strong class="text-highlight">通过记忆将同一词的片段重新关联起来</strong>。',
-      '在 <em translate="no">“（white bird）”</em> 的例子中，两端的标点虽然隔着其他词语，闭合标点仍会读回开标点留下的信息，呈现出<strong class="text-highlight">对成对标点关系的关注</strong>。我们能同时看到这对词元的关联，以及维系这一关联的具体槽位。'
+      '槽位级轨迹提供了<strong class="text-highlight">观察网络关联的精细化探针</strong>：哪些词元相关、信息存在哪里、后一个词元如何读到它。两组示例分别展示了词片段重组和成对标点的关联。',
+      '在词片段示例中，tokenizer 将<em translate="no">“tokenization”</em>拆成<em translate="no">“token”</em>和<em translate="no">“ization”</em>。在图示的注意力头中，后一个片段读取前一个片段写入的槽位，<strong class="text-highlight">通过记忆将同一个词的片段重新关联起来</strong>。',
+      '在括号示例中，左右括号之间隔着<em translate="no">“white bird”</em>，右括号仍会从左括号写入的槽位中读取信息。轨迹显示了该注意力头如何<strong class="text-highlight">通过记忆追踪成对标点</strong>，也标出了信息经过的具体槽位。'
     ],
     '#slot-usage .prose p': [
       '网络基于内容的读写会<strong class="text-highlight">自发形成访问热点</strong>：大量访问汇聚到少数学习得到的内容地址；大量其他地址则较少被访问，形成长尾。稀疏性只限制每步接触多少槽位，而这种集中访问反映了模型面对输入内容时自身的寻址选择。',
       '计算机的内存访问同样呈现出<strong class="text-highlight">高频热数据与低频访问的长尾</strong>。网络学到的寻址方式也自发呈现出相似模式，提示<strong class="text-highlight">集中复用或许是计算组织信息的一种普遍特征</strong>：广阔的记忆容纳多样信息，反复进行的计算却经常回到少数位置。',
-      '这种集中访问带来了<strong class="text-highlight">通过复用实现加速的可能性</strong>。将高频使用的状态留在执行单元附近，小容量的快速存储就有机会承接大量访问；更大、更慢的后备存储则负责提供容量，无需响应每一次读写。'
+      '这种集中访问带来了<strong class="text-highlight">通过复用实现加速的可能性</strong>。将高频使用的状态留在执行单元附近，小容量的快速存储就能承接大量访问。更大、更慢的后备存储负责提供容量，无需处理每次操作。'
     ],
     '#hardware .prose p': [
-      '两个特点指向高效的硬件实现：<strong class="text-highlight">槽位操作彼此独立，热点状态被反复访问</strong>。显式整数地址让寻址与记忆执行分离，独立槽位则提供了可以并行发射的工作。',
+      '两个特点有利于高效的硬件实现。<strong class="text-highlight">不同槽位的操作彼此独立，少数热点状态被反复访问</strong>。显式整数地址将地址生成与记忆读写分开。不同槽位的操作可以并行发射。',
       '独立槽位适合<strong class="text-highlight">多发射与局部乱序执行</strong>，仅同一槽位内部需要保持因果顺序。这对应一种<strong class="text-highlight">介于 CPU 与 GPU 风格之间的设计</strong>：依赖控制比通用 CPU 简单，局部调度又比单一锁步 GPU 指令流灵活。',
-      '热点现象提示了<strong class="text-highlight">通过局部缓存减少 DRAM 访问</strong>的方向。高频复用的状态可以留在片上 SRAM，连续操作还可以复用寄存器。因此有机会在保留较大记忆容量的同时，让大量重复访问在执行单元附近完成。'
+      '将热点状态留在片上 SRAM，可以<strong class="text-highlight">减少对 DRAM 的访问</strong>。连续处理同一个槽位时，还可以把状态保留在寄存器中。这样既能保有较大的记忆容量，又能让大量重复访问在执行单元附近完成。'
     ],
     '#figure-10 .figure-interaction-hint': ['切换注意力头或语料，比较访问汇聚程度<span class="fine-interaction-hint">；悬停在柱状条上比较累计槽位与访问占比</span>。'],
     '#figure-3 .figure-interaction-hint': ['选择视图或调整 Top-K<span class="fine-interaction-hint">；拖动因子权重，改变地址分布</span>。'],
