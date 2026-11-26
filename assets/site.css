@@ -170,22 +170,20 @@ tr:last-child td:first-child { color: var(--accent-ink); }
 .decoding-leader { fill: none; stroke: var(--muted); stroke-width: 1; }
 .experiment-panel:not([hidden]) .decoding-chart .is-ramnet { stroke-dasharray: 1; animation: decoding-draw 900ms cubic-bezier(.3, .7, .3, 1) 120ms backwards; }
 @keyframes decoding-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
-.experiment-scroll { margin: 18px 0 8px; }
+.experiment-scroll { margin: 18px 0 8px; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; }
 .experiment-scroll.is-wide { width: calc(100% + 2 * var(--text-inset)); margin-left: calc(0px - var(--text-inset)); }
-.experiment-table { min-width: 0; table-layout: fixed; font-size: 13px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.experiment-table { min-width: 0; font-size: 13px; line-height: 1.5; font-variant-numeric: tabular-nums; }
 .experiment-table caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .experiment-table th, .experiment-table td { padding: 11px 3px; text-align: right; white-space: nowrap; }
 .experiment-table th { font-size: 12px; text-transform: none; letter-spacing: 0; font-weight: 600; }
-.experiment-table thead th { color: var(--ink); background: color-mix(in srgb, var(--color-paperEdge) 15%, var(--color-paper) 85%); white-space: normal; overflow-wrap: anywhere; vertical-align: middle; }
-.experiment-heading { display: inline-flex; align-items: center; justify-content: flex-end; gap: 3px; max-width: 100%; line-height: 1.15; vertical-align: middle; }
-.experiment-heading-label { min-width: 0; white-space: normal; }
-.experiment-heading-label > span { display: block; white-space: nowrap; }
+.experiment-table thead th { color: var(--ink); background: color-mix(in srgb, var(--color-paperEdge) 15%, var(--color-paper) 85%); vertical-align: middle; }
+.experiment-heading { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; line-height: 1.15; vertical-align: middle; }
+.experiment-heading-label > span { display: block; }
 .experiment-table thead th.stacked-heading { text-align: center; }
-.stacked-heading .experiment-heading { justify-content: center; }
 .stacked-heading .experiment-heading-label { text-align: center; }
 .experiment-heading-arrow { flex: none; color: var(--neutral-4); font-size: 11px; }
 .experiment-table thead th[scope="colgroup"] { text-align: center; border-inline: 1px solid var(--line); }
-.experiment-table th[scope="row"], .experiment-table thead tr:first-child th:first-child { width: 16%; text-align: left; white-space: normal; background: var(--paper); }
+.experiment-table th[scope="row"], .experiment-table thead tr:first-child th:first-child { text-align: left; background: var(--paper); }
 .experiment-table th[scope="row"] { font-size: 13px; font-weight: 400; color: var(--ink); border-bottom: 1px solid var(--line); }
 .experiment-table tbody tr td { background: transparent; border-bottom: 1px solid var(--line); }
 .experiment-table .experiment-scale th { padding: 16px 6px 8px; border-bottom: 0; text-align: left; color: var(--ink); }
@@ -227,52 +225,12 @@ tr:last-child td:first-child { color: var(--accent-ink); }
   #results .experiment-table .experiment-scale th { padding-top: clamp(6px, calc(1vh - 2px), 10px); padding-bottom: clamp(4px, .5vh, 6px); }
   #results .experiment-table tbody:first-of-type .experiment-scale th { padding-top: 8px; }
 }
-.experiment-scroll.is-scrollable { overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; }
-.experiment-scroll.is-scrollable .experiment-table { width: max-content; min-width: 100%; table-layout: auto; font-size: 12px; }
+.experiment-scroll.is-scrollable .experiment-table { width: max-content; min-width: 100%; font-size: 12px; }
 .experiment-scroll.is-scrollable .experiment-table th, .experiment-scroll.is-scrollable .experiment-table td { padding: 8px; }
 .experiment-scroll.is-scrollable .experiment-scale-text { position: sticky; left: 0; z-index: 2; padding-right: 10px; background: var(--paper); }
-.experiment-scroll.is-scrollable .experiment-table thead th { position: sticky; top: 0; z-index: 3; height: 42px; padding: 7px 8px; white-space: nowrap; overflow-wrap: normal; background: color-mix(in srgb, var(--color-paperEdge) 15%, var(--color-paper) 85%); }
-.experiment-scroll.is-scrollable .experiment-heading { max-width: none; }
-.experiment-scroll.is-scrollable .experiment-heading-label { white-space: nowrap; }
+.experiment-scroll.is-scrollable .experiment-table thead th { position: sticky; top: 0; z-index: 3; height: 42px; padding: 7px 8px; background: color-mix(in srgb, var(--color-paperEdge) 15%, var(--color-paper) 85%); }
 .experiment-scroll.is-scrollable .experiment-table thead tr:nth-child(2) th { top: 42px; }
 .experiment-scroll.is-scrollable .experiment-table thead tr:first-child th:first-child { background: color-mix(in srgb, var(--color-paperEdge) 15%, var(--color-paper) 85%); }
-.experiment-fit { container: language-results / inline-size; }
-.experiment-cell-label { display: none; }
-@media screen {
-  .experiment-fit .experiment-table { min-width: 0; table-layout: auto; }
-  @container language-results (max-width: 800px) {
-    .experiment-fit .experiment-table :is(th, td) { padding-inline: 2px; font-size: 11px; }
-    .experiment-fit .experiment-heading { gap: 2px; }
-    .experiment-fit .experiment-heading-arrow { font-size: 9px; }
-  }
-  @container language-results (max-width: 620px) {
-    .experiment-fit .experiment-table,
-    .experiment-fit tbody { display: block; }
-    .experiment-fit thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-    .experiment-fit tbody tr {
-      display: grid;
-      grid-template-columns: repeat(var(--language-metrics-per-row, 3), minmax(0, 1fr));
-    }
-    .experiment-fit .experiment-table tbody th {
-      grid-column: 1 / -1;
-      width: auto;
-      padding: 8px;
-      font-size: 13px;
-      font-weight: 600;
-    }
-    .experiment-fit .experiment-table td {
-      display: grid;
-      justify-items: start;
-      padding: 5px 8px;
-      text-align: left;
-      font-size: 13px;
-    }
-    .experiment-cell-label { display: block; grid-row: 1; color: var(--body); font-size: 11px; white-space: normal; }
-  }
-  @container language-results (min-width: 460px) and (max-width: 620px) {
-    .experiment-fit tbody tr { --language-metrics-per-row: 5; }
-  }
-}
 .results-discussion { margin-top: 34px; }
 .results-note { width: var(--content-width); margin: 24px 0 0 var(--text-inset); padding: 17px 20px; background: color-mix(in srgb, var(--color-paperEdge) 15%, var(--color-paper) 85%); border: 1px solid var(--line); font-size: 12px; line-height: 1.8; color: var(--body); }
 .closing { --closing-nav-height: 58px; --closing-footer-height: 68px; --closing-heading-height: 180px; --closing-padding: max(0px, calc((100dvh - var(--closing-nav-height) - var(--closing-footer-height) - var(--closing-heading-height)) / 2)); min-height: calc(100dvh - var(--closing-nav-height) - var(--closing-footer-height)); padding: var(--closing-padding) 0; display: flex; align-items: center; border-bottom: 0; }

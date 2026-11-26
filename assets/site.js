@@ -74,7 +74,7 @@
       tallest = Math.max(tallest, topOffset(figure) + figureHeight);
     }
     const firstRamnet = results.querySelector('.experiment-panel:not([hidden]) .experiment-table tbody:first-of-type .ramnet-row');
-    if (firstRamnet && getComputedStyle(firstRamnet).display === 'table-row') {
+    if (firstRamnet) {
       tallest = Math.max(tallest, firstRamnet.getBoundingClientRect().bottom - results.getBoundingClientRect().top);
     }
     const budget = tallest + nav.offsetHeight + 36;

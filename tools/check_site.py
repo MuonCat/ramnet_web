@@ -68,6 +68,14 @@ RESULT_HOOK = """<script>document.addEventListener('DOMContentLoaded', () => {
 });window.addEventListener('load', () => setTimeout(() => {
   const figures=[...document.querySelectorAll('.embedded-exhibit[data-exhibit]')];
   const tables=[...document.querySelectorAll('.experiment-table')];
+  const firstTable=tables[0];
+  let tableScroll=0;
+  if (firstTable && innerWidth<=500) {
+    const scroller=firstTable.parentElement;
+    scroller.scrollLeft=scroller.scrollWidth;
+    tableScroll=scroller.scrollLeft;
+    scroller.scrollLeft=0;
+  }
   const output={errors:smokeErrors, runtime:!!window.RamnetRuntime,
     reduced:matchMedia('(prefers-reduced-motion: reduce)').matches,
     frames:window.smokeFrameCount,
@@ -86,6 +94,7 @@ RESULT_HOOK = """<script>document.addEventListener('DOMContentLoaded', () => {
       error:(host.shadowRoot || host).textContent.includes('Unable to load')})),
     tables:tables.map(table=>({name:table.dataset.benchmark,
       headers:table.tHead.rows.length, groups:table.tBodies.length,
+      rowDisplay:getComputedStyle(table.tBodies[0].rows[1]).display,
       ranked:[...table.tBodies].every(body=>{
         const rows=[...body.rows].filter(row=>!row.classList.contains('experiment-scale'));
         return [...table.tHead.querySelectorAll('th[data-column-index]')].every((_,index)=>{
@@ -95,7 +104,7 @@ RESULT_HOOK = """<script>document.addEventListener('DOMContentLoaded', () => {
             (distinct.size<2 || cells.some(cell=>cell.querySelector('.runner-up')));
         });
       })})),
-    overflow:document.documentElement.scrollWidth>innerWidth+2,
+    tableScroll, overflow:document.documentElement.scrollWidth>innerWidth+2,
     standalone:document.body.className,
     probeError:!!document.querySelector('.probe-error'),
     scene:!!document.querySelector('#scene, #slotField, .case-card') ||
@@ -155,8 +164,11 @@ def check_page(source, url, width, profile, reduced=False, restored=False, initi
                 raise RuntimeError(f"Tables failed: {state['tables']}")
             if any(not item["ranked"] for item in state["tables"]):
                 raise RuntimeError(f"Ranking failed: {state['tables']}")
-            if width <= 500 and state["overflow"]:
-                raise RuntimeError("The narrow page overflows horizontally")
+            if width <= 500:
+                if state["overflow"] or state["tableScroll"] <= 0:
+                    raise RuntimeError("Horizontal scrolling must stay inside the narrow results table")
+                if any(item["rowDisplay"] != "table-row" for item in state["tables"]):
+                    raise RuntimeError("Each model must occupy one native table row")
         elif not state["scene"]:
             raise RuntimeError(f"Missing scene: {source.name}")
         mode = "restored position" if restored else "reduced motion" if reduced else f"{width}px"
