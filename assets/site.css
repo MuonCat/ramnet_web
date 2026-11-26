@@ -162,7 +162,9 @@ tr:last-child td:first-child { color: var(--accent-ink); }
 .decoding-line { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .decoding-line:not(.is-ramnet) { stroke-width: 1.6; }
 .decoding-marker { stroke: var(--paper); stroke-width: 2; paint-order: stroke; }
-.decoding-bracket path { fill: none; stroke: var(--muted); stroke-width: 1; }
+.decoding-arrow line { stroke: var(--body); stroke-width: 1.2; }
+.decoding-arrow .decoding-arrow-halo { stroke: var(--paper); stroke-width: 4; }
+.decoding-arrow path { fill: var(--body); stroke: var(--paper); stroke-width: 2; stroke-linejoin: round; paint-order: stroke; }
 .decoding-ratio { fill: var(--ink); font-size: 15px; font-weight: 650; }
 .decoding-label { fill: var(--body); font-size: 12px; }
 .decoding-label.is-ramnet { fill: var(--ink); font-weight: 600; }

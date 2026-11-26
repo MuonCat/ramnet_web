@@ -362,12 +362,16 @@
 
       const top8 = series.find(item => item.model === 'RAM-Net Top-8');
       const fastest = series.filter(item => !item.ramnet).reduce((best, item) => item.values.at(-1) > best.values.at(-1) ? item : best);
-      const bracketX = x(batches.at(-1)) - (compact ? 14 : 18), high = y(top8.values.at(-1)) + 8, low = y(fastest.values.at(-1)) - 8;
-      const bracket = node('g', {class: 'decoding-bracket'});
-      bracket.append(node('path', {d: `M${bracketX + 5} ${high}H${bracketX}V${low}H${bracketX + 5}`}),
-        node('text', {x: bracketX - 7, y: (high + low) / 2, 'text-anchor': 'end', 'dominant-baseline': 'middle', class: 'decoding-ratio'},
+      const arrowX = x(batches.at(-1)) - (compact ? 14 : 18), high = y(top8.values.at(-1)) + 9, low = y(fastest.values.at(-1)) - 9;
+      const head = 6, half = 3.5;
+      const arrow = node('g', {class: 'decoding-arrow'});
+      arrow.append(node('line', {x1: arrowX, x2: arrowX, y1: high + head - 1, y2: low - head + 1, class: 'decoding-arrow-halo'}),
+        node('line', {x1: arrowX, x2: arrowX, y1: high + head - 1, y2: low - head + 1}),
+        node('path', {d: `M${arrowX} ${high}L${arrowX + half} ${high + head}H${arrowX - half}z`}),
+        node('path', {d: `M${arrowX} ${low}L${arrowX + half} ${low - head}H${arrowX - half}z`}),
+        node('text', {x: arrowX - 9, y: (high + low) / 2, 'text-anchor': 'end', 'dominant-baseline': 'middle', class: 'decoding-ratio'},
           `${(top8.values.at(-1) / fastest.values.at(-1)).toFixed(1)}×`));
-      svg.append(bracket);
+      svg.append(arrow);
 
       // End labels: merge names whose lines end together, then push the rest apart.
       const lineHeight = compact ? 14 : 15, endX = x(batches.at(-1));
