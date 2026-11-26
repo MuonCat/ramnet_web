@@ -28,7 +28,7 @@ class Scene{
   const preferred=DATA.traces.find(t=>t.trace_id===DEFAULT_TRACES[kind]);this.el.head.value=`${preferred.layer}:${preferred.head}`;this.el.example.value=preferred.example_id;
   this.el.head.onchange=()=>this.choose();this.el.example.onchange=()=>this.choose();this.el.play.onclick=()=>this.setPlaying(!this.playing);this.el.restart.onclick=()=>{this.historyEdge=null;this.elapsed=this.playbackStart;this.tokenCenter=this.windowStart;this.lastIndex=-1;this.playing=true;this.focus(true);this.ui()};
   this.el.timeline.oninput=()=>{this.elapsed=+this.el.timeline.value;this.jump(this.pos().i,this.pos().p)};this.el.pan.oninput=()=>this.pan(+this.el.pan.value);this.el.panLeft.onclick=()=>this.pan(this.startSlot-cfg.visibleSlots*.5);this.el.panRight.onclick=()=>this.pan(this.startSlot+cfg.visibleSlots*.5);
-  this.events();this.scrubberEvents();this.choose();new ResizeObserver(()=>this.resize()).observe(this.el.viewport);this.root.getRootNode().host?.addEventListener('ramnet:fit',()=>this.resize());this.resize();
+  this.events();this.scrubberEvents();this.choose();scope.onResize(this.el.viewport,()=>this.resize());this.resize();
  }
  key(i){return this.keys.has(i)}
  duration(i){return cfg.tokenSeconds*(this.key(i)?cfg.keySlow:1)}

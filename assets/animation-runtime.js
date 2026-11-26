@@ -19,6 +19,13 @@
   const narrowLayout = compactLayout;
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const nativeFrame = requestAnimationFrame.bind(window);
+  // Coalesce layout writes and keep them out of ResizeObserver delivery.
+  function onNextFrame(callback) {
+    let frame = 0;
+    return () => {
+      if (!frame) frame = nativeFrame(() => { frame = 0; callback(); });
+    };
+  }
   const translateText = value => window.RamnetI18n?.t(value) ?? value;
 
   window.ramnetDiagramTheme = {
@@ -103,6 +110,12 @@
         return id;
       },
       cancelAnimationFrame(id) { callbacks.delete(id); },
+      onResize(element, resize) {
+        // Offscreen figures still need their natural dimensions for the article.
+        const schedule = onNextFrame(resize);
+        new ResizeObserver(schedule).observe(element);
+        host?.addEventListener('ramnet:fit', schedule);
+      },
       setCycleDuration(seconds) {
         if (host && Number.isFinite(seconds) && seconds > 0) {
           host.dataset.cycleMs = String(Math.round(seconds * 1000));
@@ -124,7 +137,7 @@
 
   window.RamnetRuntime = {
     compactInteractions, compactLayout, narrowLayout, reducedMotion,
-    applyTheme, bindInteractions, createScope, mountStandalone,
+    applyTheme, bindInteractions, createScope, mountStandalone, onNextFrame,
     playbackIcon, setPlaybackIcon, translateText
   };
 })();

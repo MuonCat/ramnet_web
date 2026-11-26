@@ -57,7 +57,7 @@ for(const key of ['blue','purple','write','read'])document.documentElement.style
 window.ramnetCompactInteractions.addEventListener('change',()=>{if(!window.ramnetCompactInteractions.matches)return;clearTimeout(scene.hoverTimer);scene.hoverTimer=null;scene.fastSeek=null;scene.hoveredChip=null;scene.hovered=false;$('slotTip').classList.add('hidden')});
 scope.onAutoplayStart?.(event=>{if(!event.detail?.resumeCurrent){$('restart').click();return;}clearTimeout(scene.hoverTimer);scene.hoverTimer=null;scene.fastSeek=null;scene.hoveredChip=null;scene.hovered=false;scene.playing=true;lastFrame=0;event.detail.remainingMs=Math.max(0,(scene.total-scene.time)*1000);scene.render();});
 function animate(now){const dt=lastFrame?Math.min((now-lastFrame)/1000,.1):0;lastFrame=now;scene.tick(dt);requestAnimationFrame(animate)}requestAnimationFrame(animate);
-new ResizeObserver(()=>scene.render()).observe($('stage'));
+scope.onResize($('stage'),()=>scene.render());
 }
 try{initProbe()}catch(error){console.error(error);const message=document.createElement("p");message.className="probe-error";message.setAttribute("role","alert");message.textContent=translateText("Unable to display this probe. Please reload the page.");document.querySelector(".exhibit-root").replaceChildren(message)}
 };

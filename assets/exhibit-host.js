@@ -16,6 +16,7 @@
       return loaded;
     });
     const wrapper = document.createElement('div');
+    wrapper.className = 'exhibit-content';
     const body = document.createElement('div');
     body.className = `${markup.bodyClass} exhibit-body`;
     body.innerHTML = markup.html;
@@ -41,25 +42,13 @@
     };
     window.RamnetAnimations[name](runtime.createScope(scopedDocument, host));
     host.style.minHeight = '';
-    let heightPending = false;
-    const syncHeight = () => {
-      if (heightPending) return;
-      heightPending = true;
-      requestAnimationFrame(() => {
-        heightPending = false;
-        const height = `${Math.ceil(wrapper.offsetHeight)}px`;
-        if (host.style.height !== height) host.style.height = height;
-      });
-    };
-    new ResizeObserver(syncHeight).observe(wrapper);
-    syncHeight();
     host.dispatchEvent(new Event('ramnet:mounted'));
   }
 
-  window.RamnetPaletteReady.then(() => {
-    hosts.forEach(host => mount(host).catch(error => {
+  window.RamnetExhibitsReady = window.RamnetPaletteReady.then(() =>
+    Promise.all(hosts.map(host => mount(host).catch(error => {
       console.error(error);
-      host.textContent = runtime.translateText('Unable to load this figure.');
-    }));
-  });
+      (host.shadowRoot || host).textContent = runtime.translateText('Unable to load this figure.');
+    })))
+  );
 })();

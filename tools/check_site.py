@@ -81,9 +81,9 @@ RESULT_HOOK = """<script>document.addEventListener('DOMContentLoaded', () => {
     autoplaySection:document.documentElement.dataset.autoplaySection,
     initialHash:window.ramnetInitialHash,
     hashOffset:document.getElementById('position')?.getBoundingClientRect().top-document.querySelector('.chapter-nav')?.getBoundingClientRect().bottom,
-    figures:figures.map(host=>({name:host.dataset.exhibit,height:host.style.height,
+    figures:figures.map(host=>({name:host.dataset.exhibit,height:host.getBoundingClientRect().height,
       mounted:!!host.shadowRoot?.querySelector('.exhibit-root'),
-      error:host.textContent.includes('Unable to load')})),
+      error:(host.shadowRoot || host).textContent.includes('Unable to load')})),
     tables:tables.map(table=>({name:table.dataset.benchmark,
       headers:table.tHead.rows.length, groups:table.tBodies.length,
       ranked:[...table.tBodies].every(body=>{
@@ -98,7 +98,8 @@ RESULT_HOOK = """<script>document.addEventListener('DOMContentLoaded', () => {
     overflow:document.documentElement.scrollWidth>innerWidth+2,
     standalone:document.body.className,
     probeError:!!document.querySelector('.probe-error'),
-    scene:!!document.querySelector('#scene, #slotField, .case-card')};
+    scene:!!document.querySelector('#scene, #slotField, .case-card') ||
+      (!!document.querySelector('.probe-usage canvas#field') && !document.getElementById('status'))};
   const result=document.createElement('pre');result.id='smoke-result';
   result.textContent=JSON.stringify(output);document.body.append(result);
 }, 2500));</script>"""
@@ -148,7 +149,7 @@ def check_page(source, url, width, profile, reduced=False, restored=False, initi
         if initial_hash and (state["hash"] != initial_hash or abs(state["hashOffset"]) > 3):
             raise RuntimeError(f"Hash navigation failed: {state}")
         if source.name == "index.html":
-            if len(state["figures"]) != 10 or not all(item["mounted"] and not item["error"] for item in state["figures"]):
+            if len(state["figures"]) != 10 or not all(item["mounted"] and item["height"] > 0 and not item["error"] for item in state["figures"]):
                 raise RuntimeError(f"Figures failed: {state['figures']}")
             if [(item["headers"], item["groups"]) for item in state["tables"]] != [(1, 2), (2, 2), (1, 2)]:
                 raise RuntimeError(f"Tables failed: {state['tables']}")

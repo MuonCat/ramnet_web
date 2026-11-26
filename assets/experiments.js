@@ -243,7 +243,7 @@
         scroll.classList.toggle('is-scrollable', scrolling);
         if (scrolling) clear();
       }
-      const tableObserver = new ResizeObserver(updateTableMode);
+      const tableObserver = new ResizeObserver(window.RamnetRuntime.onNextFrame(updateTableMode));
       tableObserver.observe(scroll);
       tableObserver.observe(scroll.parentElement);
       updateTableMode();
@@ -300,12 +300,12 @@
     }
     container.before(legend);
     let width = 0;
-    new ResizeObserver(() => {
+    new ResizeObserver(window.RamnetRuntime.onNextFrame(() => {
       const next = Math.round(container.clientWidth);
       if (!next || next === width) return;
       width = next;
       render();
-    }).observe(container);
+    })).observe(container);
 
     function node(name, attributes = {}, text) {
       const element = document.createElementNS(svgNS, name);

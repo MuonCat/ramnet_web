@@ -247,7 +247,7 @@ $('prev').addEventListener('click',()=>seekAction(atTime().s.group-1));$('next')
 canvas.addEventListener('pointermove',e=>{const r=canvas.getBoundingClientRect();pointer={x:(e.clientX-r.left)*view.width/r.width,y:(e.clientY-r.top)*view.height/r.height};updateHover();if(!playing)draw();});
 canvas.addEventListener('pointerleave',()=>{hideTooltip();if(!playing)draw();});
 document.addEventListener('keydown',e=>{if(e.target.closest('input,select,textarea,button'))return;if(e.code==='Space'){e.preventDefault();$('play').click();}else if(e.code==='ArrowRight'){e.preventDefault();seekAction(atTime().s.group+1);}else if(e.code==='ArrowLeft'){e.preventDefault();seekAction(atTime().s.group-1);}else if(e.code==='Escape'&&document.body.classList.contains('focus')){document.body.classList.remove('focus');resize();}});
-new ResizeObserver(resize).observe($('viewport'));document.body.getRootNode().host?.addEventListener('ramnet:fit',resize);
+scope.onResize($('viewport'),resize);
 document.addEventListener('visibilitychange',()=>lastFrame=0);
 function tick(now){const dt=lastFrame?Math.min((now-lastFrame)/1000,.1):0;lastFrame=now;if(playing&&!document.hidden){playhead+=dt;if(playhead>=cfg.duration){playhead%=cfg.duration;randomizeData();}draw();}requestAnimationFrame(tick);}
 buildData();scope.setCycleDuration?.(cfg.duration);applyStyle();setPlaying(true);resize();scope.onAutoplayStart?.(event=>{if(!event.detail?.resumeCurrent){$('restart').click();return;}event.detail.remainingMs=Math.max(0,(cfg.duration-playhead)*1000);setPlaying(true);hideTooltip();draw();});requestAnimationFrame(tick);

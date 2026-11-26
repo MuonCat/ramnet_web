@@ -3,7 +3,9 @@
 import argparse
 import json
 import re
+from html.parser import HTMLParser
 from pathlib import Path
+from urllib.parse import urljoin
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,6 +21,19 @@ DATA = {
 }
 
 
+class ExhibitStyles(HTMLParser):
+    def __init__(self, page):
+        super().__init__()
+        self.page = page
+        self.urls = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "link":
+            attrs = dict(attrs)
+            if "stylesheet" in attrs.get("rel", "").lower().split():
+                self.urls.append(urljoin(self.page, attrs["href"]))
+
+
 def exhibit_markup(name):
     source = (ROOT / "animations" / f"{name}.html").read_text(encoding="utf-8")
     body = re.search(r'<body\b([^>]*)>(.*?)</body>', source, re.I | re.S)
@@ -28,15 +43,9 @@ def exhibit_markup(name):
     if not classes:
         raise ValueError(f"Missing body class: {name}")
     markup = re.sub(r'<(?:no)?script\b[^>]*>.*?</(?:no)?script>', '', body.group(2), flags=re.I | re.S).strip()
-    styles = ([f"animations/{name}.css?v=palette-config-20261002c", "assets/embed.css?v=palette-config-20261002c"]
-              if name not in ("niah_probe", "head_probe") else ["assets/probes.css?v=palette-config-20261002c"])
-    if name == "slot_usage":
-        styles = ["assets/embed.css?v=semantic-palette-20261002", "assets/probes.css?v=i18n-20261008", "animations/slot_usage.css?v=mobile-controls-20261017"]
-    elif name == "head_probe":
-        styles = ["assets/probes.css?v=head-width-20261017"]
-    elif name == "hardware":
-        styles = ["assets/embed.css?v=semantic-palette-20261002", "assets/probes.css?v=i18n-20261008", "animations/hardware.css?v=display-only-20261016"]
-    return {"bodyClass": classes.group(1), "html": markup, "styles": styles}
+    styles = ExhibitStyles(f"animations/{name}.html")
+    styles.feed(source[:body.start()])
+    return {"bodyClass": classes.group(1), "html": markup, "styles": styles.urls}
 
 
 def current_registry():

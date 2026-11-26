@@ -92,12 +92,11 @@ h2 { font-family: var(--serif); font-size: clamp(30px,3.3vw,43px); line-height: 
 .exhibit-figure { width: var(--content-width); margin: 0 0 0 var(--text-inset); }
 /* The extra width contains section 3's outside tabs; its main area still follows --content-width. */
 #figure-3 { width: min(calc(100% + var(--addressing-tab-gutter, 0px)), calc(50vw + 50% - clamp(20px, 3.5vw, 44px))); margin-left: 0; }
-.compact-interactions #figure-3 { width: var(--content-width); margin-left: var(--text-inset); }
 .figure-stage { overflow: hidden; }
 #figure-3 .figure-stage { overflow: visible; }
 .figure-interaction-hint { margin-top: 10px; color: var(--neutral-4); font-size: 11px; line-height: 1.5; text-align: center; }
 #figure-3 .figure-interaction-hint { width: var(--content-width); margin-left: var(--text-inset); }
-.embedded-exhibit { display: block; width: 100%; min-height: 160px; transform-origin: top center; }
+.embedded-exhibit { display: block; width: 100%; min-height: 160px; margin-inline: auto; transform-origin: top center; }
 .is-autoplaying .embedded-exhibit { pointer-events: none; }
 .comparison-table { width: var(--content-width); margin: 28px 0 28px var(--text-inset); overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; line-height: 1.65; }
@@ -214,7 +213,7 @@ tr:last-child td:first-child { color: var(--accent-ink); }
 .experiment-table .is-column .experiment-value, .experiment-table .is-row .experiment-value { color: var(--ink); }
 .experiment-table tbody .is-cell { box-shadow: inset 0 0 0 1.5px var(--color-resultGoldBorder); }
 .experiment-table .is-cell .experiment-value { transform: scale(1.08); }
-@media (min-width: 761px) and (pointer: fine) {
+@media (min-width: 761px) and (orientation: landscape) {
   #results .metric-grid { margin-block: clamp(8px, calc(2vh - 8px), 16px) clamp(8px, calc(1.5vh - 4px), 14px); }
   #results .metric { padding-block: clamp(8px, calc(1.5vh - 4px), 14px); }
   #results .metric strong { font-size: clamp(36px, calc(1vh + 28px), 40px); margin-bottom: clamp(0px, calc(.5vh - 4px), 2px); }
@@ -320,9 +319,11 @@ html.compact-layout {
   .embedded-exhibit { min-height: 0; }
   #figure-3 { width: var(--content-width); margin-left: var(--text-inset); }
   .section-opening { margin-bottom: 30px; }
-  .section-heading { --section-name-width: 112px; --section-name-height: 28px; display: block; margin-bottom: var(--section-heading-gap); }
-  .section-kicker { flex-direction: row; gap: 12px; margin-bottom: 14px; }
-  .section-number { width: auto; margin: 0; font-size: 32px; letter-spacing: -1px; }
+  &:not(.compact-landscape) {
+    .section-heading { --section-name-width: 112px; --section-name-height: 28px; display: block; margin-bottom: var(--section-heading-gap); }
+    .section-kicker { flex-direction: row; gap: 12px; margin-bottom: 14px; }
+    .section-number { width: auto; margin: 0; font-size: 32px; letter-spacing: -1px; }
+  }
   h2 { font-size: 31px; letter-spacing: -.8px; }
   .prose { font-size: 14px; line-height: 1.85; }
   table { min-width: 650px; font-size: 11px; }
@@ -348,7 +349,8 @@ html.compact-layout {
   .autoplay-toggle { display: none; }
   main.article, html.compact-layout main.article { --section-top-gap: 36px; --section-heading-gap: 22px; }
 }
-.compact-interactions .fine-interaction-hint { display: none; }
+html.compact-layout.compact-landscape main.article { --section-top-gap: 12px; --section-heading-gap: 8px; }
+.compact-layout .fine-interaction-hint { display: none; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .experiment-panel:not([hidden]), .experiment-panel:not([hidden]) .decoding-chart .is-ramnet { animation: none; } }
 @media print {
   .chapter-nav, .hero-actions, .closing { display: none; }

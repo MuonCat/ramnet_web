@@ -329,7 +329,7 @@
       if (event.detail) event.detail.remainingMs = totalMs - elapsed;
       clearHover(); playing = true; lastFrame = 0; render();
     });
-    new ResizeObserver(resize).observe(canvas);
+    scope.onResize(canvas, resize);
     document.addEventListener('visibilitychange', () => { lastFrame = 0; });
 
     function animate(now) {

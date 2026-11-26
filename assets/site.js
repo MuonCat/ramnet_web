@@ -2,12 +2,18 @@
   'use strict';
   const exhibits = [...document.querySelectorAll('.embedded-exhibit[data-exhibit]')];
   const sections = [...document.querySelectorAll('.paper-section')];
+  const figures = exhibits.map(host => ({host, stage: host.closest('.figure-stage'), section: host.closest('.paper-section')}));
+  const nav = document.querySelector('.chapter-nav');
+  const results = document.getElementById('results');
+  const addressingText = document.querySelector('#addressing .prose');
+  const root = document.documentElement;
   const addressingExhibit = exhibits.find(exhibit => exhibit.dataset.exhibit === 'product_softmax');
   const article = document.querySelector('main.article');
   const compactLayout = window.RamnetRuntime.compactLayout;
   const touchViewport = matchMedia('(pointer: coarse)');
   const sectionNames = [...document.querySelectorAll('.section-name')].map(box => ({box, text: box.firstElementChild, name: box.textContent.trim()}));
   const nameMeasure = document.createElement('canvas').getContext('2d');
+  let fittedNameBox = '';
   function textInkOffset(element) {
     const style = getComputedStyle(element);
     nameMeasure.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
@@ -17,6 +23,11 @@
     return (first.fontBoundingBoxAscent - first.fontBoundingBoxDescent - first.actualBoundingBoxAscent + last.actualBoundingBoxDescent) / 2;
   }
   function fitSectionNames() {
+    const sample = sectionNames[0].box;
+    const width = sample.clientWidth - 1, height = sample.clientHeight - 1;
+    const boxKey = `${width}/${height}/${compactLayout.matches}`;
+    if (fittedNameBox === boxKey) return;
+    fittedNameBox = boxKey;
     for (const {box, text, name} of sectionNames) {
       const style = getComputedStyle(text);
       const fontSize = parseFloat(style.fontSize);
@@ -25,7 +36,6 @@
       nameMeasure.font = `${style.fontWeight} 100px ${style.fontFamily}`;
       const widthAtOnePixel = line => nameMeasure.measureText(line.toUpperCase()).width / 100 + line.length * spacing;
       const words = name.split(/\s+/);
-      const width = box.clientWidth - 1, height = box.clientHeight - 1;
       const singleSize = Math.min(width / widthAtOnePixel(name), height / lineHeight);
       const stackedSize = Math.min(width / Math.max(...words.map(widthAtOnePixel)), height / (words.length * lineHeight));
       const stacked = stackedSize > singleSize;
@@ -37,135 +47,102 @@
       }
     }
   }
-  let compactWidth = window.innerWidth;
-  let viewportWidth = window.innerWidth, viewportHeight = window.innerHeight, resizeTimer = 0;
-  let compactScales = new WeakMap();
-  let addressingLayout = null;
-  let addressingMetrics = null;
-  let desktopAddressingMetrics = null;
-  let fitPending = false;
-  const firstScreenPadding = 36;
-  function firstScreenRatio(articleWidth, navHeight, compactSpacing, desktopBudget) {
-    let largest = 0;
-    for (const exhibit of exhibits) {
-      const wrapper = exhibit.shadowRoot?.firstElementChild;
+  let viewportWidth = root.clientWidth, viewportHeight = root.clientHeight, resizeTimer = 0;
+  let addressingLayout = null, addressingMetrics = null, desktopAddressingMetrics = null;
+  const topOffset = ({stage, section}) => stage.getBoundingClientRect().top - section.getBoundingClientRect().top;
+
+  function desktopWidth(height, gutter) {
+    // Let CSS supply the page margins and maximum width. Reserve space for outside tabs on wide screens.
+    root.classList.remove('compact-layout');
+    const reserved = viewportWidth > 1024 ? gutter : 0;
+    article.style.setProperty('--addressing-tab-gutter', `${reserved}px`);
+    if (reserved) article.style.setProperty('--article-width-limit', `${Math.max(1, root.clientWidth - 2 * (reserved + 24))}px`);
+    else article.style.removeProperty('--article-width-limit');
+
+    const base = article.getBoundingClientRect().width;
+    const content = addressingText.getBoundingClientRect().width;
+    let tallest = 0;
+    for (const figure of figures) {
+      const wrapper = figure.host.shadowRoot?.querySelector('.exhibit-content');
       if (!wrapper) continue;
-      const section = exhibit.closest('.paper-section');
-      const stage = exhibit.closest('.figure-stage');
-      const offset = stage.getBoundingClientRect().top - section.getBoundingClientRect().top;
-      let height = wrapper.offsetHeight;
-      if (exhibit === addressingExhibit && desktopAddressingMetrics && desktopBudget) {
-        const {tabWidth, aspect, chromeHeight, controlsHeight, topKHeight} = desktopAddressingMetrics;
-        const contentWidth = section.querySelector('.prose').getBoundingClientRect().width;
-        height = (contentWidth + tabWidth + 16) / aspect + chromeHeight -
-          (compactSpacing ? controlsHeight - topKHeight : 0);
+      let figureHeight = wrapper.offsetHeight;
+      if (figure.host === addressingExhibit && desktopAddressingMetrics) {
+        const {aspect, tabWidth, chromeHeight, controlsHeight, topKHeight} = desktopAddressingMetrics;
+        // Short displays budget through Top-K; tall displays include the distribution controls.
+        figureHeight = (content + tabWidth + 16) / aspect + chromeHeight - (height <= 850 ? controlsHeight - topKHeight : 0);
       }
-      largest = Math.max(largest, (navHeight + offset + height + firstScreenPadding) / articleWidth);
+      tallest = Math.max(tallest, topOffset(figure) + figureHeight);
     }
-    const results = document.getElementById('results');
     const firstRamnet = results.querySelector('.experiment-panel:not([hidden]) .experiment-table tbody:first-of-type .ramnet-row');
-    if (firstRamnet) {
-      const height = firstRamnet.getBoundingClientRect().bottom - results.getBoundingClientRect().top;
-      largest = Math.max(largest, (navHeight + height + firstScreenPadding) / articleWidth);
+    if (firstRamnet && getComputedStyle(firstRamnet).display === 'table-row') {
+      tallest = Math.max(tallest, firstRamnet.getBoundingClientRect().bottom - results.getBoundingClientRect().top);
     }
-    return largest;
+    const budget = tallest + nav.offsetHeight + 36;
+    return Math.floor(Math.min(base, Math.max(560, height * base / budget)));
   }
+
   function fitFigures() {
-    if (window.innerWidth !== compactWidth) { compactWidth = window.innerWidth; compactScales = new WeakMap(); }
-    const fitHeight = touchViewport.matches ? viewportHeight : window.innerHeight;
-    document.documentElement.classList.remove('compact-layout', 'compact-interactions');
-    article.classList.remove('compact-interactions');
-    const navHeight = document.querySelector('.chapter-nav').getBoundingClientRect().height;
-    const compactSpacing = fitHeight <= 850;
+    // Touch browsers resize their toolbars during a swipe. Keep the height used for sizing stable.
+    const height = viewportHeight, aspect = viewportWidth / height;
     const gutter = desktopAddressingMetrics ? desktopAddressingMetrics.tabWidth + 16 : 0;
-    const reservedGutter = window.innerWidth <= 1024 ? 0 : gutter;
-    const pageMargin = Math.max(40, Math.min(88, window.innerWidth * .07));
-    exhibits.forEach(exhibit => {
-      exhibit.style.zoom = '';
-      exhibit.style.transform = '';
-      exhibit.closest('.figure-stage').style.height = '';
-    });
-    function fittedWidth(tabGutter, desktopBudget, reflow = false) {
-      const baseWidth = Math.min(1160, document.documentElement.clientWidth - Math.max(pageMargin, 2 * (tabGutter + 24)));
-      article.style.setProperty('--article-width-limit', `${Math.max(1, baseWidth)}px`);
-      article.style.setProperty('--addressing-tab-gutter', `${tabGutter}px`);
-      const articleWidth = article.getBoundingClientRect().width;
-      const ratio = firstScreenRatio(articleWidth, navHeight, compactSpacing || reflow, desktopBudget);
-      const minimumWidth = reflow ? articleWidth * .88 : Math.min(560, articleWidth);
-      return Math.min(articleWidth, Math.max(minimumWidth, ratio ? fitHeight / ratio : articleWidth));
+    const previousZoom = figures.map(({host}) => host.style.zoom);
+    for (const {host, stage} of figures) {
+      host.style.zoom = host.style.width = host.style.transform = stage.style.height = '';
     }
-    const desktopWidth = fittedWidth(reservedGutter, Boolean(gutter));
-    article.style.setProperty('--article-width-limit', `${Math.floor(desktopWidth)}px`);
-    const desktopInset = document.querySelector('#addressing .prose').getBoundingClientRect().left - article.getBoundingClientRect().left;
-    const aspect = window.innerWidth / fitHeight;
-    const contentWidth = desktopWidth - 2 * desktopInset;
-    const tabFootprint = Math.min(gutter, window.innerWidth <= 1024 ? 124 : Infinity);
-    const sceneWidth = Math.min(contentWidth, addressingExhibit.clientWidth - tabFootprint);
-    const useCompactLayout = aspect < 1 || sceneWidth < 560 || (aspect >= 9 / 5 && sceneWidth < 680);
-    document.documentElement.classList.toggle('compact-layout', useCompactLayout);
-    article.classList.toggle('compact-interactions', useCompactLayout);
-    document.documentElement.classList.toggle('compact-interactions', useCompactLayout);
-    compactLayout.set(useCompactLayout);
-    const width = useCompactLayout ? fittedWidth(0, false, true) : desktopWidth;
-    article.style.setProperty('--addressing-tab-gutter', `${useCompactLayout ? 0 : gutter}px`);
-    article.style.setProperty('--article-width-limit', `${Math.floor(width)}px`);
+
+    let compact = aspect < 1;
+    if (!compact) {
+      const width = desktopWidth(height, gutter);
+      article.style.setProperty('--article-width-limit', `${width}px`);
+      article.style.setProperty('--addressing-tab-gutter', `${gutter}px`);
+      const scene = Math.min(addressingText.getBoundingClientRect().width, addressingExhibit.clientWidth - gutter);
+      compact = scene < (aspect >= 9 / 5 ? 680 : 560);
+    }
+    root.classList.toggle('compact-layout', compact);
+    root.classList.toggle('compact-landscape', compact && aspect > 1 && viewportWidth >= 560 && height <= 600);
+    compactLayout.set(compact);
     fitSectionNames();
-    sections.forEach(section => {
-      const stage = section.querySelector('.figure-stage');
-      const exhibit = stage?.querySelector('.embedded-exhibit');
-      if (!exhibit) return;
-      const offset = stage.getBoundingClientRect().top - section.getBoundingClientRect().top;
-      const available = fitHeight - navHeight - offset - 14;
-      const height = exhibit.offsetHeight;
-      let scale = Math.min(1, Math.max(compactLayout.matches ? .68 : .55, available / height));
-      // The full desktop view determines the shared width; compact controls may still need height fitting.
-      if (exhibit === addressingExhibit && !compactLayout.matches) {
-        const changed = exhibit.style.zoom || exhibit.style.transform;
-        exhibit.style.zoom = '';
-        exhibit.style.transform = '';
-        stage.style.height = '';
-        if (changed) exhibit.dispatchEvent(new Event('ramnet:fit'));
-        return;
+
+    // Read all natural sizes before changing any scale. Each section gets the space below its heading.
+    const available = height - nav.offsetHeight - 14;
+    const sizes = figures.map(figure => {
+      const wrapper = figure.host.shadowRoot?.querySelector('.exhibit-content');
+      if (!wrapper || (figure.host === addressingExhibit && !compact)) return null;
+      const naturalHeight = wrapper.offsetHeight;
+      if (!naturalHeight) return null;
+      const scale = Math.max(0, Math.min(1, (available - topOffset(figure)) / naturalHeight));
+      return {scale, width: figure.stage.clientWidth, height: naturalHeight};
+    });
+    figures.forEach(({host, stage}, i) => {
+      const size = sizes[i];
+      if (size && size.scale > 0 && size.scale < .999) {
+        if (compact && CSS.supports('zoom', '0.7')) {
+          // An explicit natural width keeps zoom from reflowing a percentage-width figure.
+          host.style.width = `${size.width}px`;
+          host.style.zoom = String(size.scale);
+        } else {
+          host.style.transform = `scale(${size.scale})`;
+          stage.style.height = `${Math.ceil(size.height * size.scale)}px`;
+        }
       }
-      if (compactLayout.matches) {
-        const previous = compactScales.get(exhibit);
-        if (previous?.width === exhibit.offsetWidth && previous.height === height) scale = previous.scale;
-        else compactScales.set(exhibit, {width: exhibit.offsetWidth, height, scale});
-      }
-      if (compactLayout.matches && CSS.supports('zoom', '0.7')) {
-        const zoom = scale < .999 ? String(scale) : '';
-        const changed = exhibit.style.zoom !== zoom;
-        exhibit.style.zoom = zoom;
-        exhibit.style.transform = '';
-        stage.style.height = '';
-        if (changed) exhibit.dispatchEvent(new Event('ramnet:fit'));
-      } else {
-        exhibit.style.zoom = '';
-        exhibit.style.transform = scale < .999 ? `scale(${scale})` : '';
-        stage.style.height = scale < .999 ? `${Math.ceil(height * scale)}px` : '';
-      }
+      if (previousZoom[i] !== host.style.zoom) host.dispatchEvent(new Event('ramnet:fit'));
     });
     syncAddressingLayout();
-    fitPending = false;
   }
-  function scheduleFit() {
-    if (fitPending) return;
-    fitPending = true;
-    requestAnimationFrame(fitFigures);
-  }
-  const fitObserver = new ResizeObserver(scheduleFit);
-  sections.forEach(section => fitObserver.observe(section.querySelector('.section-heading')));
+  const scheduleFit = window.RamnetRuntime.onNextFrame(fitFigures);
   window.addEventListener('resize', () => {
     // Mobile browser toolbars change the visible height during ordinary scrolling.
-    if (window.innerWidth === viewportWidth && (touchViewport.matches || window.innerHeight === viewportHeight)) return;
-    viewportWidth = window.innerWidth;
-    viewportHeight = window.innerHeight;
-    if (!compactLayout.matches || viewportWidth !== compactWidth) scheduleFit();
+    const width = root.clientWidth, height = root.clientHeight;
+    if (width === viewportWidth && (touchViewport.matches || height === viewportHeight)) return;
+    viewportWidth = width;
+    viewportHeight = height;
+    scheduleFit();
     clearTimeout(resizeTimer);
     // Refit after a browser fullscreen transition settles.
     resizeTimer = setTimeout(scheduleFit, 500);
   });
   document.fonts.ready.then(() => {
+    fittedNameBox = '';
     addressingExhibit.dispatchEvent(new Event('ramnet:fit'));
     scheduleFit();
   });
@@ -181,7 +158,7 @@
     scheduleFit();
   });
   function syncAddressingLayout() {
-    const text = document.querySelector('#addressing .prose').getBoundingClientRect();
+    const text = addressingText.getBoundingClientRect();
     const exhibit = addressingExhibit.getBoundingClientRect();
     const scale = exhibit.width / addressingExhibit.offsetWidth;
     const width = Math.min(text.width / scale, addressingExhibit.clientWidth);
@@ -191,37 +168,20 @@
     addressingLayout = {left, width};
     addressingExhibit.dispatchEvent(new CustomEvent('ramnet:content-layout', {detail: {left, width}}));
   }
-  new ResizeObserver(syncAddressingLayout).observe(addressingExhibit);
-  // Section 3 changes its own height while aligning its tabs with the prose.
-  const exhibitObserver = new ResizeObserver(entries => {
+  const scheduleAddressingLayout = window.RamnetRuntime.onNextFrame(syncAddressingLayout);
+  const fitObserver = new ResizeObserver(entries => {
+    // In desktop mode the tab layout sets its own height and reports a separate first-screen budget.
     if (entries.some(entry => entry.target !== addressingExhibit || compactLayout.matches)) scheduleFit();
+    else scheduleAddressingLayout();
   });
+  sections.forEach(section => fitObserver.observe(section.querySelector('.section-heading')));
   exhibits.forEach(exhibit => {
-    exhibitObserver.observe(exhibit);
+    fitObserver.observe(exhibit);
     exhibit.addEventListener('ramnet:mounted', () => {
       if (exhibit === addressingExhibit) { addressingLayout = null; syncAddressingLayout(); }
-      if (exhibit === addressingExhibit) requestAnimationFrame(() => requestAnimationFrame(scheduleFit));
-      else scheduleFit();
+      scheduleFit();
     });
   });
   window.addEventListener('ramnet:results-layout', scheduleFit);
-  const links = [...document.querySelectorAll('.chapter-links a')];
-  const progress = document.querySelector('.reading-progress');
-  let scrollPending = false;
-  function updateReading() {
-    const current = sections.findLast(section => section.getBoundingClientRect().top <= 170) || sections[0];
-    links.forEach(link => {
-      if (link.hash === `#${current.id}`) link.setAttribute('aria-current', 'location');
-      else link.removeAttribute('aria-current');
-    });
-    const distance = document.documentElement.scrollHeight - window.innerHeight;
-    progress.style.transform = `scaleX(${distance > 0 ? Math.min(1, window.scrollY / distance) : 0})`;
-    scrollPending = false;
-  }
-  window.addEventListener('scroll', () => {
-    if (!scrollPending) { scrollPending = true; requestAnimationFrame(updateReading); }
-  }, {passive: true});
-  window.addEventListener('resize', updateReading);
-  updateReading();
   scheduleFit();
 })();

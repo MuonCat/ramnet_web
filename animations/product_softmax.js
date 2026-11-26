@@ -1362,11 +1362,13 @@ arrangePages();applyConfig(config);scope.onAutoplayStart?.(event=>{
 });requestAnimationFrame(frame);
 const cardScroll=document.querySelector('.card-scroll');
 let cardScrollWidth=cardScroll.clientWidth;
-new ResizeObserver(()=>{
-  if(cardScroll.clientWidth===cardScrollWidth)return;
+const redrawCard=window.RamnetRuntime.onNextFrame(()=>{
   cardScrollWidth=cardScroll.clientWidth;
   layoutPages();buildScene();
+});
+new ResizeObserver(()=>{
+  if(cardScroll.clientWidth!==cardScrollWidth)redrawCard();
 }).observe(cardScroll);
-exhibitHost?.addEventListener('ramnet:fit',()=>{layoutPages();buildScene();});
+exhibitHost?.addEventListener('ramnet:fit',redrawCard);
 };
 if (document.body.classList.contains('exhibit-product_softmax')) window.RamnetRuntime.mountStandalone('product_softmax');
