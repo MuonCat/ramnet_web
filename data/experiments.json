@@ -2,7 +2,7 @@
   "version": 1,
   "columns": {
     "language": [
-      {"label": "Wiki. ppl", "lines": ["Wiki.", "ppl"], "better": "lower"},
+      {"label": "WikiText perplexity", "lines": ["WikiText", "PPL"], "better": "lower"},
       {"label": "LMB", "better": "higher"},
       {"label": "MMLU", "better": "higher"},
       {"label": "ARC-e", "better": "higher"},
@@ -14,7 +14,7 @@
       {"label": "PIQA", "better": "higher"},
       {"label": "Hella", "better": "higher"},
       {"label": "Wino", "better": "higher"},
-      {"label": "Avg.", "better": "higher"},
+      {"label": "Reasoning avg.", "lines": ["Reasoning", "Avg."], "better": "higher"},
       {"label": "Active state", "lines": ["Active", "state"], "better": "lower"},
       {"label": "Total state", "lines": ["Total", "state"], "better": "lower"}
     ],

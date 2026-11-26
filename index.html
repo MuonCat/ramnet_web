@@ -13,13 +13,13 @@
     if (location.hash) history.replaceState(history.state, '', location.pathname + location.search);
   </script>
   <script src="assets/palette.js?v=logo-grid-20261028" data-palette="data/palette.json?v=decoding-20261126"></script>
-  <script defer src="assets/translations-zh.js?v=decoding-20261126"></script><script defer src="assets/i18n.js?v=copy-review-20261126"></script>
+  <script defer src="assets/translations-zh.js?v=editorial-20261126"></script><script defer src="assets/i18n.js?v=copy-review-20261126"></script>
   <script defer src="assets/animation-runtime.js?v=i18n-20261008"></script><script defer src="assets/exhibit-markup.js?v=copy-review-20261126b"></script>
   <script defer src="data/probes/niah_traces.js"></script><script defer src="data/probes/niah_slot_maps.js"></script><script defer src="data/probes/head_traces.js"></script>
   <script defer src="assets/stage-timeline.js?v=i18n-20261008"></script>
   <script defer src="animations/hardware.js?v=fixed-input-cadence-20261029"></script>
   <script defer src="animations/attn_cmp.js?v=copy-review-20261126b"></script><script defer src="animations/ramnet_arch.js?v=i18n-20261008"></script><script defer src="animations/product_softmax.js?v=i18n-20261008"></script><script defer src="animations/cape.js?v=i18n-20261008"></script><script defer src="animations/gsu.js?v=copy-review-20261126b"></script><script defer src="animations/cal_pipeline.js?v=results-fit-20261125"></script><script defer src="animations/niah_probe.js?v=cycle-20s-20261028"></script><script defer src="animations/head_probe.js?v=head-controls-20261016"></script>
-  <script defer src="animations/slot_usage.js?v=log-normal-20261028"></script><script defer src="assets/exhibit-host.js?v=i18n-20261008"></script><script defer src="assets/site.js?v=stable-touch-layout-20261125"></script><script defer src="assets/hero.js"></script><script defer src="assets/section-scroll.js?v=touch-reading-20261125"></script><script defer src="data/experiments.js?v=decoding-20261126"></script><script defer src="assets/experiments.js?v=decoding-arrow-20261126b"></script><script defer src="assets/reading-position.js?v=section-alignment-20260930"></script>
+  <script defer src="animations/slot_usage.js?v=log-normal-20261028"></script><script defer src="assets/exhibit-host.js?v=i18n-20261008"></script><script defer src="assets/site.js?v=stable-touch-layout-20261125"></script><script defer src="assets/hero.js"></script><script defer src="assets/section-scroll.js?v=touch-reading-20261125"></script><script defer src="data/experiments.js?v=metric-labels-20261126"></script><script defer src="assets/experiments.js?v=metric-labels-20261126"></script><script defer src="assets/reading-position.js?v=section-alignment-20260930"></script>
 </head>
 <body id="top">
 <a class="skip-link" href="#memory">Skip to the paper</a>
@@ -31,7 +31,7 @@
   <div class="eyebrow">Sequence modeling · Efficient attention</div>
   <div class="hero-grid"><div>
     <h1 id="paper-title">RAM-Net<span>Linear-Time Sequence Modeling<br>with Sparsely Addressable State</span></h1>
-    <p class="hero-deck">A larger fixed-size state, accessed a few slots at a time.</p>
+    <p class="hero-deck">RAM-Net keeps a large, fixed-size memory and reads and writes only a few slots per step.</p>
     <div class="hero-actions"><a class="button-link primary" href="#memory">Explore the method <span aria-hidden="true">↓</span></a><a class="text-link" href="#results">See the results ↗</a></div>
     <div class="hero-resources" role="group" aria-label="Paper and project resources">
       <a class="resource-link" href="https://arxiv.org/abs/2602.11958" target="_blank" rel="noopener noreferrer" aria-label="Read the paper on arXiv (opens in a new tab)"><img class="resource-logo" src="assets/icons/arxiv.svg" width="16" height="16" alt="">arXiv <span aria-hidden="true">↗</span></a>
@@ -75,7 +75,7 @@ Its efficiency depends on both the space needed to store that history and the am
 <p>Full attention <a class="cite" href="#ref-1">[1]</a> keeps one key–value entry per token and compares each query against all of them, so both costs grow with sequence length.
 KV compression, such as KV cache quantization and MLA, reduces cache storage per token. Sparse attention reads fewer positions per step. In both cases, the cache typically grows with sequence length.</p>
 <p>Mainstream linear attention <a class="cite" href="#ref-2">[2]</a> compresses history into a fixed-size state.
-Each step still reads and writes the entire state, so tokens interfere within the same state, and increasing its size also increases per-step access.</p>
+In most designs, each step reads and writes the entire state. Tokens share that state and can interfere with one another. A larger state also costs more to access per step.</p>
 <p>RAM-Net divides this fixed-size state into many addressable slots, and each step reads and writes only a few selected ones.
 Tokens interfere only where their slot accesses overlap. With the same Top-K, adding slots increases capacity without increasing per-step access.</p>
 </div><div class="comparison-table" role="region" aria-label="Comparison of memory mechanisms" tabindex="0"><table>
@@ -103,14 +103,14 @@ These components operate on a fixed-size array of <span class="math">|𝒜|</spa
 <p>For each token, learned projections produce three vectors: a <strong>key</strong> to select write slots, a <strong>query</strong> to select read slots, and a <strong>value</strong> to store.
 Three components connect these inputs to the slot memory:</p>
 <ol class="stage-list">
-<li><strong>Address Decoder:</strong> Product Softmax turns compact groups of scores into slot weights. Top-<span class="math"><i>K</i></span> retains the <strong class="text-highlight">integer addresses and weights</strong> of the <span class="math"><i>K</i></span> highest-weight slots.
-The key defines the write access; the query defines the read access.</li>
-<li><strong>Cyclic Address Positional Embedding (CAPE):</strong> shifts the decoded read and write indices according to token position, without changing their weights.
-Applied to some heads, it makes read–write matching depend on <strong class="text-highlight">relative position</strong>; the remaining heads retain content-only addressing.</li>
-<li><strong>Gated Sparse Update (GSU):</strong> takes the value and the write weights, then <strong class="text-highlight">forgets and updates only the selected write slots</strong>.
-Each selected slot updates independently; all unselected slots stay unchanged.</li>
+<li><strong>Address Decoder.</strong> Product Softmax converts one group of scores per address digit into weights over slots. Top-<span class="math"><i>K</i></span> keeps the <strong class="text-highlight">integer addresses and weights</strong> of the <span class="math"><i>K</i></span> highest-weight slots.
+The decoder uses the key for content-based writes and the query for content-based reads.</li>
+<li><strong>Cyclic Address Positional Embedding (CAPE).</strong> On heads that use CAPE, token position shifts the decoded read and write addresses while preserving their weights.
+Read–write matching on these heads depends on both content and <strong class="text-highlight">relative position</strong>. The other heads use content alone.</li>
+<li><strong>Gated Sparse Update (GSU).</strong> GSU uses the incoming value and write weights to <strong class="text-highlight">update only the slots selected for writing</strong>.
+Each of these slots independently controls how much history to retain and how much new content to incorporate.</li>
 </ol>
-<p>After the update, the read weights combine the selected slots into an output, which is normalized, gated, and projected.
+<p>After the update, the model takes a weighted sum of the contents of the slots selected for reading, then normalizes, gates, and projects the result.
 The Address Decoder and CAPE determine where information is read and written, while GSU determines what each selected write slot retains and updates.
 The figure illustrates 32 slots with Top-4 access; Sections 3, 4, and 5 explain the three components in detail.</p>
 <p>Together, these components decouple memory capacity from the per-step access budget.
@@ -141,7 +141,7 @@ The computation below normalizes the scores within each group to produce digit d
 </div>
 <ol class="stage-list">
 <li><strong class="text-highlight">Normalize each digit:</strong> apply a softmax to each sub-vector to obtain its digit distribution. The temperature <span class="math">τ &gt; 0</span> controls how sharply each digit selects among its possible values.</li>
-<li><strong class="text-highlight">Multiply across digits:</strong> a slot's probability is the product of the probabilities of its digits.</li>
+<li><strong class="text-highlight">Multiply across digits:</strong> a slot’s probability is the product of the probabilities of its digits.</li>
 <li><strong class="text-highlight">Keep only Top-K:</strong> the truncation operator <span class="math">𝒯<sub><i>K</i></sub></span> retains the <span class="math"><i>K</i></span> largest probabilities and sets all others to zero, without renormalizing the retained weights. The result <span class="math">𝒟<sub><i>K</i>,<i>U</i></sub>(<b>k</b><sub><i>t</i></sub>)</span> is the sparse address decoded from the key; the query is decoded into a read address in the same way.</li>
 </ol>
 <p>The slot count <span class="math">|𝒜| = <i>d<sub>p</sub></i><sup><i>U</i></sup></span> grows exponentially with the number of digits <span class="math"><i>U</i></span>, while the key and query dimension <span class="math"><i>d<sub>k</sub></i> = <i>U d<sub>p</sub></i></span> grows only linearly, so <strong class="text-highlight"><span class="math"><i>U d<sub>p</sub></i></span> scores suffice to address all <span class="math">|𝒜|</span> slots</strong>.
@@ -154,13 +154,13 @@ Moreover, each digit distribution is shared by many slots, so a learning signal 
 Each digit has <span class="math"><i>d<sub>p</sub></i></span> possible values; combining one value from each of the <span class="math"><i>U</i></span> groups forms a complete address.
 The product of those digit probabilities gives the weight of that address.</p>
 <h3>Multilevel Decision Tree</h3>
-<p>Addresses form a <strong class="text-highlight">prefix tree</strong>: each node is a partial address, with <span class="math"><i>d<sub>p</sub></i></span> branches for the next digit.
+<p>This decision tree is a <strong class="text-highlight">prefix tree</strong>. Each internal node represents an address prefix, with one branch for each of the <span class="math"><i>d<sub>p</sub></i></span> possible values of the next digit.
 At each level, one score group supplies the branch probabilities, so <strong class="text-highlight">multiple choices can carry weight simultaneously</strong>.
-A complete path identifies one slot, weighted by the product of its branch probabilities.</p>
+Each leaf represents a complete slot address. Its weight is the product of the branch probabilities along the path.</p>
 <h3>Joint Distribution</h3>
 <p>Product Softmax defines a <strong class="text-highlight"><span class="math"><i>U</i></span>-dimensional joint distribution</strong>, with <span class="math"><i>d<sub>p</sub></i></span> possible values along each axis.
-Each normalized score group supplies one axis's marginal distribution; multiplying these independent factors gives the probability at every grid point.
-A peaked factor concentrates weight on a slice of the space; combining factors focuses it at the slices' intersections.
+Each normalized score group supplies one axis’s marginal distribution; multiplying these independent factors gives the probability at every grid point.
+A peaked factor concentrates weight on a slice of the space; combining factors focuses it at the slices’ intersections.
 The figure shows <span class="math"><i>U</i> = <i>d<sub>p</sub></i> = 4</span>.</p>
 <h3>Regroupable Address</h3>
 <p>Several digits can be <strong class="text-highlight">jointly encoded as one larger address digit</strong>: a group of <span class="math"><i>m</i></span> digits has <span class="math"><i>d<sub>p</sub></i><sup><i>m</i></sup></span> possible values.
@@ -175,7 +175,7 @@ Low-order digits therefore produce short steps and fast cycles; higher-order dig
 These are <strong class="text-highlight">five equivalent views of the same Product Softmax distribution</strong>, each useful in a different setting.</p>
 <p>The tree view supports <strong class="text-highlight">exact Top-<span class="math"><i>K</i></span> pruning</strong>: keep the <span class="math"><i>K</i></span> strongest prefixes at each level, evaluating at most <span class="math"><i>K d<sub>p</sub></i></span> candidates per level without constructing the full slot distribution.
 The joint view explains <strong class="text-highlight">gradient broadcast</strong>: learning at one slot updates axis factors that are shared by many other slots.
-The waveform view explains <strong class="text-highlight">CAPE's shift equivalence</strong>: circularly shifting the full distribution is equivalent to shifting every factor waveform by the same amount before multiplying them.</p>
+The waveform view explains <strong class="text-highlight">CAPE’s shift equivalence</strong>: circularly shifting the full distribution is equivalent to shifting every factor waveform by the same amount before multiplying them.</p>
 </div></section>
 <section class="paper-section" id="position" aria-labelledby="heading-position"><div class="section-opening">
 <div class="section-heading"><div class="section-kicker"><span class="section-number">04</span><span class="section-name"><span class="section-name-text">CAPE</span></span></div><div><h2 id="heading-position">Position-Aware Addressing</h2><p class="section-subtitle">Relative position</p></div></div>
@@ -186,14 +186,14 @@ The waveform view explains <strong class="text-highlight">CAPE's shift equivalen
 </div>
 <div class="prose">
 <p>Without a position-dependent shift, Product Softmax maps identical keys or queries to the same absolute slot addresses.
-Cyclic Address Positional Embedding (CAPE) makes <strong class="text-highlight">read–write matching depend on relative position</strong> as well as content. This lets a read distinguish the same content at different distances.</p>
+Cyclic Address Positional Embedding (CAPE) makes read–write matching depend on both <strong class="text-highlight">content and relative position</strong>.</p>
 <p>At token position <span class="math"><i>t</i></span>, CAPE shifts each decoded address by <span class="math">−<i>t</i></span>, keeping its weight unchanged.
-It shifts the read and write indices, not the stored content. The modulo operation wraps addresses around the finite slot array.</p>
+Only the addresses shift. The stored content stays in place, and addresses wrap around the slot array.</p>
 <p>A write at position <span class="math"><i>s</i></span> is shifted by <span class="math">−<i>s</i></span>, while a read at <span class="math"><i>t</i></span> is shifted by <span class="math">−<i>t</i></span>.
-Their overlap therefore depends on content and <strong class="text-highlight">the relative distance <span class="math"><i>t</i> − <i>s</i></span></strong>, rather than on the two absolute positions separately.
+For a given key and query, their overlap depends on <strong class="text-highlight">the relative distance <span class="math"><i>t</i> − <i>s</i></span> modulo the number of slots</strong>. Distances one full turn apart produce the same alignment.
 Like rotary position embeddings (RoPE), CAPE introduces relative position, but through address shifts rather than rotations of keys and queries. The physical accesses still use integer slot addresses.</p>
-<p>Because this is only an index permutation, each read or write still accesses <span class="math"><i>K</i></span> slots.
-RAM-Net combines CAPE heads for relative-position patterns with heads without positional encoding (NoPE) for associations independent of distance.
+<p>Because this is a permutation of slot addresses, each read or write still accesses <span class="math"><i>K</i></span> slots.
+RAM-Net combines CAPE heads for relative-position patterns with heads without positional embeddings (NoPE) for associations independent of distance.
 Both keep the same sparse access budget.</p>
 </div></section>
 <section class="paper-section" id="update" aria-labelledby="heading-update"><div class="section-opening">
@@ -204,11 +204,11 @@ Both keep the same sparse access budget.</p>
 </figure>
 </div>
 <div class="prose">
-<p>Gated Sparse Update (GSU) performs <strong class="text-highlight">per-slot test-time training (TTT)</strong> <a class="cite" href="#ref-3">[3]</a>: each addressed slot acts as an online learner, moving its stored content toward the incoming value with one gradient step.
-Its local objective is <span class="math">ℓ<sub><i>t</i></sub>(<b>s</b>) = ½‖<b>s</b> − <b>v</b><sub><i>t</i></sub>‖<sup>2</sup></span>, with a learning rate adapted to the slot's history and the current input.</p>
+<p>Gated Sparse Update (GSU) performs <strong class="text-highlight">per-slot test-time training (TTT)</strong> <a class="cite" href="#ref-3">[3]</a>: each slot selected for writing acts as an online learner, moving its stored content toward the incoming value with one gradient step.
+Its local objective is <span class="math">ℓ<sub><i>t</i></sub>(<b>s</b>) = ½‖<b>s</b> − <b>v</b><sub><i>t</i></sub>‖<sup>2</sup></span>, with a learning rate adapted to the slot’s history and the current input.</p>
 <p>A forgetting gate over the entire state would touch every slot at every step, defeating sparse access.
-GSU instead forgets and learns only at the selected slots, leaving all others exactly unchanged. Each slot balances retaining its own history against adopting new information.</p>
-<p>Each slot <span class="math"><i>a</i></span> maintains a content vector <span class="math"><b>s</b><sub><i>t</i></sub>[<i>a</i>]</span> and a scalar <strong class="text-highlight">slot mass</strong> <span class="math"><i>m</i><sub><i>t</i></sub>[<i>a</i>]</span>. The mass is the accumulated write weight the slot has retained. For the same incoming write weight, greater mass lowers the learning rate and moves the stored content less toward the new value.
+GSU applies forgetting and learning only to slots selected for writing. Each one balances its own history against the incoming value. All other slots keep their contents and mass unchanged.</p>
+<p>Each slot <span class="math"><i>a</i></span> maintains a content vector <span class="math"><b>s</b><sub><i>t</i></sub>[<i>a</i>]</span> and a scalar <strong class="text-highlight">slot mass</strong> <span class="math"><i>m</i><sub><i>t</i></sub>[<i>a</i>]</span>. Mass measures the accumulated write weight retained in the slot and gives its contents inertia. For the same incoming write weight, more retained mass means a smaller learning rate and a smaller change in content.
 Given the current write weight <span class="math"><i>w</i><sub><i>t</i></sub>[<i>a</i>]</span> and value <span class="math"><b>v</b><sub><i>t</i></sub></span>, the complete update is:</p>
 <div class="equation" role="group" aria-label="Gated sparse update equations">
 <img class="equation-image" src="assets/figures/gsu-equation.svg" alt="Gated sparse update equations">
@@ -216,15 +216,15 @@ Given the current write weight <span class="math"><i>w</i><sub><i>t</i></sub>[<i
 <p>Read the equations from top to bottom, in the same order as the animation:</p>
 <ul class="equation-notes">
 <li><strong class="text-highlight">Retention (<span class="math">λ</span>):</strong> starts from <span class="math">1 − <i>w</i><sub><i>t</i></sub>[<i>a</i>]</span>, so a stronger write retains less historical mass. The input-dependent modulator <span class="math">γ<sub><i>t</i></sub></span> adjusts this baseline in logit space: a larger <span class="math">γ</span> means more forgetting. A learned projection produces one <span class="math">γ</span> per token and head, shared across slots.</li>
-<li><strong class="text-highlight">Slot mass (<span class="math"><i>m</i></span>):</strong> keep a fraction <span class="math">λ<sub><i>t</i></sub>[<i>a</i>]</span> of the previous mass, then add the current write weight. Forgetting reduces the slot's inertia, allowing it to learn new content faster.</li>
+<li><strong class="text-highlight">Slot mass (<span class="math"><i>m</i></span>):</strong> keep a fraction <span class="math">λ<sub><i>t</i></sub>[<i>a</i>]</span> of the previous mass, then add the current write weight. Stronger forgetting leaves less mass from earlier writes, so the same new write moves the content further.</li>
 <li><strong class="text-highlight">Learning rate (<span class="math">η</span>):</strong> divide the current write weight by the sum of the updated slot mass and a small <span class="math">ε</span> for numerical stability. A stronger write increases the step, while more retained history reduces it.</li>
 <li><strong class="text-highlight">Content (<span class="math">s</span>):</strong> move an <span class="math">η</span> fraction of the way from the current content toward <span class="math"><b>v</b><sub><i>t</i></sub></span>. A small <span class="math">η</span> preserves history; an <span class="math">η</span> near 1 lets the new value dominate.</li>
 </ul>
 <p>As a result, GSU has three properties:</p>
 <ol class="stage-list">
-<li><strong class="text-highlight">Exact sparsity:</strong> for an unselected slot, <span class="math"><i>w</i><sub><i>t</i></sub>[<i>a</i>] = 0</span> gives <span class="math">λ<sub><i>t</i></sub>[<i>a</i>] = 1</span> and <span class="math">η<sub><i>t</i></sub>[<i>a</i>] = 0</span>, so both its content and mass stay unchanged. Writes from different tokens interact only at the slots they jointly address.</li>
-<li><strong class="text-highlight">Bounded content:</strong> since <span class="math">η<sub><i>t</i></sub>[<i>a</i>] ∈ [0, 1)</span>, each update is a convex combination of the previous content and <span class="math"><b>v</b><sub><i>t</i></sub></span>, keeping the slot's content on the same scale as the input values, regardless of how many writes it receives.</li>
-<li><strong class="text-highlight">Adaptive learning rate:</strong> the current write weight and historical mass set each slot's learning rate, while <span class="math">γ<sub><i>t</i></sub></span> adjusts retention for the current token and head. As <span class="math">γ<sub><i>t</i></sub> → −∞</span>, the slot approaches a write-weighted running average; as <span class="math">γ<sub><i>t</i></sub> → +∞</span>, each write nearly overwrites the slot. The model learns when to preserve history and when to adapt quickly.</li>
+<li><strong class="text-highlight">Exact sparsity:</strong> for a slot not selected for writing, <span class="math"><i>w</i><sub><i>t</i></sub>[<i>a</i>] = 0</span> gives <span class="math">λ<sub><i>t</i></sub>[<i>a</i>] = 1</span> and <span class="math">η<sub><i>t</i></sub>[<i>a</i>] = 0</span>, so both its content and mass stay unchanged. Writes from different tokens interact only at the slots they jointly address.</li>
+<li><strong class="text-highlight">Bounded content:</strong> since <span class="math">η<sub><i>t</i></sub>[<i>a</i>] ∈ [0, 1)</span>, each update is a convex combination of the previous content and <span class="math"><b>v</b><sub><i>t</i></sub></span>, keeping the slot’s content on the same scale as the input values, regardless of how many writes it receives.</li>
+<li><strong class="text-highlight">Adaptive learning rate:</strong> the current write weight and historical mass set each slot’s learning rate, while <span class="math">γ<sub><i>t</i></sub></span> adjusts retention for the current token and head. As <span class="math">γ<sub><i>t</i></sub> → −∞</span>, the slot approaches a write-weighted running average; as <span class="math">γ<sub><i>t</i></sub> → +∞</span>, each write nearly overwrites the slot. The model learns when to preserve history and when to adapt quickly.</li>
 </ol>
 </div></section>
 <section class="paper-section" id="execution" aria-labelledby="heading-execution"><div class="section-opening">
@@ -234,23 +234,23 @@ Given the current write weight <span class="math"><i>w</i><sub><i>t</i></sub>[<i
 </figure>
 </div>
 <div class="prose">
-<p>Sparse reads and writes are scattered across memory, which makes them irregular work for a GPU.
+<p>Sparse reads and writes touch scattered locations in memory, giving the GPU an irregular access pattern.
 During training and prefill—the initial processing of a prompt—RAM-Net organizes this work into <strong class="text-highlight">two stages: decode addresses, then execute by slot</strong>.</p>
 <h3>1. Parallel Address Decoding</h3>
 <p>Decode the read and write addresses of all tokens and heads in parallel.
-Each decoder computes the small digit softmaxes in registers, then extends and prunes Top-<span class="math"><i>K</i></span> prefixes one level at a time.
+Each decoder computes one small softmax per address digit in registers, then extends and prunes Top-<span class="math"><i>K</i></span> prefixes one level at a time.
 Log-space sums replace products to avoid numerical underflow. The result is a set of integer slot addresses and their weights, without constructing the full slot distribution.</p>
 <h3>2. Slot-Parallel Execution</h3>
-<p>Turn these addresses into read and write events, <strong class="text-highlight">group them by slot and order them by time</strong>.
+<p>Turn these addresses into read and write events, <strong class="text-highlight">group them by slot, and order each slot’s events by time</strong>.
 Different slots, and the vector dimensions within each slot, run in parallel; events within one slot follow the <strong class="text-highlight">causal order</strong> of the recurrence.
-Each read contributes to its token's output. Slots without events are skipped, so state-update work follows the actual accesses rather than the full memory capacity.</p>
-<p>These two stages organize training and prefill over a whole sequence. Autoregressive decoding handles one token at a time and accesses only that token's selected slots.</p>
+Each read contributes to its token’s output. Slots without events are skipped, so state-update work follows the actual accesses rather than the full memory capacity.</p>
+<p>These two stages organize training and prefill over a whole sequence. Autoregressive decoding handles one token at a time and accesses only that token’s selected slots.</p>
 </div></section>
 <section class="paper-section" id="results" data-cycle-ms="16000" aria-labelledby="heading-results"><div class="section-heading"><div class="section-kicker"><span class="section-number">07</span><span class="section-name"><span class="section-name-text">Results</span></span></div><div><h2 id="heading-results">Quality and State Access</h2><p class="section-subtitle">Evidence &amp; trade-offs</p></div></div>
 <div class="metric-grid" aria-label="Selected experimental results">
 <div class="metric"><strong>0.4<span class="metric-unit">M</span></strong><span>Active state · 340M Top-8</span><small>26.6M total state elements</small></div>
 <div class="metric"><strong>72.9</strong><span>S-NIAH average · 340M Top-32</span><small>Three tasks · 1K–16K contexts</small></div>
-<div class="metric"><strong>15.90</strong><span>Wiki. perplexity · 1.3B Top-16</span><small>Lower is better</small></div>
+<div class="metric"><strong>15.90</strong><span>WikiText perplexity · 1.3B Top-16</span><small>Lower is better</small></div>
 </div>
 <div class="prose results-intro"><p>These tables compare RAM-Net with Transformer++ <a class="cite" href="#ref-4">[4]</a> and the recurrent baselines Gated DeltaNet <a class="cite" href="#ref-6">[6]</a>, DeltaNet <a class="cite" href="#ref-12">[12]</a>, Mamba2 <a class="cite" href="#ref-5">[5]</a>, GLA <a class="cite" href="#ref-7">[7]</a>, GSA <a class="cite" href="#ref-8">[8]</a>, and MoM <a class="cite" href="#ref-13">[13]</a> on language modeling, long-context retrieval, real-world recall, and per-step state access.</p></div>
 <div class="experiment-tabs" role="tablist" aria-label="Experiment results" hidden>
@@ -264,9 +264,9 @@ Each read contributes to its token's output. Slots without events are skipped, s
 <div class="experiment-scroll experiment-fit is-wide" role="region" aria-label="Language Modeling and Reasoning data table">
 <table class="experiment-table" data-benchmark="language" role="table"><caption>Language Modeling and Reasoning — 340M and 1.3B models</caption><thead></thead>
 </table></div>
-<p class="experiment-key">↓ Lower is better. ↑ Higher is better. State sizes are in millions of elements. Active state is measured per step, at 2,048 tokens of context for Transformer++.</p>
+<p class="experiment-key">↓ Lower is better. ↑ Higher is better. State sizes are in millions of elements. Active state counts the state elements accessed per step. Transformer++ state sizes are reported for a 2,048-token context. The reasoning average covers the ten tasks from MMLU through Wino.</p>
 <p class="experiment-key">Within each model size, bold marks the best value in each column and underlining marks the next-best distinct value. Tied values receive the same mark.</p>
-<p>At 340M, RAM-Net Top-32 achieves <strong class="text-highlight">the lowest WikiText perplexity (25.87) and the highest average reasoning accuracy (50.9)</strong>. At 1.3B, Top-16 reaches 15.90 perplexity, close to Gated DeltaNet’s 15.85, and Top-32 ranks second in average reasoning accuracy at 58.1, behind Gated DeltaNet’s 58.7. Increasing Top-K improves average reasoning accuracy at both scales.</p>
+<p>At 340M, RAM-Net Top-32 achieves <strong class="text-highlight">the lowest WikiText perplexity (25.87) and the highest average reasoning accuracy (50.9)</strong>. At 1.3B, Top-16 reaches a WikiText perplexity of 15.90, close to Gated DeltaNet’s 15.85, and Top-32 ranks second in average reasoning accuracy at 58.1, behind Gated DeltaNet’s 58.7. Increasing Top-K improves average reasoning accuracy at both scales.</p>
 </article>
 <article class="experiment-panel" id="experiment-sniah" aria-labelledby="title-sniah">
 <h3 id="title-sniah">S-NIAH: Retrieval Across Context Lengths</h3>
@@ -308,7 +308,7 @@ Each read contributes to its token's output. Slots without events are skipped, s
 </figure>
 </div><div class="prose">
 <p>Attention maps are a common way to examine token-to-token interaction patterns in Transformers and linear-attention models. RAM-Net adds an <strong class="text-highlight">address-level dimension</strong>: we can inspect both the relationship between two tokens and <strong class="text-highlight">which specific slots mediate their communication</strong>. Its read and write addresses expose a token–slot–token path.</p>
-<p>In the S-NIAH traces, <strong class="text-highlight">the fact to retrieve (the needle) and distractor text are written mainly to different slot subsets</strong>. As the model processes subsequent distractors, the needle's contribution persists in those slots; answer-time reads then revisit them. This helps explain successful NIAH retrieval: relevant information is preserved with limited interference from the surrounding text, then accessed again through its addresses.</p>
+<p>In the S-NIAH traces, <strong class="text-highlight">the fact to retrieve (the needle) and the distractors are written mainly to different sets of slots</strong>. As the model processes more distractors, the needle’s contribution persists in the slots where it was written. When producing the answer, the model reads those slots again. This path helps explain successful retrieval in S-NIAH.</p>
 </div></section>
 <section class="paper-section" id="head-probes" aria-labelledby="heading-head-probes"><div class="section-opening">
 <div class="section-heading"><div class="section-kicker"><span class="section-number">09</span><span class="section-name"><span class="section-name-text">Address Patterns</span></span></div><div><h2 id="heading-head-probes">What Do Shared Addresses Reveal?</h2><p class="section-subtitle">Interpretability · Learned associations</p></div></div>
@@ -327,8 +327,8 @@ Each read contributes to its token's output. Slots without events are skipped, s
   <figcaption class="figure-interaction-hint">Switch the head or corpus to compare access concentration<span class="fine-interaction-hint">; hover over a bar to compare cumulative slot and access shares</span>.</figcaption>
 </figure>
 </div><div class="prose">
-<p>The network's content-dependent reads and writes <strong class="text-highlight">spontaneously form hotspots</strong>: many visits converge on a small set of learned content addresses, while many other addresses are visited less often, forming a long tail. Sparse access limits how many slots each step touches; this concentration reflects where the model chooses to route the input content.</p>
-<p>Computer memory accesses often concentrate on <strong class="text-highlight">hot data, with a long tail of rarely accessed locations</strong>. Seeing a similar pattern emerge in learned addressing suggests that <strong class="text-highlight">concentrated reuse may be a common feature of computation</strong>: a broad memory serves diverse needs, while a small subset supplies much of the repeated work.</p>
+<p>As the network selects addresses based on input content, <strong class="text-highlight">hotspots emerge</strong>. A small set of addresses receives a large share of reads and writes, while many others receive few. Top-K limits how many slots each step touches. The concentration comes from the model repeatedly selecting particular addresses across steps.</p>
+<p>Computer memory accesses often concentrate on <strong class="text-highlight">hot data, with a long tail of rarely accessed locations</strong>. Seeing a similar pattern emerge in learned addressing suggests that <strong class="text-highlight">concentrated reuse may be a common feature of computation</strong>: a large memory holds diverse information, while a small set of locations serves many of the repeated accesses.</p>
 <p>This concentration creates an <strong class="text-highlight">opportunity for acceleration through reuse</strong>. Keeping frequently visited state near the execution units can let a small fast memory serve a large share of accesses. A larger, slower backing memory can then provide capacity without serving every operation.</p>
 </div></section>
 <section class="paper-section" id="hardware" aria-labelledby="heading-hardware"><div class="section-opening">
@@ -337,9 +337,9 @@ Each read contributes to its token's output. Slots without events are skipped, s
   <div class="figure-stage"><div class="embedded-exhibit" data-exhibit="hardware" role="group" aria-label="Conceptual hardware: integer addresses, independent slot engines and on-chip SRAM" style="min-height:480px"></div></div>
 </figure>
 </div><div class="prose">
-<p>Two properties point toward efficient hardware: <strong class="text-highlight">independent slot operations and repeated access to hot state</strong>. Explicit integer addresses separate address generation from memory execution, while independent slots provide work that can be issued in parallel.</p>
-<p>Independent slots offer <strong class="text-highlight">multi-issue and local out-of-order execution</strong>, with causal order preserved within each slot. This suggests a design <strong class="text-highlight">between CPU and GPU styles</strong>: simpler dependency control than a general-purpose CPU, with more scheduling freedom than a single lockstep GPU instruction stream.</p>
-<p>The hotspots suggest a way to <strong class="text-highlight">reduce DRAM traffic with local caching</strong>. Frequently reused state can stay in on-chip SRAM, and consecutive operations can retain it in registers. This offers a way to retain a large memory while serving repeated accesses close to the execution units.</p>
+<p>Two properties point toward efficient hardware: <strong class="text-highlight">independent slot operations and repeated access to hot state</strong>. The front end generates integer addresses. The back end uses them to issue reads and writes to different slots in parallel.</p>
+<p>Independent slots offer <strong class="text-highlight">multi-issue and local out-of-order execution</strong>, with causal order preserved within each slot. A processor built this way would sit <strong class="text-highlight">between a CPU and a GPU</strong>. It would need simpler dependency tracking than a general-purpose CPU and could schedule slot operations more freely than a single lockstep GPU instruction stream.</p>
+<p>The hotspots suggest a way to <strong class="text-highlight">reduce DRAM traffic with local caching</strong>. Frequently reused state can stay in on-chip SRAM, and consecutive operations on the same slot can keep its state in registers. This offers a way to retain a large memory while serving repeated accesses close to the execution units.</p>
 </div></section>
 <section class="references" id="references" aria-labelledby="heading-references"><div class="prose">
 <h2 id="heading-references">References</h2>
